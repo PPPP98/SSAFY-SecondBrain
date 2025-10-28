@@ -16,14 +16,11 @@ interface GoogleLoginButtonProps {
  * - Font: Roboto Medium, 14px, 20px line-height
  * - Padding: 12px left/right, 10px gap between logo and text
  */
-const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
-  onClick,
-  text = 'signin'
-}) => {
+const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({ onClick, text = 'signin' }) => {
   const buttonText = {
     signin: 'Sign in with Google',
     signup: 'Sign up with Google',
-    continue: 'Continue with Google'
+    continue: 'Continue with Google',
   };
 
   return (
@@ -31,21 +28,7 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
       onClick={onClick}
       type="button"
       aria-label={buttonText[text]}
-      className="
-        flex items-center justify-center
-        bg-white
-        border border-[#747775]
-        text-[#1F1F1F]
-        font-medium text-sm leading-5
-        px-3 py-2.5
-        rounded
-        hover:bg-gray-50
-        active:bg-gray-100
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-        transition-colors duration-200
-        cursor-pointer
-        min-w-[200px]
-      "
+      className="flex min-w-[200px] cursor-pointer items-center justify-center rounded border border-[#747775] bg-white px-3 py-2.5 text-sm font-medium leading-5 text-[#1F1F1F] transition-colors duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-100"
     >
       {/* Google "G" Logo - Official SVG with standard colors */}
       <svg
@@ -77,9 +60,7 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
       </svg>
 
       {/* Button Text */}
-      <span className="font-medium">
-        {buttonText[text]}
-      </span>
+      <span className="font-medium">{buttonText[text]}</span>
     </button>
   );
 };
