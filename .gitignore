@@ -71,7 +71,7 @@ $RECYCLE.BIN/
 *.lnk
 
 ### VisualStudioCode & Cursor ###
-.vscode/*
+.vscode/
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
