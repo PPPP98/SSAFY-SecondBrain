@@ -1,0 +1,324 @@
+### Git ###
+# Git 백업 파일 (무시하려면: git config --global mergetool.keepBackup false)
+*.orig
+
+# Git 병합 충돌 파일
+*.BACKUP.*
+*.BASE.*
+*.LOCAL.*
+*.REMOTE.*
+*_BACKUP_*.txt
+*_BASE_*.txt
+*_LOCAL_*.txt
+*_REMOTE_*.txt
+
+### Java ###
+# 컴파일된 클래스 파일
+*.class
+
+# 로그 파일
+*.log
+
+# BlueJ 파일
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# 패키지 파일
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# JVM 크래시 로그
+hs_err_pid*
+replay_pid*
+
+### macOS ###
+# macOS 시스템 파일
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 아이콘 파일
+Icon
+
+
+# 썸네일
+._*
+
+# 볼륨 루트에 생성되는 파일들
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# AFP 공유 디렉토리
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# iCloud 생성 파일
+*.icloud
+
+### Python ###
+# 바이트코드 및 최적화 파일
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 배포 및 패키징
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# 패키지 설치 로그
+pip-log.txt
+pip-delete-this-directory.txt
+
+# 테스트 및 커버리지 보고서
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# 다국어 번역 파일
+*.mo
+*.pot
+
+# Django
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask
+instance/
+.webassets-cache
+
+# Scrapy
+.scrapy
+
+# Sphinx 문서
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Python 가상환경
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Poetry, PDM, Pipenv
+poetry.toml
+.pdm.toml
+#Pipfile.lock
+#poetry.lock
+#pdm.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
+
+# 타입 체커 및 린터
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+pyrightconfig.json
+
+# Cython
+cython_debug/
+
+### VisualStudioCode & Cursor ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# VSCode 로컬 히스토리
+.history/
+.history
+.ionide
+
+# VSCode 확장 프로그램
+*.vsix
+
+# Cursor IDE
+.cursor/
+.cursorrules
+
+# Claude 설정
+.claude/
+CLAUDE.md
+
+### Windows ###
+# Windows 썸네일 캐시
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# 덤프 파일
+*.stackdump
+
+# 폴더 설정 파일
+[Dd]esktop.ini
+
+# 휴지통
+$RECYCLE.BIN/
+
+# Windows 설치 파일
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows 바로가기
+*.lnk
+
+### IntelliJ IDEA ###
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+### Spring Boot ###
+# Gradle
+.gradle/
+gradle/
+!gradle/wrapper/gradle-wrapper.jar
+gradlew
+gradlew.bat
+
+# Maven
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+mvnw
+mvnw.cmd
+target/
+
+# Spring Boot 환경별 설정 파일
+application-local.yml
+application-local.properties
+application-dev.yml
+application-dev.properties
+application-prod.yml
+application-prod.properties
+
+### Node.js & React & TypeScript ###
+# 의존성
+node_modules/
+.pnp
+.pnp.js
+.pnpm-store/
+
+# 빌드 출력
+dist/
+build/
+.next/
+out/
+.nuxt/
+.parcel-cache/
+.turbo/
+
+# 로그
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+.tsbuildinfo
+
+# 패키지 매니저
+.npm
+.yarn/
+.yarnrc.yml
+!.yarn/releases
+!.yarn/plugins
+
+# Tailwind CSS
+.tailwindcss-cache/
+
+# 환경 변수 및 시크릿
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.key
+*.pem
+secrets/
+.secrets/
