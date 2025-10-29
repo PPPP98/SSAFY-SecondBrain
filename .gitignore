@@ -310,6 +310,20 @@ lerna-debug.log*
 # Tailwind CSS
 .tailwindcss-cache/
 
+### Docker ###
+# Docker 개인 설정 파일
+docker-compose.override.yml
+docker-compose*.local.yml
+
+# Docker 볼륨 및 데이터
+volumes/
+.docker/
+docker-volumes/
+docker-data/
+
+# Docker 빌드 캐시
+.dockerignore.local
+
 # 환경 변수 및 시크릿
 .env
 .env.local
