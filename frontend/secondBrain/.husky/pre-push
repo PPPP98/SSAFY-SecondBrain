@@ -1,8 +1,3 @@
-#!/usr/bin/env sh
-
-# Husky 환경 로드
-. "$(dirname "$0")/_/husky.sh"
-
 # Frontend 디렉토리로 이동
 cd frontend/secondBrain || {
   echo "❌ 디렉토리를 찾을 수 없습니다: frontend/secondBrain"
