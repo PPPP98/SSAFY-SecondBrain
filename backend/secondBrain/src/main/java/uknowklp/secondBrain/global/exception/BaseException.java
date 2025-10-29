@@ -1,7 +1,7 @@
-package uknowklp.SecondBrain.global.exception;
+package uknowklp.secondBrain.global.exception;
 
 import lombok.Getter;
-import uknowklp.SecondBrain.global.response.BaseResponseStatus;
+import uknowklp.secondBrain.global.response.BaseResponseStatus;
 
 @Getter
 public class BaseException extends RuntimeException {

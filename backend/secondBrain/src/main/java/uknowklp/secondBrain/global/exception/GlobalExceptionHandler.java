@@ -1,11 +1,11 @@
-package uknowklp.SecondBrain.global.exception;
+package uknowklp.secondBrain.global.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import uknowklp.SecondBrain.global.response.BaseResponse;
-import uknowklp.SecondBrain.global.response.BaseResponseStatus;
+import uknowklp.secondBrain.global.response.BaseResponse;
+import uknowklp.secondBrain.global.response.BaseResponseStatus;
 
 @Slf4j
 @RestControllerAdvice

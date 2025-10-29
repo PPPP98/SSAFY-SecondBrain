@@ -1,4 +1,4 @@
-package uknowklp.SecondBrain.global.response;
+package uknowklp.secondBrain.global.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;

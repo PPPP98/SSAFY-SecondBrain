@@ -1,4 +1,4 @@
-package uknowklp.SecondBrain.global.response;
+package uknowklp.secondBrain.global.response;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
@@ -16,7 +16,7 @@ public enum BaseResponseStatus {
 	 * -10400 : 사용자 요청 에러
 	 */
 	BAD_REQUEST(false, HttpStatus.BAD_REQUEST, -10400, "잘못된 요청입니다."),
-	INVALID_ACCESS_TOKEN(false, HttpStatus.UNAUTHORIZED, -10401, "유효하지 않은 엑세스 토큰입니다."),
+	INVALID_ACCESS_TOKEN(false, HttpStatus.UNAUTHORIZED, -10401, "유효하지 않은 액세스 토큰입니다."),
 	USER_NOT_FOUND(false, HttpStatus.NOT_FOUND, -10402, "존재하지 않는 사용자입니다."),
 	NEED_LOGIN(false, HttpStatus.FORBIDDEN, -10403, "로그인이 필요한 서비스입니다."),
 	EMPTY_FILE(false, HttpStatus.BAD_REQUEST, -10404, "파일이 존재하지 않습니다."),
