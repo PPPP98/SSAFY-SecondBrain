@@ -263,6 +263,9 @@ mvnw.cmd
 target/
 
 # Spring Boot 환경별 설정 파일
+application.yaml
+application.properties
+application.yml
 application-local.yml
 application-local.properties
 application-dev.yml
