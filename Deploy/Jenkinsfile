@@ -467,9 +467,7 @@ pipeline {
       }
     }
     failure {
-      script {
-        // 모든 블록에서 실패시 알림
-      }
+      echo "실패했다"
     }
     unstable {
       script {
