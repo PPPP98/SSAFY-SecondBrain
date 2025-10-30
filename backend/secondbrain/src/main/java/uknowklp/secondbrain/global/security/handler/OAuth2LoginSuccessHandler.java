@@ -1,7 +1,6 @@
 package uknowklp.secondbrain.global.security.handler;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -43,6 +42,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 	private boolean cookieSecure;
 
 	private static final String AUTH_CODE_PREFIX = "auth_code:";
+	private static final Duration AUTH_CODE_TTL = Duration.ofMinutes(5);
 
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -96,7 +96,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 			redisTemplate.opsForValue().set(
 				authCodeKey,
 				user.getId().toString(),
-				Duration.ofMinutes(5)
+				AUTH_CODE_TTL
 			);
 		} catch (Exception e) {
 			log.error("Failed to store authorization code in Redis. UserId: {}, Code: {}, Email: {}",

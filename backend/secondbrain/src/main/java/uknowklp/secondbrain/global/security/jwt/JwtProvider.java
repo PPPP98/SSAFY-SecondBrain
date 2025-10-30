@@ -114,15 +114,6 @@ public class JwtProvider {
 			.compact();
 	}
 
-	/**
-	 * 하위 호환성을 위한 메서드 (기존 createToken → createAccessToken)
-	 * @deprecated 대신 createAccessToken을 사용하세요
-	 */
-	@Deprecated
-	public String createToken(User user) {
-		return createAccessToken(user);
-	}
-
 	// 토큰 유효성 검증
 	public boolean validateToken(String token) {
 		try {

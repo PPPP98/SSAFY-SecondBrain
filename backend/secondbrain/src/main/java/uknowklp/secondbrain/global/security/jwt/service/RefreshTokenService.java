@@ -28,6 +28,7 @@ public class RefreshTokenService {
 
 	// Redis key pattern: refresh_token:{userId}:{tokenId}
 	private static final String REFRESH_TOKEN_PREFIX = "refresh_token:";
+	private static final int REDIS_SCAN_BATCH_SIZE = 100;
 
 	/**
 	 * Refresh token을 Redis에 저장
@@ -94,7 +95,7 @@ public class RefreshTokenService {
 		redisTemplate.execute((RedisCallback<Set<String>>) connection -> {
 			ScanOptions options = ScanOptions.scanOptions()
 				.match(pattern)
-				.count(100)  // 한 번에 스캔할 키 개수 힌트 (Redis는 이를 참고만 함)
+				.count(REDIS_SCAN_BATCH_SIZE)  // 한 번에 스캔할 키 개수 힌트 (Redis는 이를 참고만 함)
 				.build();
 
 			try (Cursor<byte[]> cursor = connection.scan(options)) {

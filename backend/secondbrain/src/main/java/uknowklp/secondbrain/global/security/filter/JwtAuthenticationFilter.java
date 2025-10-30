@@ -44,9 +44,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 			// 토큰이 존재하면 인증 처리
 			if (token != null && jwtProvider.validateToken(token)) {
+				// 토큰 타입 검증 (ACCESS 토큰만 허용)
+				String tokenType = jwtProvider.getTokenType(token);
+				if (!"ACCESS".equals(tokenType)) {
+					log.warn("Invalid token type in authentication filter. Type: {}, URI: {}",
+						tokenType, request.getRequestURI());
+					response.sendError(
+						BaseResponseStatus.INVALID_ACCESS_TOKEN.getHttpStatus().value(),
+						"Invalid token type"
+					);
+					return;
+				}
+
 				// Blacklist 확인 (로그아웃되거나 무효화된 토큰 차단)
 				String tokenId = jwtProvider.getTokenId(token);
-				String tokenType = jwtProvider.getTokenType(token);
 
 				if (blacklistService.isBlacklisted(tokenId, tokenType)) {
 					log.warn("Blacklisted token detected. TokenId: {}, Type: {}, URI: {}",
