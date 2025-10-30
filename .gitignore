@@ -262,17 +262,6 @@ mvnw
 mvnw.cmd
 target/
 
-# Spring Boot 환경별 설정 파일
-application.yaml
-application.properties
-application.yml
-application-local.yml
-application-local.properties
-application-dev.yml
-application-dev.properties
-application-prod.yml
-application-prod.properties
-
 ### Node.js & React & TypeScript ###
 # 의존성
 node_modules/
@@ -325,7 +314,7 @@ docker-data/
 .dockerignore.local
 
 # 환경 변수 및 시크릿
-.env
+*.env
 .env.local
 .env.development.local
 .env.test.local
