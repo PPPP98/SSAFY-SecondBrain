@@ -468,29 +468,7 @@ pipeline {
     }
     failure {
       script {
-        def logTail = ""
-        try {
-          logTail = currentBuild.rawBuild.getLog(50).join('\n')
-        } catch (ignore) {
-          logTail = "⚠️ Could not read Jenkins console log"
-        }
-
-        def msg = """
-**Job**: `${env.JOB_NAME}` #${env.BUILD_NUMBER}
-**URL**: [Open Jenkins Log](${env.BUILD_URL})
-
-**Error Snippet (last 50 lines):**
-```
-${logTail}
-```
-"""
-
-        mmNotify(
-          status: 'failure',
-          category: 'pipeline',
-          template: 'failure',
-          extra: clipText(msg, 1200)
-        )
+        // 모든 블록에서 실패시 알림
       }
     }
     unstable {
