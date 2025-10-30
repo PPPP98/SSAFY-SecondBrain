@@ -1,6 +1,6 @@
 // Common helpers
 @NonCPS
-def short(String s, int maxLen = 600) {
+def clipText(String s, int maxLen = 600) {
   if (!s) return ""
   return s.size() > maxLen ? (s.take(maxLen) + "\n... (truncated)") : s
 }
@@ -88,23 +88,19 @@ pipeline {
     ansiColor('xterm')
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '10'))
-    timeout(time: 60, unit: 'MINUTES')   // 전체 파이프라인 상한
+    timeout(time: 60, unit: 'MINUTES')
   }
 
   parameters {
-    // git & branch
     string(name: 'GIT_PAT_CRED_ID',  defaultValue: 'seok', description: 'Jenkins credentialsId for GitLab PAT (Username/Password)')
     string(name: 'GIT_URL_HTTPS', defaultValue: 'https://lab.ssafy.com/s13-final/S13P31E107.git', description: 'Git repository (HTTPS)')
     string(name: 'DEVELOP_BRANCH', defaultValue: 'develop', description: 'Develop branch name')
     string(name: 'RELEASE_BRANCH', defaultValue: 'master', description: 'Release branch name')
-    // compose
     string(name: 'COMPOSE_FILE',   defaultValue: 'deploy/docker-compose.yml', description: 'Main compose file')
     string(name: 'COMPOSE_AI_FILE',defaultValue: 'deploy/docker-compose.ai.yml', description: 'AI compose file')
-    // compose file의 서비스 키
     string(name: 'BACK_SERVICE',  defaultValue: 'klp_back',  description: 'Compose service name for backend')
     string(name: 'FRONT_SERVICE', defaultValue: 'klp_front', description: 'Compose service name for frontend')
     string(name: 'AI_SERVICE',    defaultValue: 'klp_ai',    description: 'Compose service name for ai')
-
     string(name: 'BACK_DIR',  defaultValue: 'backend/secondbrain', description: 'Backend root dir')
     string(name: 'FRONT_DIR', defaultValue: 'frontend/secondbrain', description: 'Frontend root dir')
     string(name: 'AI_DIR',    defaultValue: 'ai', description: 'AI root dir')
@@ -178,7 +174,7 @@ pipeline {
               git fetch --no-tags origin "${GL_MR_TARGET}:${GL_MR_TARGET}" || true
             '''
           } catch (e) {
-            mmNotify(status:'failure', category:'checkout', template:'failure', extra: short(e.toString()))
+            mmNotify(status:'failure', category:'checkout', template:'failure', extra: clipText(e.toString()))
             error "Checkout failed: ${e}"
           }
         }
@@ -213,13 +209,12 @@ pipeline {
               echo "✅ MR title OK"
             '''
 
-            // ✅ open / reopen 때만 MR 생성 알림
             def action = (env.GL_MR_ACTION ?: "").toLowerCase()
             if (action == "open" || action == "reopen") {
               mmNotify(status:'success', category:'mr-open', template:'merge_open')
             }
           } catch (e) {
-            mmNotify(status:'failure', category:'mr-title', template:'failure', extra: short(e.toString()))
+            mmNotify(status:'failure', category:'mr-title', template:'failure', extra: clipText(e.toString()))
             error "MR title validation failed: ${e}"
           }
         }
@@ -230,29 +225,22 @@ pipeline {
       steps {
         script {
           try {
-            // 브랜치 이름만으로 감지
             def srcBranch = (env.GL_MR_SOURCE ?: "").toLowerCase()
             echo "Detect by branch name only: ${srcBranch}"
 
-            // 백엔드 감지
             def isBE     = (srcBranch =~ /(^|\/)(be)(\/|$)/)
-            // 프론트 감지
             def isFE     = (srcBranch =~ /(^|\/)(fe)(\/|$)/)
-            // AI 감지
             def isAI     = (srcBranch =~ /(^|\/)(ai)(\/|$)/)
-            // 인프라 감지
             def isINFRA  = (srcBranch =~ /(^|\/)(infra)(\/|$)/)
 
-            // infra면 전부 1로 간주
             env.CHANGED_BACK   = (isBE || isINFRA) ? "1" : "0"
             env.CHANGED_FRONT  = (isFE || isINFRA) ? "1" : "0"
             env.CHANGED_AI     = (isAI || isINFRA) ? "1" : "0"
-            // deploy도 infra가 건드렸다고 가정
             env.CHANGED_DEPLOY = isINFRA ? "1" : "0"
 
             echo "RESULT | BACK:${env.CHANGED_BACK}, FRONT:${env.CHANGED_FRONT}, AI:${env.CHANGED_AI}, INFRA:${env.CHANGED_DEPLOY}"
           } catch (e) {
-            mmNotify(status:'failure', category:'change-detect', template:'failure', extra: short(e.toString()))
+            mmNotify(status:'failure', category:'change-detect', template:'failure', extra: clipText(e.toString()))
             error "Change detection failed: ${e}"
           }
         }
@@ -281,7 +269,7 @@ pipeline {
               '''
             }
           } catch (e) {
-            mmNotify(status:'failure', category:'gitlab-status', template:'failure', extra: short(e.toString()))
+            mmNotify(status:'failure', category:'gitlab-status', template:'failure', extra: clipText(e.toString()))
           }
         }
       }
@@ -303,7 +291,7 @@ pipeline {
               '''
             }
           } catch (e) {
-            mmNotify(status:'failure', category:'prepare-env', template:'failure', extra: short(e.toString()))
+            mmNotify(status:'failure', category:'prepare-env', template:'failure', extra: clipText(e.toString()))
             error "Prepare env failed: ${e}"
           }
         }
@@ -328,7 +316,7 @@ pipeline {
             def targets = [
               [flag: env.CHANGED_BACK,  name: 'backend',  ctx: env.BACK_DIR,  df: 'Dockerfile', image: 'seok1419/klp-backend'],
               [flag: env.CHANGED_FRONT, name: 'frontend', ctx: env.FRONT_DIR, df: 'Dockerfile', image: 'seok1419/klp-frontend'],
-              [flag: env.CHANGED_AI,    name: 'ai',       ctx: env.AI_DIR,    df: 'Dockerfile', image: 'seok1419/klp-ai']
+              // [flag: env.CHANGED_AI,    name: 'ai',       ctx: env.AI_DIR,    df: 'Dockerfile', image: 'seok1419/klp-ai']
             ]
 
             sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
@@ -401,7 +389,7 @@ pipeline {
     //           if (env.CHANGED_AI == "1") {
     //             sh """
     //               set -eux
-    //               if [ -f "$COMPOSE_AI_FILE" ]; then
+    //               if [ -f "$COMPOSE_FILE" ]; then
     //                 docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
     //               else
     //                 docker compose --env-file deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
@@ -415,7 +403,7 @@ pipeline {
     //         }
     //         mmNotify(status:'success', category:'deploy', template:'merge_success', targetBranch: env.GL_MR_TARGET)
     //       } catch (e) {
-    //         mmNotify(status:'failure', category:'deploy', template:'failure', targetBranch: env.GL_MR_TARGET, extra: short(e.toString()))
+    //         mmNotify(status:'failure', category:'deploy', template:'failure', targetBranch: env.GL_MR_TARGET, extra: clipText(e.toString()))
     //         error "Deploy failed: ${e}"
     //       }
     //     }
@@ -458,7 +446,7 @@ pipeline {
             }
             mmNotify(status:'success', category:'tagging')
           } catch (e) {
-            mmNotify(status:'failure', category:'tagging', template:'failure', extra: short(e.toString()))
+            mmNotify(status:'failure', category:'tagging', template:'failure', extra: clipText(e.toString()))
             error "Tag & push failed: ${e}"
           }
         }
@@ -468,21 +456,18 @@ pipeline {
 
   post {
     success {
-      // 파이프라인 자체 성공 알림: update는 제외, open/reopen만 보내고 싶으면 여기서도 한 번 필터 가능
       def action = (env.GL_MR_ACTION ?: "").toLowerCase()
       if (action == "open" || action == "reopen") {
         mmNotify(status:'success', category:'pipeline', template:'merge_open')
       } else if (action != "merge") {
-        // update 등은 너무 시끄러우면 여기서 아예 안 보냄
-        // 아무것도 안 함
+        // update는 조용
       } else {
-        // merge 케이스는 Deploy 스테이지에서 이미 보냈으니 심플하게
         mmNotify(status:'success', category:'pipeline')
       }
     }
     failure {
       mmNotify(status:'failure', category:'pipeline', template:'failure',
-               extra: short("Job: ${env.JOB_NAME} #${env.BUILD_NUMBER}\nSee console for details."))
+               extra: clipText("Job: ${env.JOB_NAME} #${env.BUILD_NUMBER}\nSee console for details."))
     }
     unstable {
       mmNotify(status:'info', category:'pipeline',
