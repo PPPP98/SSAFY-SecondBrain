@@ -134,13 +134,43 @@ public class JwtProvider {
 		}
 	}
 
-	// 토큰에서 사용자 정보를 추출하는 메서드
+	/**
+	 * 토큰 검증 및 Claims 추출
+	 * <p>
+	 * JWT 서명 검증, 만료 시간 검사 등을 자동으로 수행합니다.
+	 * 토큰이 유효하지 않으면 예외가 발생합니다.
+	 * </p>
+	 *
+	 * @param token JWT 토큰
+	 * @return Claims 객체
+	 * @throws io.jsonwebtoken.JwtException 토큰이 유효하지 않은 경우
+	 *         (서명 오류, 만료, 형식 오류 등)
+	 */
 	public Claims getClaims(String token) {
 		return Jwts.parser()
 			.verifyWith(secretKey)
 			.build()
 			.parseSignedClaims(token)
 			.getPayload();
+	}
+
+	/**
+	 * 토큰이 유효한 경우에만 Claims 반환
+	 * <p>
+	 * JWT 검증을 수행하고 성공 시 Claims를 반환합니다.
+	 * 검증 실패 시 예외를 로깅하고 empty Optional을 반환합니다.
+	 * </p>
+	 *
+	 * @param token JWT 토큰
+	 * @return 유효한 경우 Claims를 포함한 Optional, 무효한 경우 empty Optional
+	 */
+	public Optional<Claims> getClaimsIfValid(String token) {
+		try {
+			return Optional.of(getClaims(token));
+		} catch (Exception e) {
+			log.warn("Failed to parse JWT token: {}", e.getMessage());
+			return Optional.empty();
+		}
 	}
 
 	public Authentication getAuthentication(String token) {
@@ -166,9 +196,13 @@ public class JwtProvider {
 
 	/**
 	 * 토큰에서 tokenId를 추출
+	 * <p>
+	 * JWT 검증을 수행하고 tokenId claim을 반환합니다.
+	 * </p>
 	 *
-	 * @param token JWT 토큰
+	 * @param token JWT 토큰 (유효성 검증 수행됨)
 	 * @return tokenId
+	 * @throws io.jsonwebtoken.JwtException 토큰이 유효하지 않은 경우
 	 */
 	public String getTokenId(String token) {
 		Claims claims = getClaims(token);
@@ -176,10 +210,25 @@ public class JwtProvider {
 	}
 
 	/**
-	 * 토큰에서 userId를 추출
+	 * 토큰이 유효한 경우에만 tokenId 반환
 	 *
 	 * @param token JWT 토큰
+	 * @return 유효한 경우 tokenId, 무효한 경우 empty Optional
+	 */
+	public Optional<String> getTokenIdIfValid(String token) {
+		return getClaimsIfValid(token)
+			.map(claims -> claims.get("tokenId", String.class));
+	}
+
+	/**
+	 * 토큰에서 userId를 추출
+	 * <p>
+	 * JWT 검증을 수행하고 userId claim을 반환합니다.
+	 * </p>
+	 *
+	 * @param token JWT 토큰 (유효성 검증 수행됨)
 	 * @return userId
+	 * @throws io.jsonwebtoken.JwtException 토큰이 유효하지 않은 경우
 	 */
 	public Long getUserId(String token) {
 		Claims claims = getClaims(token);
@@ -187,14 +236,40 @@ public class JwtProvider {
 	}
 
 	/**
-	 * 토큰 타입 확인 (ACCESS 또는 REFRESH)
+	 * 토큰이 유효한 경우에만 userId 반환
 	 *
 	 * @param token JWT 토큰
-	 * @return 토큰 타입
+	 * @return 유효한 경우 userId, 무효한 경우 empty Optional
+	 */
+	public Optional<Long> getUserIdIfValid(String token) {
+		return getClaimsIfValid(token)
+			.map(claims -> claims.get("userId", Long.class));
+	}
+
+	/**
+	 * 토큰 타입 확인 (ACCESS 또는 REFRESH)
+	 * <p>
+	 * JWT 검증을 수행하고 tokenType claim을 반환합니다.
+	 * </p>
+	 *
+	 * @param token JWT 토큰 (유효성 검증 수행됨)
+	 * @return 토큰 타입 ("ACCESS" 또는 "REFRESH")
+	 * @throws io.jsonwebtoken.JwtException 토큰이 유효하지 않은 경우
 	 */
 	public String getTokenType(String token) {
 		Claims claims = getClaims(token);
 		return claims.get("tokenType", String.class);
+	}
+
+	/**
+	 * 토큰이 유효한 경우에만 tokenType 반환
+	 *
+	 * @param token JWT 토큰
+	 * @return 유효한 경우 tokenType, 무효한 경우 empty Optional
+	 */
+	public Optional<String> getTokenTypeIfValid(String token) {
+		return getClaimsIfValid(token)
+			.map(claims -> claims.get("tokenType", String.class));
 	}
 
 	/**
