@@ -1,0 +1,52 @@
+services:
+  klp_back:
+    build:
+      context: ../backend/secondbrain
+      dockerfile: Dockerfile
+    container_name: klp_back
+    expose:
+      - "8080"
+    env_file:
+      - .env.prod
+    mem_limit: 1536m
+    memswap_limit: 1536m
+    cpus: "1.2"
+    restart: unless-stopped
+    networks:
+      - e104_net
+
+  klp_front:
+    build:
+      context: ../frontend/secondbrain
+      dockerfile: Dockerfile
+    container_name: klp_front
+    expose:
+      - "3000"
+    env_file:
+      - .env
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: "0.2"
+    restart: unless-stopped
+    networks:
+      - e107_net
+
+  klp_ai:
+    build:
+      context: ../ai
+      dockerfile: Dockerfile
+    container_name: klp_ai
+    expose:
+      - "8000"
+    mem_limit: 1024m
+    memswap_limit: 1024m
+    cpus: "0.6"
+    restart: unless-stopped 
+    networks:
+      - e107_net
+    env_file:
+      - .env
+
+networks:
+  e107_net:
+    external: true
