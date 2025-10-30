@@ -24,7 +24,7 @@ def mmNotify(Map m = [:]) {
 #### :homer_bush: Successfully Merged :homer_bush:
 
 ##### [${title}](${url})
-:pencil2: Assignee: @${assign}
+:pencil2: **Assignee**: @${assign}
 
 :gun_cat: **Target**: `${target}`
 
@@ -42,8 +42,8 @@ ${extra}
 
 ##### [${title}](${url})
 *서둘러서 코드 리뷰 해주세요~! 수정 필요할 경우 작성자 태그해주세요!!*
-:pencil2: Assignee: @${assign}
-:eyes_5s: Reviewer: @${reviewer}
+:pencil2: **Assignee**: @${assign}
+:eyes_5s: **Reviewer**: @${reviewer}
 
 :gun_cat: **Target**: `${target}`
 
@@ -56,8 +56,7 @@ ${extra}
 #### :x: Jenkins Pipeline Failed :x:
 
 ##### [${title}](${url})
-:pencil2: Assignee: @${assign}
-
+:pencil2: **Assignee**: @${assign}
 :gun_cat: **Target**: `${target}`
 
 ##### Error
@@ -469,11 +468,28 @@ pipeline {
     }
     failure {
       script {
+        def logTail = ""
+        try {
+          logTail = currentBuild.rawBuild.getLog(50).join('\n')
+        } catch (ignore) {
+          logTail = "⚠️ Could not read Jenkins console log"
+        }
+
+        def msg = """
+**Job**: `${env.JOB_NAME}` #${env.BUILD_NUMBER}
+**URL**: [Open Jenkins Log](${env.BUILD_URL})
+
+**Error Snippet (last 50 lines):**
+\`\`\`
+${logTail}
+\`\`\`
+"""
+
         mmNotify(
-          status:'failure',
-          category:'pipeline',
-          template:'failure',
-          extra: clipText("Job: ${env.JOB_NAME} #${env.BUILD_NUMBER}\nSee console for details.")
+          status: 'failure',
+          category: 'pipeline',
+          template: 'failure',
+          extra: clipText(msg, 1200)
         )
       }
     }
