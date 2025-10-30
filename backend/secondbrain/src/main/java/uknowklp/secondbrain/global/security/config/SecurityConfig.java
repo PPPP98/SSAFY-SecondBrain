@@ -55,6 +55,9 @@ public class SecurityConfig {
 				.requestMatchers("/oauth2/**", "/login/**").permitAll()
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // CORS Preflight
 
+				// Swagger UI (인증 불필요)
+				.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
 				// 보호된 엔드포인트 (인증 필수)
 				.requestMatchers("/api/**").authenticated()
 

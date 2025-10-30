@@ -57,6 +57,9 @@ security:
     cookie:
       secure: ${JWT_COOKIE_SECURE}
 
+swagger:
+  url: ${BASE_URL}
+
 logging:
   level:
     root: INFO
