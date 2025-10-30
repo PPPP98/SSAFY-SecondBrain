@@ -1,0 +1,15 @@
+# Frontend 디렉토리로 이동
+cd frontend/secondbrain || {
+  echo "❌ 디렉토리를 찾을 수 없습니다: frontend/secondbrain"
+  exit 1
+}
+
+echo "🏗️  빌드 실행 중..."
+pnpm run build
+
+if [ $? -ne 0 ]; then
+  echo "❌ 빌드 실패했습니다. 에러 수정 후 다시 push해주세요."
+  exit 1
+fi
+
+echo "✅ 빌드 성공!"
