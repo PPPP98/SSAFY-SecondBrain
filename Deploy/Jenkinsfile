@@ -455,19 +455,10 @@ pipeline {
 
   post {
     success {
-      script {
-        def action = (env.GL_MR_ACTION ?: "").toLowerCase()
-        if (action == "open" || action == "reopen") {
-          mmNotify(status:'success', category:'pipeline', template:'merge_open')
-        } else if (action != "merge") {
-          // update는 조용
-        } else {
-          mmNotify(status:'success', category:'pipeline')
-        }
-      }
+      echo "성공했다 굳"
     }
     failure {
-      echo "실패했다"
+      echo "실패했다 노우"
     }
     unstable {
       script {
