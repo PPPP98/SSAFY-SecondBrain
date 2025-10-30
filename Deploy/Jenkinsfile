@@ -480,9 +480,9 @@ pipeline {
 **URL**: [Open Jenkins Log](${env.BUILD_URL})
 
 **Error Snippet (last 50 lines):**
-\`\`\`
+```
 ${logTail}
-\`\`\`
+```
 """
 
         mmNotify(
