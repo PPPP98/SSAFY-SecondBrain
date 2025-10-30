@@ -8,14 +8,23 @@ def clipText(String s, int maxLen = 600) {
 def mmNotify(Map m = [:]) {
   // m: [status: success|failure|info, template: merge_open|merge_success|failure|plain,
   //     category, title, url, targetBranch, assignee, reviewer, extra]
-  def status  = (m.status ?: 'info').toLowerCase()
-  def color   = status == 'success' ? 'good' : (status == 'failure' ? 'danger' : '#888888')
-  def title   = m.title ?: (env.GL_MR_TITLE ?: 'No title')
-  def url     = m.url   ?: (env.GL_MR_URL   ?: env.BUILD_URL)
-  def target  = m.targetBranch ?: (env.GL_MR_TARGET ?: 'develop')
-  def assign  = m.assignee ?: (env.GL_ASSIGNEE ?: '9526yu')
-  def reviewer= m.reviewer ?: (env.GL_REVIEWER ?: '9526yu')
-  def extra   = m.extra ? "\n" + m.extra : ""
+  def userMap = [
+    'nks3319': 'hro',
+  ]
+
+  def status = (m.status ?: 'info').toLowerCase()
+  def color = status == 'success' ? 'good' : (status == 'failure' ? 'danger' : '#888888')
+  def title = m.title ?: (env.GL_MR_TITLE ?: 'No title')
+  def url = m.url ?: (env.GL_MR_URL ?: env.BUILD_URL)
+  def target = m.targetBranch ?: (env.GL_MR_TARGET ?: 'develop')
+  
+  def rawAssign = m.assignee ?: (env.GL_ASSIGNEE ?: '9526yu')
+  def rawReviewer = m.reviewer ?: (env.GL_REVIEWER ?: '9526yu')
+
+  def assign = userMap.get(rawAssign, rawAssign)
+  def reviewer = userMap.get(rawReviewer, rawReviewer)
+
+  def extra = m.extra ? "\n" + m.extra : ""
 
   String body
   switch ((m.template ?: 'plain')) {
@@ -38,7 +47,7 @@ ${extra}
       break
     case 'merge_open':
       body = """
-#### :green_frog: `${env.GL_USER_NAME ?: 'E104'}` MR Generated!!!!!!!!! :green_frog:
+#### :green_frog: `${env.GL_USER_NAME ?: 'E107'}` MR Generated!!!!!!!!! :green_frog:
 
 ##### [${title}](${url})
 *서둘러서 코드 리뷰 해주세요~! 수정 필요할 경우 작성자 태그해주세요!!*
@@ -227,14 +236,14 @@ pipeline {
             def srcBranch = (env.GL_MR_SOURCE ?: "").toLowerCase()
             echo "Detect by branch name only: ${srcBranch}"
 
-            def isBE     = (srcBranch =~ /(^|\/)(be)(\/|$)/)
-            def isFE     = (srcBranch =~ /(^|\/)(fe)(\/|$)/)
-            def isAI     = (srcBranch =~ /(^|\/)(ai)(\/|$)/)
-            def isINFRA  = (srcBranch =~ /(^|\/)(infra)(\/|$)/)
+            def isBE = (srcBranch =~ /(^|\/)(be)(\/|$)/)
+            def isFE = (srcBranch =~ /(^|\/)(fe)(\/|$)/)
+            def isAI = (srcBranch =~ /(^|\/)(ai)(\/|$)/)
+            def isINFRA = (srcBranch =~ /(^|\/)(infra)(\/|$)/)
 
-            env.CHANGED_BACK   = (isBE || isINFRA) ? "1" : "0"
-            env.CHANGED_FRONT  = (isFE || isINFRA) ? "1" : "0"
-            env.CHANGED_AI     = (isAI || isINFRA) ? "1" : "0"
+            env.CHANGED_BACK = (isBE || isINFRA) ? "1" : "0"
+            env.CHANGED_FRONT = (isFE || isINFRA) ? "1" : "0"
+            env.CHANGED_AI = (isAI || isINFRA) ? "1" : "0"
             env.CHANGED_DEPLOY = isINFRA ? "1" : "0"
 
             echo "RESULT | BACK:${env.CHANGED_BACK}, FRONT:${env.CHANGED_FRONT}, AI:${env.CHANGED_AI}, INFRA:${env.CHANGED_DEPLOY}"
