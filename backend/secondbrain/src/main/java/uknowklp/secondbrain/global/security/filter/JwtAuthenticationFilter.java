@@ -10,6 +10,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import uknowklp.secondbrain.global.response.BaseResponseStatus;
 import uknowklp.secondbrain.global.security.jwt.JwtProvider;
+import uknowklp.secondbrain.global.security.jwt.service.TokenBlacklistService;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -31,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	private final JwtProvider jwtProvider;
+	private final TokenBlacklistService blacklistService;
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -41,7 +43,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			String token = resolveToken(request);
 
 			// 토큰이 존재하면 인증 처리
-			if (token != null) {
+			if (token != null && jwtProvider.validateToken(token)) {
+				// Blacklist 확인 (로그아웃되거나 무효화된 토큰 차단)
+				String tokenId = jwtProvider.getTokenId(token);
+				String tokenType = jwtProvider.getTokenType(token);
+
+				if (blacklistService.isBlacklisted(tokenId, tokenType)) {
+					log.warn("Blacklisted token detected. TokenId: {}, Type: {}, URI: {}",
+						tokenId, tokenType, request.getRequestURI());
+					response.sendError(
+						BaseResponseStatus.INVALID_ACCESS_TOKEN.getHttpStatus().value(),
+						"Token has been revoked"
+					);
+					return;
+				}
+
+				// 인증 컨텍스트에 설정
 				Authentication authentication = jwtProvider.getAuthentication(token);
 				if (authentication != null) {
 					SecurityContextHolder.getContext().setAuthentication(authentication);

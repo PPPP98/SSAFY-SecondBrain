@@ -22,6 +22,11 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
+	public Optional<User> findById(Long id) {
+		return userRepository.findById(id);
+	}
+
+	@Override
 	public User saveOrUpdate(String email, String name, String pictureUrl) {
 		return userRepository.findByEmail(email)
 			.map(user -> {

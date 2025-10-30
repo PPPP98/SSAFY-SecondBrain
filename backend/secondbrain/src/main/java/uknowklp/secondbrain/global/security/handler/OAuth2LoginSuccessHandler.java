@@ -2,8 +2,11 @@ package uknowklp.secondbrain.global.security.handler;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -13,6 +16,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import uknowklp.secondbrain.api.user.domain.User;
 import uknowklp.secondbrain.api.user.service.UserService;
 import uknowklp.secondbrain.global.security.jwt.JwtProvider;
+import uknowklp.secondbrain.global.security.jwt.service.RefreshTokenService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -27,6 +31,9 @@ import lombok.extern.slf4j.Slf4j;
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
 	private final JwtProvider jwtProvider;
+	private final RefreshTokenService refreshTokenService;
+	private final RedisTemplate<String, Object> redisTemplate;
+	private final UserService userService;
 
 	@Value("${secondbrain.oauth2.redirect-url}")
 	private String redirectUrl;
@@ -34,7 +41,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 	@Value("${security.jwt.cookie.secure}")
 	private boolean cookieSecure;
 
-	private final UserService userService;
+	private static final String AUTH_CODE_PREFIX = "auth_code:";
 
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -46,24 +53,51 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 			oAuth2User.getAttribute("name"),
 			oAuth2User.getAttribute("picture"));
 
-		String accessToken = jwtProvider.createToken(user);
-		log.info("JWT token generated for user: {}", user.getEmail());
+		// 1. Refresh Token 생성
+		String refreshToken = jwtProvider.createRefreshToken(user);
+		String refreshTokenId = jwtProvider.getTokenId(refreshToken);
 
-		// HttpOnly 쿠키에 JWT 토큰 저장 (보안 강화)
-		Cookie jwtCookie = new Cookie("accessToken", accessToken);
-		jwtCookie.setHttpOnly(true);  // JavaScript 접근 차단
-		jwtCookie.setSecure(cookieSecure);  // 환경별 설정 (프로덕션: true, 로컬: false)
-		jwtCookie.setPath("/");        // 모든 경로에서 전송
-		jwtCookie.setMaxAge(60 * 60 * 24 * 21);  // 21일 (JWT 만료 시간과 일치)
-		response.addCookie(jwtCookie);
+		log.info("JWT refresh token generated for user: {}", user.getEmail());
 
-		log.debug("JWT cookie set - Secure: {}, MaxAge: {} days", cookieSecure, 21);
+		// 2. Refresh Token을 Redis에 저장
+		long refreshExpireSeconds = jwtProvider.getRefreshExpireTime() / 1000;
+		refreshTokenService.storeRefreshToken(
+			String.valueOf(user.getId()),
+			refreshToken,
+			refreshTokenId,
+			refreshExpireSeconds
+		);
 
-		// 로그인 성공 여부만 전달 (사용자 정보는 /api/users/me로 조회)
+		// 3. Refresh Token을 HttpOnly 쿠키에 저장 (보안 강화)
+		Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+		refreshCookie.setHttpOnly(true);  // JavaScript 접근 차단
+		refreshCookie.setSecure(cookieSecure);  // 환경별 설정 (프로덕션: true, 로컬: false)
+		refreshCookie.setPath("/");        // 모든 경로에서 전송
+		refreshCookie.setMaxAge((int)refreshExpireSeconds);  // 30일
+		response.addCookie(refreshCookie);
+
+		log.debug("Refresh token cookie set - Secure: {}, MaxAge: {} days", cookieSecure, refreshExpireSeconds / 86400);
+
+		// 4. 임시 인증 코드 생성 (Authorization Code Pattern)
+		String authCode = UUID.randomUUID().toString();
+
+		// 5. Redis에 인증 코드 저장 (5분 만료, 일회용)
+		String authCodeKey = AUTH_CODE_PREFIX + authCode;
+		redisTemplate.opsForValue().set(
+			authCodeKey,
+			user.getId().toString(),
+			Duration.ofMinutes(5)
+		);
+
+		log.info("Authorization code generated for user: {}, expires in 5 minutes", user.getEmail());
+
+		// 6. 인증 코드만 URL 파라미터로 전달 (보안 강화)
 		String targetUrl = UriComponentsBuilder.fromUriString(redirectUrl)
-			.queryParam("loginSuccess", "true")
+			.queryParam("code", authCode)
 			.build()
 			.toUriString();
+
+		log.info("OAuth2 login success. Redirecting to: {}", redirectUrl);
 
 		getRedirectStrategy().sendRedirect(request, response, targetUrl);
 	}
