@@ -75,7 +75,7 @@ ${extra}
   }
 
   withCredentials([string(credentialsId: 'MM_WEBHOOK', variable: 'MM_WEBHOOK')]) {
-    mattermostSend(endpoint: MM_WEBHOOK, color: color, message: body)
+    mattermostSend(endpoint: MM_WEBHOOK, channel: 'mr-e107' color: color, message: body)
   }
 }
 
