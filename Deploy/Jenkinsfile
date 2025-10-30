@@ -456,22 +456,35 @@ pipeline {
 
   post {
     success {
-      def action = (env.GL_MR_ACTION ?: "").toLowerCase()
-      if (action == "open" || action == "reopen") {
-        mmNotify(status:'success', category:'pipeline', template:'merge_open')
-      } else if (action != "merge") {
-        // update는 조용
-      } else {
-        mmNotify(status:'success', category:'pipeline')
+      script {
+        def action = (env.GL_MR_ACTION ?: "").toLowerCase()
+        if (action == "open" || action == "reopen") {
+          mmNotify(status:'success', category:'pipeline', template:'merge_open')
+        } else if (action != "merge") {
+          // update는 조용
+        } else {
+          mmNotify(status:'success', category:'pipeline')
+        }
       }
     }
     failure {
-      mmNotify(status:'failure', category:'pipeline', template:'failure',
-               extra: clipText("Job: ${env.JOB_NAME} #${env.BUILD_NUMBER}\nSee console for details."))
+      script {
+        mmNotify(
+          status:'failure',
+          category:'pipeline',
+          template:'failure',
+          extra: clipText("Job: ${env.JOB_NAME} #${env.BUILD_NUMBER}\nSee console for details.")
+        )
+      }
     }
     unstable {
-      mmNotify(status:'info', category:'pipeline',
-               extra: "Marked UNSTABLE: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+      script {
+        mmNotify(
+          status:'info',
+          category:'pipeline',
+          extra: "Marked UNSTABLE: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+        )
+      }
     }
   }
 }
