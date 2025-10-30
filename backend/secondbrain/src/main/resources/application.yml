@@ -50,6 +50,12 @@ jwt:
 secondbrain:
   oauth2:
     redirect-url: ${OAUTH2_REDIRECT_URL}
+    failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL:${OAUTH2_REDIRECT_URL}?error=true}
+
+security:
+  jwt:
+    cookie:
+      secure: ${JWT_COOKIE_SECURE}
 
 logging:
   level:

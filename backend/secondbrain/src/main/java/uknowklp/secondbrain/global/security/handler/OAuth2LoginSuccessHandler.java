@@ -31,6 +31,9 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 	@Value("${secondbrain.oauth2.redirect-url}")
 	private String redirectUrl;
 
+	@Value("${security.jwt.cookie.secure}")
+	private boolean cookieSecure;
+
 	private final UserService userService;
 
 	@Override
@@ -49,17 +52,16 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 		// HttpOnly 쿠키에 JWT 토큰 저장 (보안 강화)
 		Cookie jwtCookie = new Cookie("accessToken", accessToken);
 		jwtCookie.setHttpOnly(true);  // JavaScript 접근 차단
-		jwtCookie.setSecure(true);     // HTTPS에서만 전송 (프로덕션)
+		jwtCookie.setSecure(cookieSecure);  // 환경별 설정 (프로덕션: true, 로컬: false)
 		jwtCookie.setPath("/");        // 모든 경로에서 전송
-		jwtCookie.setMaxAge(60 * 60 * 24 * 14);  // 14일 (JWT 만료 시간과 동일)
+		jwtCookie.setMaxAge(60 * 60 * 24 * 21);  // 21일 (JWT 만료 시간과 일치)
 		response.addCookie(jwtCookie);
 
-		// 사용자 정보는 URL로 전달 (민감하지 않은 정보만)
+		log.debug("JWT cookie set - Secure: {}, MaxAge: {} days", cookieSecure, 21);
+
+		// 로그인 성공 여부만 전달 (사용자 정보는 /api/users/me로 조회)
 		String targetUrl = UriComponentsBuilder.fromUriString(redirectUrl)
-			.queryParam("userId", user.getId())
-			.queryParam("userEmail", user.getEmail())
-			.queryParam("userName", user.getName())
-			.encode(StandardCharsets.UTF_8)
+			.queryParam("loginSuccess", "true")
 			.build()
 			.toUriString();
 
