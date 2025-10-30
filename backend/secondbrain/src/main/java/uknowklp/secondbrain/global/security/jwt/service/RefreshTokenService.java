@@ -2,10 +2,14 @@ package uknowklp.secondbrain.global.security.jwt.service;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -75,13 +79,31 @@ public class RefreshTokenService {
 	 * 사용자의 모든 refresh token을 무효화
 	 * 보안 위반 감지 시 사용됩니다.
 	 *
+	 * Redis SCAN을 사용하여 non-blocking 방식으로 키를 검색합니다.
+	 * KEYS 명령어는 O(N) 복잡도로 Redis를 블로킹하므로 프로덕션에서 사용하면 안 됩니다.
+	 *
 	 * @param userId 사용자 ID
+	 * @see <a href="https://redis.io/commands/scan">Redis SCAN Command</a>
+	 * @see <a href="https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/latency">Redis Latency Optimization</a>
 	 */
 	public void revokeAllUserTokens(String userId) {
 		String pattern = REFRESH_TOKEN_PREFIX + userId + ":*";
-		Set<String> keys = redisTemplate.keys(pattern);
+		Set<String> keys = new HashSet<>();
 
-		if (keys != null && !keys.isEmpty()) {
+		// Redis SCAN을 사용하여 non-blocking 방식으로 키 수집
+		redisTemplate.execute((RedisCallback<Set<String>>) connection -> {
+			ScanOptions options = ScanOptions.scanOptions()
+				.match(pattern)
+				.count(100)  // 한 번에 스캔할 키 개수 힌트 (Redis는 이를 참고만 함)
+				.build();
+
+			try (Cursor<byte[]> cursor = connection.scan(options)) {
+				cursor.forEachRemaining(key -> keys.add(new String(key)));
+			}
+			return keys;
+		});
+
+		if (!keys.isEmpty()) {
 			Long deletedCount = redisTemplate.delete(keys);
 			log.warn("All refresh tokens revoked for user. UserId: {}, Count: {}", userId, deletedCount);
 		} else {
