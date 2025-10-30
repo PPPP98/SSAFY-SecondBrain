@@ -13,7 +13,7 @@ services:
     cpus: "1.2"
     restart: unless-stopped
     networks:
-      - e104_net
+      - e107_net
 
   klp_front:
     build:
