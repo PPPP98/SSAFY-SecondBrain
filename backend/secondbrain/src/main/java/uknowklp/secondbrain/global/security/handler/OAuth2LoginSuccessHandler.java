@@ -1,8 +1,10 @@
 package uknowklp.secondbrain.global.security.handler;
 
 import java.io.IOException;
+import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -16,7 +18,6 @@ import uknowklp.secondbrain.global.security.jwt.JwtProvider;
 import uknowklp.secondbrain.global.security.jwt.service.RefreshTokenService;
 
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -44,29 +45,27 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 		OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
 		String email = oAuth2User.getAttribute("email");
 
-		// 1. 사용자 정보 저장 또는 업데이트
-		User user = userService.saveOrUpdate(
-			email,
-			oAuth2User.getAttribute("name"),
-			oAuth2User.getAttribute("picture")
-		);
+		// 1. 사용자 조회 (CustomOAuth2UserService에서 이미 저장했으므로 조회만)
+		User user = userService.findByEmail(email)
+			.orElseThrow(() -> {
+				log.error("User not found after OAuth2 login. Email: {}", email);
+				return new AuthenticationServiceException("User not found after successful OAuth2 login");
+			});
 
 		log.info("OAuth2 authentication successful for user: {}", user.getEmail());
 
 		// 2. JWT 토큰 생성 (Access + Refresh)
 		String accessToken = jwtProvider.createAccessToken(user);
 		String refreshToken = jwtProvider.createRefreshToken(user);
-		String refreshTokenId = jwtProvider.getTokenId(refreshToken);
 
 		log.debug("JWT tokens generated - UserId: {}, Email: {}", user.getId(), user.getEmail());
 
-		// 3. Refresh Token을 Redis에 단순 저장 (복잡한 메타데이터 제거)
+		// 3. Refresh Token을 Redis에 저장 (단순화: tokenId 제거)
 		long refreshExpireSeconds = jwtProvider.getRefreshExpireTime() / 1000;
 		try {
 			refreshTokenService.storeRefreshToken(
-				String.valueOf(user.getId()),
+				user.getId(),
 				refreshToken,
-				refreshTokenId,
 				refreshExpireSeconds
 			);
 			log.debug("Refresh token stored in Redis - UserId: {}, TTL: {}s", user.getId(), refreshExpireSeconds);
@@ -77,24 +76,54 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 				"Unable to complete authentication due to system error", e);
 		}
 
-		// 4. Refresh Token을 HttpOnly 쿠키로 설정
-		Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
-		refreshCookie.setHttpOnly(true);                        // XSS 보호
-		refreshCookie.setSecure(cookieSecure);                  // HTTPS 전용
-		refreshCookie.setPath("/");                             // 모든 경로에서 사용
-		refreshCookie.setMaxAge((int) refreshExpireSeconds);    // 7일 (application.yml 설정값)
-		refreshCookie.setAttribute("SameSite", "Lax");          // CSRF 보호
-		response.addCookie(refreshCookie);
+		// 4. Refresh Token을 HttpOnly 쿠키로 설정 (ResponseCookie 사용)
+		ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+			.httpOnly(true)                                     // XSS 보호
+			.secure(cookieSecure)                               // HTTPS 전용
+			.path("/")                                          // 모든 경로에서 사용
+			.maxAge(Duration.ofSeconds(refreshExpireSeconds))   // 7일
+			.sameSite("Lax")                                    // CSRF 보호
+			.build();
+		response.addHeader("Set-Cookie", refreshCookie.toString());
 
-		// 5. Access Token을 URL fragment로 전달 (SPA 표준 방식)
-		// Fragment (#)를 사용하면 서버로 전송되지 않아 보안상 유리
-		String targetUrl = UriComponentsBuilder.fromUriString(redirectUrl)
-			.fragment("access_token=" + accessToken + "&token_type=Bearer&expires_in=" + (jwtProvider.getAccessExpireTime() / 1000))
-			.build()
-			.toUriString();
+		// 5. SPA를 위한 응답 처리 - 항상 JSON으로 통일
+		// Access Token은 Response Body로만 전달 (2024 Best Practice)
 
-		log.info("OAuth2 login successful. Redirecting to: {} with access token in fragment", redirectUrl);
+		// 리다이렉트 URL을 포함한 성공 페이지로 이동
+		// 프론트엔드에서 이 페이지에서 postMessage로 토큰을 부모 창에 전달
+		String successPageUrl = redirectUrl + "/auth/callback";
 
-		getRedirectStrategy().sendRedirect(request, response, targetUrl);
+		// HTML 페이지로 리다이렉트 (토큰은 JavaScript로 처리)
+		response.setContentType("text/html;charset=UTF-8");
+		response.getWriter().write(
+			"<!DOCTYPE html>" +
+			"<html>" +
+			"<head>" +
+			"    <title>Login Success</title>" +
+			"    <script>" +
+			"        window.onload = function() {" +
+			"            // 부모 창에 인증 성공 메시지와 토큰 전달" +
+			"            if (window.opener) {" +
+			"                window.opener.postMessage({" +
+			"                    type: 'auth-success'," +
+			"                    accessToken: '" + accessToken + "'," +
+			"                    tokenType: 'Bearer'," +
+			"                    expiresIn: " + (jwtProvider.getAccessExpireTime() / 1000) +
+			"                }, '" + redirectUrl + "');" +
+			"                window.close();" +
+			"            } else {" +
+			"                // 팝업이 아닌 경우 리다이렉트" +
+			"                window.location.href = '" + redirectUrl + "';" +
+			"            }" +
+			"        };" +
+			"    </script>" +
+			"</head>" +
+			"<body>" +
+			"    <p>Login successful! Redirecting...</p>" +
+			"</body>" +
+			"</html>"
+		);
+
+		log.info("OAuth2 login successful. Access token delivered via postMessage for SPA");
 	}
 }
