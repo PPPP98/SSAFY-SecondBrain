@@ -41,10 +41,10 @@ public enum BaseResponseStatus {
 	 */
 	INVALID_REFRESH_TOKEN(false, HttpStatus.UNAUTHORIZED, -10415, "유효하지 않은 리프레시 토큰입니다."),
 	REFRESH_TOKEN_NOT_FOUND(false, HttpStatus.UNAUTHORIZED, -10416, "리프레시 토큰을 찾을 수 없습니다."),
-	REFRESH_TOKEN_EXPIRED(false, HttpStatus.UNAUTHORIZED, -10417, "리프레시 토큰이 만료되었습니다. 다시 로그인해주세요."),
-	REFRESH_TOKEN_REVOKED(false, HttpStatus.UNAUTHORIZED, -10418, "무효화된 리프레시 토큰입니다."),
-	TOKEN_HIJACKING_DETECTED(false, HttpStatus.FORBIDDEN, -10419, "보안 위반이 감지되었습니다. 다시 로그인해주세요."),
-	INVALID_AUTH_CODE(false, HttpStatus.UNAUTHORIZED, -10420, "유효하지 않거나 만료된 인증 코드입니다."),
+	// REFRESH_TOKEN_EXPIRED(false, HttpStatus.UNAUTHORIZED, -10417, "리프레시 토큰이 만료되었습니다. 다시 로그인해주세요."),
+	// REFRESH_TOKEN_REVOKED(false, HttpStatus.UNAUTHORIZED, -10418, "무효화된 리프레시 토큰입니다."),
+	// TOKEN_HIJACKING_DETECTED(false, HttpStatus.FORBIDDEN, -10419, "보안 위반이 감지되었습니다. 다시 로그인해주세요."),
+	// INVALID_AUTH_CODE(false, HttpStatus.UNAUTHORIZED, -10420, "유효하지 않거나 만료된 인증 코드입니다."),
 
 	/**
 	 * -10500 : 서버 에러
