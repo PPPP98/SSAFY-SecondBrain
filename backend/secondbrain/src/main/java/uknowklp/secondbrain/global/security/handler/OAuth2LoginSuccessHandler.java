@@ -1,9 +1,9 @@
 package uknowklp.secondbrain.global.security.handler;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -12,10 +12,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import uknowklp.secondbrain.api.user.domain.User;
 import uknowklp.secondbrain.api.user.service.UserService;
-import uknowklp.secondbrain.global.security.jwt.JwtProvider;
+import uknowklp.secondbrain.global.security.oauth2.service.AuthorizationCodeService;
 
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -26,45 +25,47 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-	private final JwtProvider jwtProvider;
+	private final AuthorizationCodeService authorizationCodeService;
+	private final UserService userService;
 
 	@Value("${secondbrain.oauth2.redirect-url}")
 	private String redirectUrl;
 
-	@Value("${security.jwt.cookie.secure}")
-	private boolean cookieSecure;
-
-	private final UserService userService;
-
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
 		Authentication authentication) throws IOException, ServletException {
+
 		OAuth2User oAuth2User = (OAuth2User)authentication.getPrincipal();
 		String email = oAuth2User.getAttribute("email");
 
-		User user = userService.saveOrUpdate(email,
-			oAuth2User.getAttribute("name"),
-			oAuth2User.getAttribute("picture"));
+		// 0. 이메일 null/empty 체크 (OAuth2 Provider에서 이메일 제공하지 않은 경우 방어)
+		if (email == null || email.isEmpty()) {
+			log.error("Email not provided by OAuth2 provider");
+			throw new AuthenticationServiceException("Email is required for authentication");
+		}
 
-		String accessToken = jwtProvider.createToken(user);
-		log.info("JWT token generated for user: {}", user.getEmail());
+		// 1. 사용자 조회 (CustomOAuth2UserService에서 이미 저장했으므로 조회만)
+		User user = userService.findByEmail(email)
+			.orElseThrow(() -> {
+				log.error("User not found after OAuth2 login. Email: {}", email);
+				return new AuthenticationServiceException("User not found after successful OAuth2 login");
+			});
 
-		// HttpOnly 쿠키에 JWT 토큰 저장 (보안 강화)
-		Cookie jwtCookie = new Cookie("accessToken", accessToken);
-		jwtCookie.setHttpOnly(true);  // JavaScript 접근 차단
-		jwtCookie.setSecure(cookieSecure);  // 환경별 설정 (프로덕션: true, 로컬: false)
-		jwtCookie.setPath("/");        // 모든 경로에서 전송
-		jwtCookie.setMaxAge(60 * 60 * 24 * 21);  // 21일 (JWT 만료 시간과 일치)
-		response.addCookie(jwtCookie);
+		log.info("OAuth2 authentication successful for user: {}", user.getEmail());
 
-		log.debug("JWT cookie set - Secure: {}, MaxAge: {} days", cookieSecure, 21);
+		// 2. Authorization Code 생성 및 Redis 저장
+		String authorizationCode = authorizationCodeService.generateCode(user.getId(), user.getEmail());
 
-		// 로그인 성공 여부만 전달 (사용자 정보는 /api/users/me로 조회)
-		String targetUrl = UriComponentsBuilder.fromUriString(redirectUrl)
-			.queryParam("loginSuccess", "true")
+		log.debug("Authorization code generated - UserId: {}, Email: {}", user.getId(), user.getEmail());
+
+		// 3. 프론트엔드 Callback URL로 리다이렉트 with code
+		String callbackUrl = UriComponentsBuilder
+			.fromUriString(redirectUrl + "/auth/callback")
+			.queryParam("code", authorizationCode)
 			.build()
 			.toUriString();
 
-		getRedirectStrategy().sendRedirect(request, response, targetUrl);
+		log.info("Redirecting to frontend callback with authorization code. URL: {}", callbackUrl);
+		response.sendRedirect(callbackUrl);
 	}
 }

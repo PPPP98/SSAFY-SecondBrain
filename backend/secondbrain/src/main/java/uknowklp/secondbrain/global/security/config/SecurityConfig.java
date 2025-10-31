@@ -1,8 +1,9 @@
 package uknowklp.secondbrain.global.security.config;
 
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -35,6 +36,10 @@ public class SecurityConfig {
 	// JWT 인증 필터
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+	// CORS 허용 출처 (환경변수로 override 가능)
+	@Value("${security.cors.allowed-origins}")
+	private List<String> allowedOrigins;
+
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
@@ -57,6 +62,9 @@ public class SecurityConfig {
 
 				// Swagger UI (인증 불필요)
 				.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+				// 인증 API (인증 불필요)
+				.requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
 
 				// 보호된 엔드포인트 (인증 필수)
 				.requestMatchers("/api/**").authenticated()
@@ -83,8 +91,8 @@ public class SecurityConfig {
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 
-		// 개발 환경: 모든 출처 허용 (프로덕션에서는 특정 도메인으로 변경 필요)
-		configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
+		// 허용된 출처 (환경변수로 동적 설정 가능)
+		configuration.setAllowedOrigins(allowedOrigins);
 
 		// 허용 헤더
 		configuration.setAllowedHeaders(Arrays.asList("*"));
@@ -96,6 +104,9 @@ public class SecurityConfig {
 
 		// 자격 증명(쿠키, Authorization 헤더) 허용
 		configuration.setAllowCredentials(true);
+
+		// 노출할 응답 헤더 (클라이언트에서 접근 가능)
+		configuration.setExposedHeaders(Arrays.asList("Authorization"));
 
 		// Preflight 캐싱 시간 (1시간)
 		configuration.setMaxAge(3600L);

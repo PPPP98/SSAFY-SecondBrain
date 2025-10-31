@@ -37,6 +37,17 @@ public enum BaseResponseStatus {
 	JWT_AUTHENTICATION_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10414, "인증 처리 중 오류가 발생했습니다."),
 
 	/**
+	 * -10415 ~ -10420 : Refresh Token 및 인증 코드 에러
+	 */
+	INVALID_REFRESH_TOKEN(false, HttpStatus.UNAUTHORIZED, -10415, "유효하지 않은 리프레시 토큰입니다."),
+	REFRESH_TOKEN_NOT_FOUND(false, HttpStatus.UNAUTHORIZED, -10416, "리프레시 토큰을 찾을 수 없습니다."),
+	// REFRESH_TOKEN_EXPIRED(false, HttpStatus.UNAUTHORIZED, -10417, "리프레시 토큰이 만료되었습니다. 다시 로그인해주세요."),
+	// REFRESH_TOKEN_REVOKED(false, HttpStatus.UNAUTHORIZED, -10418, "무효화된 리프레시 토큰입니다."),
+	// TOKEN_HIJACKING_DETECTED(false, HttpStatus.FORBIDDEN, -10419, "보안 위반이 감지되었습니다. 다시 로그인해주세요."),
+	INVALID_AUTHORIZATION_CODE(false, HttpStatus.UNAUTHORIZED, -10420, "유효하지 않거나 만료된 인증 코드입니다."),
+	CODE_NOT_PROVIDED(false, HttpStatus.BAD_REQUEST, -10421, "인증 코드가 제공되지 않았습니다."),
+
+	/**
 	 * -10500 : 서버 에러
 	 */
 	SERVER_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10500, "요청 처리 중 서버 오류가 발생했습니다."),
