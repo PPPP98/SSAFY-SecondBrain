@@ -19,7 +19,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import uknowklp.secondbrain.api.user.domain.User;
-import uknowklp.secondbrain.api.user.service.UserService;
 import uknowklp.secondbrain.global.security.jwt.dto.CustomUserDetails;
 
 import io.jsonwebtoken.Claims;
@@ -35,19 +34,16 @@ public class JwtProvider {
 	private final String secret;
 	private final long accessExpireTime;
 	private final long refreshExpireTime;
-	private final UserService userService;
 	private SecretKey secretKey;
 
 	public JwtProvider(
 		@Value("${jwt.secret}") String secret,
 		@Value("${jwt.expire-time.access}") Duration accessExpireTime,
-		@Value("${jwt.expire-time.refresh}") Duration refreshExpireTime,
-		UserService userService
+		@Value("${jwt.expire-time.refresh}") Duration refreshExpireTime
 	) {
 		this.secret = secret;
 		this.accessExpireTime = accessExpireTime.toMillis();
 		this.refreshExpireTime = refreshExpireTime.toMillis();
-		this.userService = userService;
 	}
 
 	@PostConstruct
@@ -164,23 +160,34 @@ public class JwtProvider {
 		}
 	}
 
+	/**
+	 * JWT 토큰으로부터 Authentication 객체 생성
+	 * <p>
+	 * 성능 최적화: DB 조회 없이 JWT claims만으로 User 객체 생성
+	 * 인증에는 userId, email, role만 필요하며 모두 JWT에 포함되어 있음
+	 * </p>
+	 *
+	 * @param token JWT 토큰
+	 * @return Authentication 객체 또는 null
+	 */
 	public Authentication getAuthentication(String token) {
 		if (validateToken(token)) {
 			Claims claims = getClaims(token);
-			String email = claims.getSubject();
+
+			// JWT claims로부터 직접 User 객체 생성 (DB 조회 불필요)
+			User user = User.builder()
+				.id(claims.get("userId", Long.class))
+				.email(claims.getSubject())
+				.build();
+
+			UserDetails userDetails = new CustomUserDetails(user);
 			String role = claims.get("role", String.class);
-			Optional<User> userOpt = userService.findByEmail(email);
+			Set<GrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority(role));
+			UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+				userDetails, "", authorities);
 
-			if (userOpt.isPresent()) {
-
-				User user = userOpt.get();
-				UserDetails userDetails = new CustomUserDetails(user);
-				Set<GrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority(role));
-				UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, "",
-					authorities);
-				log.info("Authenticated user: {}", email);
-				return auth;
-			}
+			log.debug("Authenticated user from JWT: {}", user.getEmail());
+			return auth;
 		}
 		return null;
 	}

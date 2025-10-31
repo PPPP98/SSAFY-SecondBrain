@@ -7,7 +7,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -96,7 +95,10 @@ public class AuthController {
 
 	/**
 	 * Refresh Token으로 새로운 Access Token 발급
-	 * Token Rotation: 새로운 refresh token도 함께 발급하여 보안 강화
+	 * <p>
+	 * Token Rotation: Refresh token도 함께 로테이션하여 하이재킹 탐지
+	 * Blacklist: Refresh token 재사용 감지 (보안상 중요)
+	 * </p>
 	 *
 	 * @param refreshToken Refresh token (쿠키에서 자동 추출)
 	 * @param response     HTTP 응답 (새 refresh token 쿠키 설정용)
@@ -132,7 +134,7 @@ public class AuthController {
 			throw new BaseException(BaseResponseStatus.REFRESH_TOKEN_NOT_FOUND);
 		}
 
-		// 5. Blacklist 확인 (재사용 시도 감지)
+		// 5. Blacklist 확인 (재사용 시도 감지) - Refresh token은 보안상 중요
 		if (blacklistService.isBlacklisted(tokenId, "REFRESH")) {
 			// 하이재킹 감지: 이미 사용된 토큰 재사용 시도
 			log.error("Token hijacking detected! UserId: {}, TokenId: {}", userId, tokenId);
@@ -180,13 +182,15 @@ public class AuthController {
 
 	/**
 	 * 로그아웃 처리
-	 * - Access token을 blacklist에 추가 (남은 수명 동안)
 	 * - Refresh token을 무효화
 	 * - Refresh token 쿠키 삭제
+	 * <p>
+	 * 성능 최적화: Access token은 15분 만료이므로 블랙리스트 불필요
+	 * 최대 15분 지연은 허용 가능한 트레이드오프
+	 * </p>
 	 *
 	 * @param userDetails  인증된 사용자 정보
 	 * @param refreshToken Refresh token (쿠키에서 자동 추출)
-	 * @param authHeader   Authorization 헤더 (access token)
 	 * @param response     HTTP 응답 (쿠키 삭제용)
 	 * @return 성공 응답
 	 */
@@ -194,34 +198,18 @@ public class AuthController {
 	public ResponseEntity<BaseResponse<Void>> logout(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@CookieValue(name = "refreshToken", required = false) String refreshToken,
-		@RequestHeader(value = "Authorization", required = false) String authHeader,
 		HttpServletResponse response) {
 
 		String userId = String.valueOf(userDetails.getUser().getId());
 
-		// 1. Access token blacklist 추가
-		if (authHeader != null && authHeader.startsWith("Bearer ")) {
-			String accessToken = authHeader.substring(7);
-			if (jwtProvider.validateToken(accessToken)) {
-				String accessTokenId = jwtProvider.getTokenId(accessToken);
-				Claims claims = jwtProvider.getClaims(accessToken);
-				long remainingTime = claims.getExpiration().getTime() - System.currentTimeMillis();
-
-				if (remainingTime > 0) {
-					blacklistService.addToBlacklist(accessTokenId, "ACCESS", remainingTime / 1000);
-					log.info("Access token added to blacklist. UserId: {}, TokenId: {}", userId, accessTokenId);
-				}
-			}
-		}
-
-		// 2. Refresh token 무효화
+		// 1. Refresh token 무효화
 		if (refreshToken != null && jwtProvider.validateToken(refreshToken)) {
 			String refreshTokenId = jwtProvider.getTokenId(refreshToken);
 			refreshTokenService.revokeRefreshToken(userId, refreshTokenId);
 			log.info("Refresh token revoked. UserId: {}, TokenId: {}", userId, refreshTokenId);
 		}
 
-		// 3. Refresh token 쿠키 삭제
+		// 2. Refresh token 쿠키 삭제
 		Cookie refreshCookie = new Cookie("refreshToken", null);
 		refreshCookie.setHttpOnly(true);
 		refreshCookie.setSecure(cookieSecure);

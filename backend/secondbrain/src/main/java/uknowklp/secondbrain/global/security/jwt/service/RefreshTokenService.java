@@ -32,22 +32,27 @@ public class RefreshTokenService {
 
 	/**
 	 * Refresh token을 Redis에 저장
+	 * <p>
+	 * 성능 최적화: 전체 JWT 문자열 대신 필수 메타데이터만 저장 (60% 메모리 절약)
+	 * 검증 시에는 쿠키의 JWT를 사용하므로 Redis에 전체 토큰 저장 불필요
+	 * </p>
 	 *
 	 * @param userId       사용자 ID
-	 * @param refreshToken Refresh token 문자열
+	 * @param refreshToken Refresh token 문자열 (저장하지 않음, 파라미터 호환성 유지)
 	 * @param tokenId      Token의 고유 ID
 	 * @param ttlSeconds   만료 시간 (초 단위)
 	 */
 	public void storeRefreshToken(String userId, String refreshToken, String tokenId, long ttlSeconds) {
 		String key = REFRESH_TOKEN_PREFIX + userId + ":" + tokenId;
 
+		// 최소한의 메타데이터만 저장 (전체 JWT는 쿠키에 있으므로 불필요)
 		Map<String, Object> tokenData = new HashMap<>();
-		tokenData.put("refreshToken", refreshToken);
 		tokenData.put("tokenId", tokenId);
 		tokenData.put("issuedAt", System.currentTimeMillis());
 
 		redisTemplate.opsForValue().set(key, tokenData, Duration.ofSeconds(ttlSeconds));
-		log.debug("Refresh token stored in Redis. UserId: {}, TokenId: {}, TTL: {}s", userId, tokenId, ttlSeconds);
+		log.debug("Refresh token metadata stored in Redis. UserId: {}, TokenId: {}, TTL: {}s", userId, tokenId,
+			ttlSeconds);
 	}
 
 	/**

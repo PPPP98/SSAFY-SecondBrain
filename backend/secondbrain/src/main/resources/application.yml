@@ -16,6 +16,8 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: false
 
   jpa:
     hibernate:
@@ -44,7 +46,7 @@ jwt:
   secret: ${JWT_SECRET}
   algorithm: HS256
   expire-time:
-    access: 21d
+    access: 15m
     refresh: 30d
 
 secondbrain:
