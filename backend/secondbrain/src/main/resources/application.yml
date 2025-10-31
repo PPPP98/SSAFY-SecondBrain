@@ -46,8 +46,8 @@ jwt:
   secret: ${JWT_SECRET}
   algorithm: HS256
   expire-time:
-    access: 15m
-    refresh: 30d
+    access: 1h
+    refresh: 7d
 
 secondbrain:
   oauth2:
@@ -57,7 +57,7 @@ secondbrain:
 security:
   jwt:
     cookie:
-      secure: ${JWT_COOKIE_SECURE}
+      secure: ${JWT_COOKIE_SECURE}   # HTTPS 환경에서 쿠키 보안 설정
 
 swagger:
   url: ${BASE_URL}
