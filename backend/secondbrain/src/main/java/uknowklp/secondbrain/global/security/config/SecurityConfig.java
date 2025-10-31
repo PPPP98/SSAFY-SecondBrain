@@ -1,7 +1,6 @@
 package uknowklp.secondbrain.global.security.config;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -83,8 +82,11 @@ public class SecurityConfig {
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 
-		// 개발 환경: 모든 출처 허용 (프로덕션에서는 특정 도메인으로 변경 필요)
-		configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
+		// 허용된 출처 (프로덕션 도메인 + 개발 환경)
+		configuration.setAllowedOrigins(Arrays.asList(
+			"https://brainsecond.site",
+			"http://localhost:5173"
+		));
 
 		// 허용 헤더
 		configuration.setAllowedHeaders(Arrays.asList("*"));
@@ -96,6 +98,9 @@ public class SecurityConfig {
 
 		// 자격 증명(쿠키, Authorization 헤더) 허용
 		configuration.setAllowCredentials(true);
+
+		// 노출할 응답 헤더 (클라이언트에서 접근 가능)
+		configuration.setExposedHeaders(Arrays.asList("Authorization"));
 
 		// Preflight 캐싱 시간 (1시간)
 		configuration.setMaxAge(3600L);
