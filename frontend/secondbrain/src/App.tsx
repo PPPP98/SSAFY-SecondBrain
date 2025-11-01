@@ -1,4 +1,4 @@
-import GoogleLoginButton from '@/auth/components/GoogleLoginButton';
+import GoogleLoginButton from '@/features/auth/components/GoogleLoginButton';
 
 function App() {
   return (
