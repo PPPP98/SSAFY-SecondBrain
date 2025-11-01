@@ -43,8 +43,7 @@ public class NoteController {
 		@Valid @RequestBody NoteRequest request) {
 
 		User user = userDetails.getUser();
-		log.info("Creating note for user: {} - Title: {}", user.getEmail(), request.getTitle());
-
+		log.info("Creating note for userId: {} - Title: {}", user.getId(), request.getTitle());
 		noteService.createNote(user.getId(), request);
 
 		BaseResponse<Void> response = new BaseResponse<>(BaseResponseStatus.CREATED);
