@@ -27,9 +27,8 @@ public class NoteServiceImpl implements NoteService {
 		log.info("Creating note for user ID: {}", userId);
 
 		// 사용자 존재 확인
-	User user = userService.findById(userId)
-		.orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
-
+		User user = userService.findById(userId)
+			.orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
 		// 노트 생성
 		Note note = Note.builder()
 			.user(user)
