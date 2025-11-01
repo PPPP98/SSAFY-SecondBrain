@@ -37,7 +37,7 @@ public class SecurityConfig {
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
 	// CORS 허용 출처 (환경변수로 override 가능)
-	@Value("#{'${security.cors.allowed-origins}'.split(',')}")
+	@Value("#{'${security.cors.allowed-origins}'.split(',').![trim()]}")
 	private List<String> allowedOrigins;
 
 	@Bean
