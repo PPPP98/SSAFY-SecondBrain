@@ -91,8 +91,15 @@ public class SecurityConfig {
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 
-		// 허용된 출처 (환경변수로 동적 설정 가능)
-		configuration.setAllowedOrigins(allowedOrigins);
+		// ========== 개발 환경용 CORS 전체 허용 ==========
+		// TODO: 프로덕션 배포 전 아래 주석 해제하고 개발용 설정 제거
+
+		// 개발용: 모든 출처 허용
+		configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+
+		// 프로덕션용 (주석 처리됨)
+		// configuration.setAllowedOrigins(allowedOrigins);
+		// ================================================
 
 		// 허용 헤더
 		configuration.setAllowedHeaders(Arrays.asList("*"));
