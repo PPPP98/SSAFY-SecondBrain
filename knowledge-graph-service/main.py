@@ -6,6 +6,7 @@ import logging
 from app.core.config import get_settings
 from app.db.init_db import initialize_schema
 from app.db.neo4j_client import neo4j_client
+from app.api.v1 import router # noqa: F401
 
 # 로깅 설정
 logging.basicConfig(
@@ -114,9 +115,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # ===== 라우터 import =====
-from app.api.v1 import routes
-
-app.include_router(routes.router)
+app.include_router(router)
 
 
 if __name__ == "__main__":
