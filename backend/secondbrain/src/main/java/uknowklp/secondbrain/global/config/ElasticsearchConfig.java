@@ -46,8 +46,7 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
 	}
 
 	/**
-	 * 개발 환경을 위해 모든 인증서를 신뢰하는 SSLContext를 생성합니다.
-	 * <b>주의: 운영 환경에서는 절대 사용하면 안 됩니다.</b>
+	 * todo: (삭제 예정) 개발 환경을 위해 모든 인증서를 신뢰하는 SSLContext를 생성
 	 * @return SSLContext
 	 */
 	private SSLContext createUnsafeSslContext() {
