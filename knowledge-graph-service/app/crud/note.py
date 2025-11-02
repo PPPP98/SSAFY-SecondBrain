@@ -4,11 +4,25 @@ import logging
 from app.core.config import get_settings
 from app.core.constants import NoteConfig, ValidationConfig
 
+
 settings = get_settings()
 
 logger = logging.getLogger(__name__)
 
 
+# ===== 헬퍼 함수 =====
+def _convert_datetime(record: Dict) -> Dict:
+    """Neo4j DateTime을 ISO format string으로 변환"""
+    if record.get("created_at"):
+        record["created_at"] = record["created_at"].iso_format()
+
+    if record.get("updated_at"):
+        record["updated_at"] = record["updated_at"].iso_format()
+
+    return record
+
+
+# ===== 노트 생성 =====
 def create_note(
     note_id: str,
     user_id: str,
@@ -55,6 +69,7 @@ def create_note(
         return note_id
 
 
+# ===== 노트 조회 =====
 def get_note(
     user_id: str,
     note_id: str,
@@ -89,13 +104,16 @@ def get_note(
         record = result.single()
 
         if record:
+            note_dict = dict(record)
+            note_dict = _convert_datetime(note_dict)  
             logger.info(f"✅ 노트 조회: {user_id} - {note_id}")
-            return dict(record)
+            return note_dict
 
         logger.warning(f"⚠️ 노트 없음: {user_id} - {note_id}")
         return None
 
 
+# ===== 노트 목록 조회 =====
 def get_all_notes(
     user_id: str,
     limit: Optional[int] = None,
@@ -152,7 +170,8 @@ def get_all_notes(
                 "skip": skip,
             },
         )
-        notes = [dict(record) for record in result]
+        # 👇 DateTime 변환 추가
+        notes = [_convert_datetime(dict(record)) for record in result]
 
         if NoteConfig.ENABLE_QUERY_LOGGING:
             logger.info(
@@ -162,6 +181,7 @@ def get_all_notes(
         return notes, total
 
 
+# ===== 노트 삭제 =====
 def delete_note(
     user_id: str,
     note_id: str,
@@ -201,6 +221,7 @@ def delete_note(
         return False
 
 
+# ===== 유사 노트 조회 =====
 def get_similar_notes(
     user_id: str,
     note_id: str,
@@ -211,7 +232,6 @@ def get_similar_notes(
     Args:
         user_id: 사용자 ID
         note_id: 노트 ID
-        limit: 최대 개수
 
     Returns:
         유사 노트 목록
@@ -239,13 +259,14 @@ def get_similar_notes(
                 "limit": limit,
             },
         )
-        similar_notes = [dict(record) for record in result]
+        similar_notes = [_convert_datetime(dict(record)) for record in result]
         logger.info(
             f"✅ 유사 노트 조회: {user_id} - {note_id} - {len(similar_notes)}개"
         )
         return similar_notes
 
 
+# ===== 통계 조회 =====
 def get_stats(
     user_id: str,
 ) -> Dict:
@@ -294,6 +315,7 @@ def get_stats(
         }
 
 
+# ===== 노트 개수 =====
 def count_user_notes(user_id: str) -> int:
     """
     유저의 총 노트 개수 조회
@@ -317,6 +339,7 @@ def count_user_notes(user_id: str) -> int:
         return total
 
 
+# ===== 제목 검색 =====
 def get_note_by_title(
     user_id: str,
     title: str,
@@ -360,7 +383,7 @@ def get_note_by_title(
                 "limit": limit,
             },
         )
-        notes = [dict(record) for record in result]
+        notes = [_convert_datetime(dict(record)) for record in result]
 
         if NoteConfig.ENABLE_QUERY_LOGGING:
             logger.info(f"✅ 제목 검색: {user_id} - '{title}' - {len(notes)}개")
