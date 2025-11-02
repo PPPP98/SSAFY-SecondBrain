@@ -52,7 +52,7 @@
 - `withCredentials: true` 설정 (쿠키 전송 허용)
 - Request/Response 인터셉터 준비 (2단계에서 구현)
 
-#### 1-2. 공통 응답 타입 정의 (`types/api.ts`)
+#### 1-2. 공통 응답 타입 정의 (`shared/types/api.ts`)
 
 ⚠️ **중요**: 백엔드는 대부분의 API에서 `BaseResponse` 구조를 사용합니다.
 
@@ -66,7 +66,7 @@ export interface BaseResponse<T> {
 }
 ```
 
-#### 1-3. 인증 타입 정의 (`types/auth.ts`)
+#### 1-3. 인증 타입 정의 (`features/auth/types/auth.ts`)
 ```typescript
 // Token 응답 데이터 (BaseResponse의 data 필드)
 export interface TokenResponse {
@@ -94,13 +94,13 @@ export interface UserInfo {
 
 ### 2단계: 인증 API 구현
 
-#### 2-1. 인증 API 함수 작성 (`api/auth.ts`)
+#### 2-1. 인증 API 함수 작성 (`features/auth/services/auth.ts`)
 
 ⚠️ **주의**: 인증 API는 `BaseResponse`로 감싸져 있지만, `GET /api/users/me`는 예외입니다.
 
 ```typescript
-import { BaseResponse } from '@/types/api';
-import { TokenResponse, UserInfo } from '@/types/auth';
+import { BaseResponse } from '@/shared/types/api';
+import { TokenResponse, UserInfo } from '@/features/auth/types/auth';
 
 // POST /api/auth/token - Authorization Code 교환
 // 반환: BaseResponse<TokenResponse>
@@ -223,8 +223,8 @@ if (errorParam) {
 ```typescript
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
-import { refreshToken } from '@/api/auth';
-import { getCurrentUser } from '@/api/user';
+import { refreshToken } from '@/features/auth/services/auth';
+import { getCurrentUser } from '@/features/auth/services/user';
 
 /**
  * 페이지 로드 시 Refresh Token으로 세션을 자동 복원
@@ -293,8 +293,8 @@ function App() {
 ```typescript
 import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
-import { refreshToken } from '@/api/auth';
-import { getCurrentUser } from '@/api/user';
+import { refreshToken } from '@/features/auth/services/auth';
+import { getCurrentUser } from '@/features/auth/services/user';
 
 export function useSessionRestore() {
   const { setAccessToken, setUser } = useAuthStore();
@@ -337,7 +337,7 @@ export function useSessionRestore() {
 
 ```typescript
 import { useMutation } from '@tanstack/react-query';
-import { exchangeToken, refreshToken, logout } from '@/api/auth';
+import { exchangeToken, refreshToken, logout } from '@/features/auth/services/auth';
 
 // Token 교환 Mutation
 export function useExchangeToken() {
@@ -386,7 +386,7 @@ export function useLogout() {
 
 ```typescript
 import { useQuery } from '@tanstack/react-query';
-import { getCurrentUser } from '@/api/user';
+import { getCurrentUser } from '@/features/auth/services/user';
 
 // 현재 사용자 정보 Query
 export function useCurrentUser() {
@@ -478,8 +478,8 @@ export function useCurrentUser() {
 
 ### 필수 구현 항목
 
-- [ ] BaseResponse 타입 정의 (`types/api.ts`)
-- [ ] 인증 타입 정의 (`types/auth.ts`)
+- [ ] BaseResponse 타입 정의 (`shared/types/api.ts`)
+- [ ] 인증 타입 정의 (`features/auth/types/auth.ts`)
 - [ ] API 클라이언트 설정 (`withCredentials: true`)
 - [ ] 인증 Store (Zustand)
 - [ ] 인증 API 함수 (`exchangeToken`, `refreshToken`, `logout`, `getCurrentUser`)
@@ -539,35 +539,53 @@ VITE_OAUTH2_LOGIN_URL=http://localhost:8080/oauth2/authorization/google
 
 ---
 
-## 디렉토리 구조 예시
+## 디렉토리 구조 (현재 프로젝트 기준)
 
 ```
 src/
 ├── api/
-│   ├── client.ts          # Axios/Fetch 클라이언트
-│   ├── auth.ts            # 인증 API 함수
-│   └── user.ts            # 사용자 API 함수
-├── stores/
-│   └── authStore.ts       # Zustand 인증 스토어
-├── types/
-│   ├── api.ts             # 공통 API 타입 (BaseResponse)
-│   └── auth.ts            # 인증 관련 타입
-├── lib/
-│   ├── query-client.ts    # TanStack Query 클라이언트
-│   └── router.ts          # TanStack Router 설정
-├── features/
+│   └── client.ts                    # Axios/Fetch 클라이언트
+│
+├── stores/                           # ✅ 전역 상태 관리 (Zustand)
+│   ├── authStore.ts                 # 인증 상태
+│   ├── userStore.ts                 # 사용자 상태
+│   └── uiStore.ts                   # UI 상태
+│
+├── shared/                           # ✅ 공통 리소스
+│   ├── types/
+│   │   └── api.ts                   # 공통 API 타입 (BaseResponse)
+│   ├── components/                  # 공통 컴포넌트
+│   ├── hooks/                       # 공통 훅
+│   ├── utils/                       # 공통 유틸리티
+│   └── constants/                   # 공통 상수
+│
+├── features/                         # ✅ Feature 기반 구조
 │   └── auth/
+│       ├── types/
+│       │   └── auth.ts              # 인증 전용 타입 (TokenResponse, UserInfo)
+│       ├── services/
+│       │   ├── auth.ts              # 인증 API (exchangeToken, refreshToken, logout)
+│       │   └── user.ts              # 사용자 API (getCurrentUser)
 │       ├── hooks/
-│       │   ├── useSessionRestore.ts # 세션 복원 커스텀 훅
-│       │   └── useAuth.ts           # 기타 인증 관련 커스텀 훅
+│       │   └── useSessionRestore.ts # 세션 복원 커스텀 훅
 │       ├── components/
-│       │   ├── LoginButton.tsx    # 로그인 버튼
-│       │   └── LogoutButton.tsx   # 로그아웃 버튼
+│       │   ├── LoginButton.tsx      # 로그인 버튼
+│       │   └── LogoutButton.tsx     # 로그아웃 버튼
 │       └── pages/
-│           ├── LoginPage.tsx      # 로그인 페이지
-│           └── CallbackPage.tsx   # OAuth2 Callback 페이지
-└── routes/
-    └── index.tsx          # 라우트 정의
+│           ├── LoginPage.tsx        # 로그인 페이지
+│           └── CallbackPage.tsx     # OAuth2 Callback 페이지
+│
+├── layouts/                          # ✅ 레이아웃 컴포넌트
+│   ├── RootLayout.tsx               # 루트 레이아웃
+│   └── DashboardLayout.tsx          # 대시보드 레이아웃
+│
+├── lib/                              # 라이브러리 설정
+│   ├── query-client.ts              # TanStack Query 클라이언트
+│   └── router.ts                    # TanStack Router 설정
+│
+└── routes/                           # 라우트 정의 (TanStack Router)
+    ├── __root.tsx                   # Root Route
+    └── dashboard/                   # 대시보드 라우트
 ```
 
 ---
