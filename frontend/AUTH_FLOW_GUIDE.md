@@ -212,16 +212,31 @@ if (errorParam) {
 }
 ```
 
-#### 3-3. 세션 복원 로직 (페이지 새로고침 시)
+#### 3-3. 세션 복원 구현 (`features/auth/hooks/useSessionRestore.ts`)
 
 ⚠️ **중요**: Access Token은 메모리에 저장되므로 페이지 새로고침 시 사라집니다. Refresh Token으로 세션을 복원해야 합니다.
 
+**✅ React 18 + TanStack Query 모범 사례**: 데이터 페칭은 useEffect가 아닌 **TanStack Query**를 사용합니다.
+
+**방법 1: TanStack Query 사용** ⭐ (권장)
+
 ```typescript
-useEffect(() => {
-  const restoreSession = async () => {
-    try {
+import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/stores/authStore';
+import { refreshToken } from '@/api/auth';
+import { getCurrentUser } from '@/api/user';
+
+/**
+ * 페이지 로드 시 Refresh Token으로 세션을 자동 복원
+ * TanStack Query를 사용하여 로딩/에러 상태 자동 관리
+ */
+export function useSessionRestore() {
+  const { setAccessToken, setUser } = useAuthStore();
+
+  return useQuery({
+    queryKey: ['session', 'restore'],
+    queryFn: async () => {
       // 1. Refresh Token으로 새 Access Token 받기
-      // (Refresh Token은 HttpOnly 쿠키에 있어 자동 전송됨)
       const response = await refreshToken();
 
       if (response.success && response.data) {
@@ -232,18 +247,81 @@ useEffect(() => {
         const userInfo = await getCurrentUser();
         setUser(userInfo);
 
-        // 4. 세션 복원 완료
-        console.log('Session restored');
+        return userInfo;
       }
-    } catch (error) {
-      // Refresh Token 없거나 만료됨 → 로그인 페이지 유지
-      console.log('No active session');
-    }
-  };
 
-  restoreSession();
-}, []);
+      throw new Error('No active session');
+    },
+    retry: false, // 세션 복원 실패 시 재시도 안 함
+    staleTime: Infinity, // 캐시 무제한 유지
+    refetchOnWindowFocus: false, // 포커스 시 재실행 방지
+  });
+}
 ```
+
+**사용 방법**:
+
+```typescript
+// App.tsx
+import { useSessionRestore } from '@/features/auth/hooks/useSessionRestore';
+
+function App() {
+  const { isLoading, isError } = useSessionRestore();
+
+  // 로딩 중일 때 스피너 표시
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  return <RouterProvider router={router} />;
+}
+```
+
+**장점**:
+- ✅ 로딩/에러 상태 자동 관리 (`isLoading`, `isError`)
+- ✅ useEffect 불필요
+- ✅ 에러 처리 간결
+- ✅ React 18 Concurrent Mode 호환
+- ✅ 자동 캐싱 및 중복 요청 방지
+
+---
+
+**방법 2: useEffect 사용** (대안)
+
+데이터 페칭이므로 TanStack Query 권장하지만, useEffect도 가능합니다:
+
+```typescript
+import { useEffect } from 'react';
+import { useAuthStore } from '@/stores/authStore';
+import { refreshToken } from '@/api/auth';
+import { getCurrentUser } from '@/api/user';
+
+export function useSessionRestore() {
+  const { setAccessToken, setUser } = useAuthStore();
+
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const response = await refreshToken();
+        if (response.success && response.data) {
+          setAccessToken(response.data.accessToken);
+          const userInfo = await getCurrentUser();
+          setUser(userInfo);
+        }
+      } catch (error) {
+        console.log('No active session');
+      }
+    };
+
+    restoreSession();
+  }, [setAccessToken, setUser]);
+}
+```
+
+**단점**:
+- ❌ 로딩 상태 수동 관리 필요
+- ❌ 에러 처리 복잡
+- ❌ useEffect 의존성 배열 관리
 
 ---
 
@@ -409,7 +487,7 @@ export function useCurrentUser() {
 - [ ] Response 인터셉터 (BaseResponse 처리 + 401 에러 시 Token Refresh)
 - [ ] 로그인 페이지 (Google OAuth2 시작)
 - [ ] Callback 페이지 (Authorization Code 처리)
-- [ ] 세션 복원 로직 (페이지 새로고침 시 Refresh Token으로 복원)
+- [ ] 세션 복원 커스텀 훅 (`useSessionRestore`)
 - [ ] 보호된 라우트 Guard
 - [ ] 로그아웃 기능
 
@@ -480,7 +558,8 @@ src/
 ├── features/
 │   └── auth/
 │       ├── hooks/
-│       │   └── useAuth.ts         # 인증 관련 커스텀 훅
+│       │   ├── useSessionRestore.ts # 세션 복원 커스텀 훅
+│       │   └── useAuth.ts           # 기타 인증 관련 커스텀 훅
 │       ├── components/
 │       │   ├── LoginButton.tsx    # 로그인 버튼
 │       │   └── LogoutButton.tsx   # 로그아웃 버튼
