@@ -97,7 +97,7 @@ class SimilarityService:
                 similar_notes = [dict(record) for record in result]
 
                 if NoteConfig.ENABLE_QUERY_LOGGING:
-                    logger.info(
+                    logger.debug(
                         f"✅ 유사 노트 검색: {user_id} - {note_id} - "
                         f"{len(similar_notes)}개 발견 (threshold={self.similarity_threshold})"
                     )
@@ -139,7 +139,7 @@ class SimilarityService:
         )
 
         if not similar_notes:
-            logger.info(f"ℹ️  유사 노트 없음: {user_id} - {note_id}")
+            logger.debug(f"ℹ️  유사 노트 없음: {user_id} - {note_id}")
             return 0
 
         # 2. SIMILAR_TO 관계 생성 (쌍방향)
@@ -175,7 +175,7 @@ class SimilarityService:
                 continue
 
         if NoteConfig.ENABLE_QUERY_LOGGING:
-            logger.info(f"✅ 관계 생성: {user_id} - {note_id} - {count}개 관계")
+            logger.debug(f"✅ 관계 생성: {user_id} - {note_id} - {count}개 관계")
 
         return count
 
@@ -217,7 +217,7 @@ class SimilarityService:
                 deleted = record["deleted"] if record else 0
 
                 if deleted > 0:
-                    logger.info(f"✅ 관계 삭제: {user_id} - {note_id} - {deleted}개")
+                    logger.debug(f"✅ 관계 삭제: {user_id} - {note_id} - {deleted}개")
 
                 return deleted
 

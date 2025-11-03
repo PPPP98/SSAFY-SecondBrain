@@ -30,12 +30,12 @@ async def get_stats(
     try:
         user_id = get_user_id(x_user_id)
         
-        logger.info(f"📊 통계 조회: {user_id}")
+        logger.debug(f"📊 통계 조회: {user_id}")
         
         # 통계 조회
         stats = note_crud.get_stats(user_id=user_id)
-        
-        logger.info(f"✅ 통계 조회 완료")
+
+        logger.debug(f"✅ 통계 조회 완료")
         
         return GraphStats(**stats)
     

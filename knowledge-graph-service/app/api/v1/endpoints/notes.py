@@ -50,16 +50,16 @@ async def create_note(
     try:
         user_id = get_user_id(x_user_id)
 
-        logger.info(f"📝 노트 생성 시작: {user_id} - {note.title[:20]}...")
+        logger.debug(f"📝 노트 생성 시작: {user_id} - {note.title[:20]}...")
 
         # 1. 임베딩 생성
-        logger.info("🤖 임베딩 생성 중...")
+        logger.debug("🤖 임베딩 생성 중...")
         embedding, token_count = embedding_service.generate_embedding(note.content)
 
-        logger.info(f"   ✅ 임베딩 생성 완료: {len(embedding)}차원, {token_count}토큰")
+        logger.debug(f"   ✅ 임베딩 생성 완료: {len(embedding)}차원, {token_count}토큰")
 
         # 2. Neo4j에 노트 저장
-        logger.info("💾 Neo4j에 노트 저장 중...")
+        logger.debug("💾 Neo4j에 노트 저장 중...")
         note_id = note_crud.create_note(
             note_id=note.note_id,
             user_id=user_id,
@@ -67,17 +67,17 @@ async def create_note(
             embedding=embedding,
         )
 
-        logger.info(f"   ✅ 노트 저장 완료: {note_id}")
+        logger.debug(f"   ✅ 노트 저장 완료: {note_id}")
 
         # 3. 유사 노트 찾기 및 관계 생성
-        logger.info("🔗 유사 노트 연결 중...")
+        logger.debug("🔗 유사 노트 연결 중...")
         linked_count = similarity_service.create_similarity_relationships(
             user_id=user_id,
             note_id=note_id,
             embedding=embedding,
         )
 
-        logger.info(f"✅ 노트 생성 완료: {note_id} ({linked_count}개 노트 연결)")
+        logger.debug(f"✅ 노트 생성 완료: {note_id} ({linked_count}개 노트 연결)")
 
         return EmbeddingResponse(
             note_id=note_id,
@@ -125,7 +125,7 @@ async def list_notes(
     try:
         user_id = get_user_id(x_user_id)
 
-        logger.info(f"📚 노트 목록 조회: {user_id} (limit={limit}, skip={skip})")
+        logger.debug(f"📚 노트 목록 조회: {user_id} (limit={limit}, skip={skip})")
 
         # 노트 목록 조회
         notes, total = note_crud.get_all_notes(
@@ -134,7 +134,7 @@ async def list_notes(
             skip=skip,
         )
 
-        logger.info(f"✅ 노트 목록 조회 완료: {len(notes)}개 (전체: {total}개)")
+        logger.debug(f"✅ 노트 목록 조회 완료: {len(notes)}개 (전체: {total}개)")
 
         return NoteListResponse(
             user_id=user_id,
@@ -172,7 +172,7 @@ async def get_note(
     try:
         user_id = get_user_id(x_user_id)
 
-        logger.info(f"📖 노트 조회: {user_id} - {note_id}")
+        logger.debug(f"📖 노트 조회: {user_id} - {note_id}")
 
         # 1. 노트 조회
         note = note_crud.get_note(user_id=user_id, note_id=note_id)
@@ -190,7 +190,7 @@ async def get_note(
             note_id=note_id,
         )
 
-        logger.info(f"✅ 노트 조회 완료: {note_id} (유사 노트: {len(similar_notes)}개)")
+        logger.debug(f"✅ 노트 조회 완료: {note_id} (유사 노트: {len(similar_notes)}개)")
 
         return NoteDetailResponse(
             **note,
@@ -226,7 +226,7 @@ async def delete_note(
     try:
         user_id = get_user_id(x_user_id)
 
-        logger.info(f"🗑️  노트 삭제: {user_id} - {note_id}")
+        logger.debug(f"🗑️  노트 삭제: {user_id} - {note_id}")
 
         # 1. 관계 삭제
         similarity_service.delete_similarity_relationships(
@@ -243,7 +243,7 @@ async def delete_note(
                 detail=ErrorConfig.NOTE_NOT_FOUND,
             )
 
-        logger.info(f"✅ 노트 삭제 완료: {note_id}")
+        logger.debug(f"✅ 노트 삭제 완료: {note_id}")
 
         return {
             "status": "success",
