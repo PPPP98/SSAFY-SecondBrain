@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.domain.NoteDocument;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
+import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.repository.NoteRepository;
 import uknowklp.secondbrain.api.user.domain.User;
 import uknowklp.secondbrain.api.user.service.UserService;
@@ -34,6 +35,9 @@ public class NoteServiceImpl implements NoteService {
 	public Note createNote(Long userId, NoteRequest request) {
 		log.info("Creating note for user ID: {}", userId);
 
+		// 요청 데이터 검증
+		validateNoteRequest(request);
+
 		// 사용자 존재 확인
 		User user = userService.findById(userId)
 			.orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
@@ -41,7 +45,7 @@ public class NoteServiceImpl implements NoteService {
 		// 이미지 파일 처리 및 마크다운 content 생성
 		String finalContent = processImagesAndContent(request.getContent(), request.getImages());
 
-		// 서비스 레벨 검증: 최종 content 길이 확인
+		// 서비스 레벨 검증: 이미지 추가 후 최종 content 길이 확인
 		validateContentLength(finalContent);
 
 		// 노트 생성
@@ -66,6 +70,52 @@ public class NoteServiceImpl implements NoteService {
 		}
 
 		return savedNote;
+	}
+
+	@Override
+	public NoteResponse getNoteById(Long noteId, Long userId) {
+		log.info("Getting note ID: {} for user ID: {}",noteId, userId);
+		
+		// 1. 노트 존재 여부 확인
+		Note note = noteRepository.findById(noteId).orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
+		
+		// 2. 노트 소유자 확인 (권한 검증)
+		if (!note.getUser().getId().equals(userId)) {
+			log.warn("User {} tried to access note {} owned by user {}",
+				userId, noteId, note.getUser().getId());
+			throw new BaseException(BaseResponseStatus.NOTE_ACCESS_DENIED);
+		}
+
+		// 3. NoteResponse로 변환 후 반환
+		log.info("Note found successfully - ID: {}, User ID: {}", noteId, userId);
+		return NoteResponse.from(note);
+	}
+
+	/**
+	 * 노트 요청 데이터 검증
+	 * @param request 노트 생성 요청 DTO
+	 * @throws BaseException 검증 실패 시
+	 */
+	private void validateNoteRequest(NoteRequest request) {
+		// title 검증
+		if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
+			log.warn("Note title is empty");
+			throw new BaseException(BaseResponseStatus.NOTE_TITLE_EMPTY);
+		}
+		if (request.getTitle().length() > 64) {
+			log.warn("Note title too long: {} characters", request.getTitle().length());
+			throw new BaseException(BaseResponseStatus.NOTE_TITLE_TOO_LONG);
+		}
+
+		// content 검증
+		if (request.getContent() == null || request.getContent().trim().isEmpty()) {
+			log.warn("Note content is empty");
+			throw new BaseException(BaseResponseStatus.NOTE_CONTENT_EMPTY);
+		}
+		if (request.getContent().length() > 2048) {
+			log.warn("Note content too long: {} characters", request.getContent().length());
+			throw new BaseException(BaseResponseStatus.NOTE_CONTENT_TOO_LONG);
+		}
 	}
 
 	/**

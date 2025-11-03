@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
+import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.service.NoteService;
 import uknowklp.secondbrain.api.user.domain.User;
 import uknowklp.secondbrain.global.response.BaseResponse;
@@ -59,6 +62,32 @@ public class NoteController {
 
 		return createSuccessResponse();
 	}
+
+	/**
+	 * 노트 조회
+	 * JWT 토큰으로 인증된 사용자의 노트를 조회
+	 * 본인의 노트만 조회 가능 (다른 사용자의 노트는 접근 거부)
+	 *
+	 * @param userDetails Spring Security의 인증된 사용자 정보
+	 * @param noteId 조회할 노트 ID (URL 경로에서 추출)
+	 * @return ResponseEntity<BaseResponse<NoteResponse>> 200 OK 응답 + 노트 정보
+	 */
+	@GetMapping("/{noteId}")
+	public ResponseEntity<BaseResponse<NoteResponse>> getNote(
+		@AuthenticationPrincipal CustomUserDetails userDetails,
+		@PathVariable Long noteId) {
+
+		User user = userDetails.getUser();
+		log.info("Getting note for userId: {} - NoteId: {}", user.getId(), noteId);
+
+		// Service에서 노트 조회 (권한 검증 포함)
+		NoteResponse noteResponse = noteService.getNoteById(noteId, user.getId());
+
+		// 200 OK 응답 생성 및 반환
+		BaseResponse<NoteResponse> response = new BaseResponse<>(noteResponse);
+		return ResponseEntity.ok(response);
+	}
+
 
 	/**
 	 * 노트 생성 요청 로깅
