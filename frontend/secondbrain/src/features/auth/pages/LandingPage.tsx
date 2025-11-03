@@ -1,25 +1,11 @@
-import { useEffect } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-
 import { GoogleLoginButton } from '@/features/auth/components/GoogleLoginButton';
-import { useAuthStore } from '@/stores/authStore';
 
 /**
  * 랜딩 페이지
  * - Google 로그인 버튼 표시
- * - 이미 로그인된 경우 대시보드로 리다이렉트
+ * - 인증 체크는 라우트 레벨(index.tsx)에서 beforeLoad로 처리
  */
 export function LandingPage() {
-  const { isAuthenticated } = useAuthStore();
-  const navigate = useNavigate();
-
-  // 세션 복원 후 인증 상태 변경 감지하여 리다이렉트
-  useEffect(() => {
-    if (isAuthenticated) {
-      void navigate({ to: '/dashboard' });
-    }
-  }, [isAuthenticated, navigate]);
-
   return (
     <div className="flex min-h-dvh items-center justify-center">
       <div className="text-center">
