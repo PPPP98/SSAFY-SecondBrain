@@ -35,7 +35,7 @@ public class Note {
 	private Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "member_id", nullable = false)
+	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 
 	@CreationTimestamp
