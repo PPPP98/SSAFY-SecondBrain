@@ -13,14 +13,20 @@ public class NoteResponse {
     private Long noteId;
     private String title;
     private String content;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private LocalDateTime remindAt;
+    private Integer remindCount;
 
     public static NoteResponse from(Note note) {
         return NoteResponse.builder()
             .noteId(note.getId())
             .title(note.getTitle())
             .content(note.getContent())
+            .createdAt(note.getCreatedAt())
+            .updatedAt(note.getUpdatedAt())
             .remindAt(note.getRemindAt())
+            .remindCount(note.getRemindCount())
             .build();
     }
 
