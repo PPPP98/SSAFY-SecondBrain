@@ -3,7 +3,6 @@ package uknowklp.secondbrain.api.note.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.domain.Note;
+import uknowklp.secondbrain.api.note.domain.NoteDocument;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.repository.NoteRepository;
@@ -27,6 +27,7 @@ public class NoteServiceImpl implements NoteService {
 
 	private final NoteRepository noteRepository;
 	private final UserService userService;
+	private final NoteSearchService noteSearchService;
 	// TODO: S3 업로드 서비스 추가 예정
 	// private final S3UploadService s3UploadService;
 
@@ -34,29 +35,38 @@ public class NoteServiceImpl implements NoteService {
 	public Note createNote(Long userId, NoteRequest request) {
 		log.info("Creating note for user ID: {}", userId);
 
-		// 1. 사용자 존재 확인
+		// 사용자 존재 확인
 		User user = userService.findById(userId)
 			.orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
 
-		// 2. 요청 데이터 검증
-		validateNoteRequest(request);
-
-		// 3. 이미지 파일 처리 및 마크다운 content 생성
-		// S3 연결 전까지는 더미 URL 사용
+		// 이미지 파일 처리 및 마크다운 content 생성
 		String finalContent = processImagesAndContent(request.getContent(), request.getImages());
 
-		// 4. 노트 생성 시도
+		// 서비스 레벨 검증: 최종 content 길이 확인
+		validateContentLength(finalContent);
+
+		// 노트 생성
+		Note note = Note.builder()
+			.user(user)
+			.title(request.getTitle())
+			.content(finalContent)
+			.remindCount(0)
+			.build();
+
+		Note savedNote = noteRepository.save(note);
+		log.info("노트 생성 완료 - 노트 ID: {}, 사용자 ID: {}", savedNote.getId(), userId);
+
+		// Elasticsearch에 인덱싱
 		try {
-			Note note = Note.builder()
-				.user(user)
-				.title(request.getTitle())
-				.content(finalContent)
-				.remindCount(0)
-				.build();
+			NoteDocument noteDocument = NoteDocument.from(savedNote);
+			noteSearchService.indexNote(noteDocument);
+			log.info("Elasticsearch 인덱싱 완료 - 노트 ID: {}", savedNote.getId());
+		} catch (Exception e) {
+			log.error("Elasticsearch 인덱싱 실패 - 노트 ID: {}", savedNote.getId(), e);
+			// Elasticsearch 인덱싱 실패는 메인 로직에 영향 없음
+		}
 
-			Note savedNote = noteRepository.save(note);
-			log.info("Note created successfully - ID: {}, User ID: {}", savedNote.getId(), userId);
-
+		return savedNote;
 			return savedNote;
 		} catch (DataAccessException e) {
 			log.error("Failed to save note for user ID: {}", userId, e);
@@ -153,4 +163,18 @@ public class NoteServiceImpl implements NoteService {
 		return contentBuilder.toString().trim();
 	}
 
+	/**
+	 * 최종 content 길이 검증
+	 * 이미지 마크다운 추가 후 DB 제약조건(2048자)을 초과하는지 확인
+	 *
+	 * @param content 검증할 content
+	 * @throws BaseException content가 2048자를 초과하는 경우
+	 */
+	private void validateContentLength(String content) {
+		final int MAX_CONTENT_LENGTH = 2048;
+		if (content != null && content.length() > MAX_CONTENT_LENGTH) {
+			log.warn("Content length exceeds maximum: {} > {}", content.length(), MAX_CONTENT_LENGTH);
+			throw new BaseException(BaseResponseStatus.BAD_REQUEST);
+		}
+	}
 }

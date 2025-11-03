@@ -64,7 +64,16 @@ public enum BaseResponseStatus {
 	 * -10500 : 서버 에러
 	 */
 	SERVER_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10500, "요청 처리 중 서버 오류가 발생했습니다."),
-	UNEXPECTED_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10503, "예기치 못한 이유로 오류가 발생했습니다.");
+	UNEXPECTED_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10503, "예기치 못한 이유로 오류가 발생했습니다."),
+
+	/**
+	 * -10600 ~ -10609 : 노트 검색 에러
+	 */
+	INVALID_SEARCH_KEYWORD(false, HttpStatus.BAD_REQUEST, -10600, "검색 키워드가 유효하지 않습니다."),
+	ELASTICSEARCH_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10601, "검색 서비스 오류가 발생했습니다."),
+	ELASTICSEARCH_CONNECTION_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10602, "검색 서버 연결에 실패했습니다."),
+	ELASTICSEARCH_INDEX_NOT_FOUND(false, HttpStatus.INTERNAL_SERVER_ERROR, -10603, "검색 인덱스를 찾을 수 없습니다."),
+	ELASTICSEARCH_MAPPING_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10604, "검색 데이터 형식 오류가 발생했습니다.");
 
 
 	private final boolean isSuccess;
