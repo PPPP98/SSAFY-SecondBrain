@@ -1,0 +1,95 @@
+.glass-wrapper {
+  @apply relative;
+}
+
+.glass-element {
+  @apply relative rounded-3xl text-xl font-medium text-white;
+
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(1.5px) saturate(180%);
+  -webkit-backdrop-filter: blur(1.5px) saturate(180%);
+  box-shadow: 0px 12px 40px rgba(0, 0, 0, 0.25);
+  text-shadow: 0px 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+input.glass-element,
+button.glass-element {
+  @apply cursor-pointer;
+}
+
+input[type='checkbox'].glass-element {
+  @apply appearance-none;
+}
+
+button.glass-element {
+  @apply flex content-center items-center justify-center;
+}
+
+.glass-element:not(input):not(button) {
+  @apply px-8 py-6;
+}
+
+.glass-button {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  @apply flex items-center justify-center p-0;
+}
+
+.glass-button ~ .glass-border {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+}
+
+.glass-input-sm {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  @apply flex items-center justify-center p-0 text-base;
+}
+
+.glass-input-sm ~ .glass-border {
+  border-radius: 50%;
+}
+
+.glass-input-md {
+  width: 22rem;
+  height: 3.5rem;
+  @apply px-4 py-0 text-base;
+}
+
+.glass-div {
+  width: 27rem;
+}
+
+.glass-icon {
+  @apply inline-flex items-center;
+}
+
+.glass-border {
+  @apply pointer-events-none absolute left-0 top-0 h-full w-full rounded-3xl;
+
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.5) inset,
+    0 1px 3px rgba(255, 255, 255, 0.25) inset,
+    0 1px 4px rgba(0, 0, 0, 0.35);
+
+  padding: 1px;
+  z-index: 1;
+
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.border-1 {
+  mix-blend-mode: screen;
+  opacity: 0.2;
+}
+
+.border-2 {
+  mix-blend-mode: overlay;
+}
