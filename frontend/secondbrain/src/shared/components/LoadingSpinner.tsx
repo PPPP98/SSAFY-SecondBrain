@@ -16,7 +16,7 @@ export function LoadingSpinner({ size = 'md', message }: LoadingSpinnerProps) {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4">
       <div
         className={`animate-spin rounded-full border-blue-600 border-t-transparent ${sizeClasses[size]}`}
         role="status"
