@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
+import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.repository.NoteRepository;
 import uknowklp.secondbrain.api.user.domain.User;
 import uknowklp.secondbrain.api.user.service.UserService;
@@ -61,6 +62,25 @@ public class NoteServiceImpl implements NoteService {
 			log.error("Failed to save note for user ID: {}", userId, e);
 			throw new BaseException(BaseResponseStatus.NOTE_SAVE_FAILED);
 		}
+	}
+
+	@Override
+	public NoteResponse getNoteById(Long noteId, Long userId) {
+		log.info("Getting note ID: {} for user ID: {}",noteId, userId);
+		
+		// 1. 노트 존재 여부 확인
+		Note note = noteRepository.findById(noteId).orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
+		
+		// 2. 노트 소유자 확인 (권한 검증)
+		if (!note.getUser().getId().equals(userId)) {
+			log.warn("User {} tried to access note {} owned by user {}",
+				userId, noteId, note.getUser().getId());
+			throw new BaseException(BaseResponseStatus.NOTE_ACCESS_DENIED);
+		}
+
+		// 3. NoteResponse로 변환 후 반환
+		log.info("Note found successfully - ID: {}, User ID: {}", noteId, userId);
+		return NoteResponse.from(note);
 	}
 
 	/**

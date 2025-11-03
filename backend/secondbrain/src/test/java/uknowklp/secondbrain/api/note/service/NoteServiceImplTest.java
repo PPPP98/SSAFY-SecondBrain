@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
+import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.repository.NoteRepository;
 import uknowklp.secondbrain.api.user.domain.User;
 import uknowklp.secondbrain.api.user.service.UserService;
@@ -352,33 +353,25 @@ class NoteServiceImplTest {
 	}
 
 	@Test
-	@DisplayName("노트 생성 실패 - 이미지 추가 후 content 길이 초과")
+	@DisplayName("노트 생성 실패 - content 길이 초과 (2048자 초과)")
 	void createNote_ContentLengthExceeded_ShouldThrowException() {
-		// given: content가 거의 2048자에 가까운 상태에서 이미지 추가 시 초과
+		// given: content가 2048자를 초과하는 요청
 		Long userId = 1L;
-		String longContent = "a".repeat(2000); // 2000자 content
-		MockMultipartFile image = new MockMultipartFile(
-			"images",
-			"large-image-name-that-will-exceed-limit.jpg",
-			"image/jpeg",
-			"image content".getBytes()
-		);
-		List<MultipartFile> images = new ArrayList<>();
-		images.add(image);
+		String tooLongContent = "a".repeat(2049); // 2049자 content (초과)
 
-		NoteRequest requestWithLongContent = NoteRequest.builder()
+		NoteRequest requestWithTooLongContent = NoteRequest.builder()
 			.title("길이 초과 노트")
-			.content(longContent)
-			.images(images)
+			.content(tooLongContent)
+			.images(null)
 			.build();
 
 		given(userService.findById(userId)).willReturn(Optional.of(testUser));
 
-		// when & then: BAD_REQUEST 예외가 발생하는지 확인
+		// when & then: NOTE_CONTENT_TOO_LONG 예외가 발생하는지 확인
 		BaseException exception = assertThrows(BaseException.class, () ->
-			noteService.createNote(userId, requestWithLongContent)
+			noteService.createNote(userId, requestWithTooLongContent)
 		);
-		assertEquals(BaseResponseStatus.BAD_REQUEST, exception.getStatus());
+		assertEquals(BaseResponseStatus.NOTE_CONTENT_TOO_LONG, exception.getStatus());
 
 		// verify: noteRepository.save는 호출되지 않았는지 확인
 		verify(noteRepository, never()).save(any(Note.class));
@@ -406,5 +399,201 @@ class NoteServiceImplTest {
 		assertNotNull(createdNote);
 		assertEquals(2048, createdNote.getContent().length());
 		verify(noteRepository, times(1)).save(any(Note.class));
+	}
+
+	// ========================================
+	// getNoteById 메서드 테스트
+	// ========================================
+
+	@Test
+	@DisplayName("노트 조회 성공 - 본인 노트 조회")
+	void getNoteById_Success() {
+		// given: 존재하는 노트를 준비
+		Long noteId = 1L;
+		Long userId = 1L;
+		Note existingNote = Note.builder()
+			.id(noteId)
+			.user(testUser)
+			.title("테스트 노트")
+			.content("테스트 내용입니다.")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(existingNote));
+
+		// when: 노트 조회를 실행
+		NoteResponse response = noteService.getNoteById(noteId, userId);
+
+		// then: 조회된 노트 정보가 올바른지 확인
+		assertNotNull(response);
+		assertEquals(noteId, response.getNoteId());
+		assertEquals("테스트 노트", response.getTitle());
+		assertEquals("테스트 내용입니다.", response.getContent());
+		assertNull(response.getRemindAt());
+
+		// verify: 메서드 호출 검증
+		verify(noteRepository, times(1)).findById(noteId);
+	}
+
+	@Test
+	@DisplayName("노트 조회 실패 - 존재하지 않는 노트")
+	void getNoteById_NoteNotFound_ShouldThrowException() {
+		// given: 존재하지 않는 노트 ID를 준비
+		Long nonExistentNoteId = 999L;
+		Long userId = 1L;
+		given(noteRepository.findById(nonExistentNoteId)).willReturn(Optional.empty());
+
+		// when & then: NOTE_NOT_FOUND 예외가 발생하는지 확인
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.getNoteById(nonExistentNoteId, userId)
+		);
+		assertEquals(BaseResponseStatus.NOTE_NOT_FOUND, exception.getStatus());
+
+		// verify: noteRepository.findById는 호출되었는지 확인
+		verify(noteRepository, times(1)).findById(nonExistentNoteId);
+	}
+
+	@Test
+	@DisplayName("노트 조회 실패 - 다른 사용자의 노트 접근 시도")
+	void getNoteById_AccessDenied_ShouldThrowException() {
+		// given: 다른 사용자의 노트를 준비
+		Long noteId = 1L;
+		Long ownerId = 1L;
+		Long unauthorizedUserId = 2L;
+
+		User owner = User.builder()
+			.id(ownerId)
+			.email("owner@example.com")
+			.name("소유자")
+			.build();
+
+		Note otherUserNote = Note.builder()
+			.id(noteId)
+			.user(owner)
+			.title("소유자의 노트")
+			.content("다른 사용자의 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(otherUserNote));
+
+		// when & then: NOTE_ACCESS_DENIED 예외가 발생하는지 확인
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.getNoteById(noteId, unauthorizedUserId)
+		);
+		assertEquals(BaseResponseStatus.NOTE_ACCESS_DENIED, exception.getStatus());
+
+		// verify: noteRepository.findById는 호출되었는지 확인
+		verify(noteRepository, times(1)).findById(noteId);
+	}
+
+	@Test
+	@DisplayName("노트 조회 성공 - remindAt이 설정된 노트")
+	void getNoteById_WithRemindAt_Success() {
+		// given: remindAt이 설정된 노트를 준비
+		Long noteId = 1L;
+		Long userId = 1L;
+		java.time.LocalDateTime remindTime = java.time.LocalDateTime.now().plusDays(1);
+		Note noteWithRemind = Note.builder()
+			.id(noteId)
+			.user(testUser)
+			.title("리마인더 노트")
+			.content("리마인더가 설정된 노트입니다.")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(noteWithRemind));
+
+		// when: 노트 조회를 실행
+		NoteResponse response = noteService.getNoteById(noteId, userId);
+
+		// then: remindAt 필드가 포함된 응답 확인
+		assertNotNull(response);
+		assertEquals(noteId, response.getNoteId());
+		assertEquals("리마인더 노트", response.getTitle());
+		assertEquals("리마인더가 설정된 노트입니다.", response.getContent());
+
+		verify(noteRepository, times(1)).findById(noteId);
+	}
+
+	@Test
+	@DisplayName("노트 조회 성공 - 여러 사용자가 각자 자신의 노트를 조회")
+	void getNoteById_MultipleUsersCanAccessTheirOwnNotes() {
+		// given: 두 명의 사용자와 각각의 노트를 준비
+		Long userId1 = 1L;
+		Long userId2 = 2L;
+		Long noteId1 = 1L;
+		Long noteId2 = 2L;
+
+		User user2 = User.builder()
+			.id(userId2)
+			.email("user2@example.com")
+			.name("사용자2")
+			.build();
+
+		Note note1 = Note.builder()
+			.id(noteId1)
+			.user(testUser)
+			.title("사용자1의 노트")
+			.content("사용자1의 내용")
+			.remindCount(0)
+			.build();
+
+		Note note2 = Note.builder()
+			.id(noteId2)
+			.user(user2)
+			.title("사용자2의 노트")
+			.content("사용자2의 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findById(noteId1)).willReturn(Optional.of(note1));
+		given(noteRepository.findById(noteId2)).willReturn(Optional.of(note2));
+
+		// when: 각 사용자가 자신의 노트를 조회
+		NoteResponse response1 = noteService.getNoteById(noteId1, userId1);
+		NoteResponse response2 = noteService.getNoteById(noteId2, userId2);
+
+		// then: 각자의 노트를 올바르게 조회
+		assertEquals(noteId1, response1.getNoteId());
+		assertEquals("사용자1의 노트", response1.getTitle());
+		assertEquals(noteId2, response2.getNoteId());
+		assertEquals("사용자2의 노트", response2.getTitle());
+
+		// verify: 각 노트에 대해 메서드가 호출되었는지 확인
+		verify(noteRepository, times(1)).findById(noteId1);
+		verify(noteRepository, times(1)).findById(noteId2);
+	}
+
+	@Test
+	@DisplayName("노트 조회 성공 - 긴 제목과 내용 조회")
+	void getNoteById_LongTitleAndContent_Success() {
+		// given: 최대 길이의 제목과 내용을 가진 노트
+		Long noteId = 1L;
+		Long userId = 1L;
+		String maxTitle = "a".repeat(64);
+		String maxContent = "b".repeat(2048);
+
+		Note longNote = Note.builder()
+			.id(noteId)
+			.user(testUser)
+			.title(maxTitle)
+			.content(maxContent)
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(longNote));
+
+		// when: 노트 조회
+		NoteResponse response = noteService.getNoteById(noteId, userId);
+
+		// then: 긴 제목과 내용이 정확히 조회됨
+		assertNotNull(response);
+		assertEquals(64, response.getTitle().length());
+		assertEquals(2048, response.getContent().length());
+		assertEquals(maxTitle, response.getTitle());
+		assertEquals(maxContent, response.getContent());
+
+		verify(noteRepository, times(1)).findById(noteId);
 	}
 }
