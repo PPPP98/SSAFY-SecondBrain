@@ -2,7 +2,7 @@ import GoogleLoginButton from '@/auth/components/GoogleLoginButton';
 
 function App() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+    <div className="flex min-h-screen items-center justify-center bg-[#192030]">
       <div className="space-y-8 text-center">
         <div className="space-y-4">
           <h1 className="text-4xl font-bold text-gray-900">TailwindCSS Verification</h1>
