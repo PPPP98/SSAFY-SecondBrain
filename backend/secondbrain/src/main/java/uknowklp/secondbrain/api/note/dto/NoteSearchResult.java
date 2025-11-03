@@ -11,7 +11,7 @@ public record NoteSearchResult(
 	Long id,
 	String title,
 	String content,
-	Long memberId,
+	Long userId,
 	LocalDateTime createdAt,
 	LocalDateTime updatedAt,
 	Integer remindCount
@@ -22,7 +22,7 @@ public record NoteSearchResult(
 			.id(document.getId())
 			.title(document.getTitle())
 			.content(document.getContent())
-			.memberId(document.getMemberId())
+			.userId(document.getUserId())
 			.createdAt(document.getCreatedAt())
 			.updatedAt(document.getUpdatedAt())
 			.remindCount(document.getRemindCount())

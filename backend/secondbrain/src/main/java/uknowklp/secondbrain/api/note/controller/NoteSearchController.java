@@ -40,9 +40,9 @@ public class NoteSearchController {
 		@RequestParam(defaultValue = "10") int size,
 		@AuthenticationPrincipal CustomUserDetails userDetails
 	) {
-		Long memberId = userDetails.getUser().getId();
+		Long userId = userDetails.getUser().getId();
 		Pageable pageable = PageRequest.of(page, size);
-		Page<NoteDocument> searchResults = noteSearchService.searchByKeyword(keyword, memberId, pageable);
+		Page<NoteDocument> searchResults = noteSearchService.searchByKeyword(keyword, userId, pageable);
 
 		// NoteDocument -> NoteSearchResult 변환
 		List<NoteSearchResult> results = searchResults.getContent().stream()
@@ -67,8 +67,8 @@ public class NoteSearchController {
 		@RequestParam(defaultValue = "5") int limit,
 		@AuthenticationPrincipal CustomUserDetails userDetails
 	) {
-		Long memberId = userDetails.getUser().getId();
-		List<NoteDocument> similarNotes = noteSearchService.findSimilarNotes(noteId, memberId, limit);
+		Long userId = userDetails.getUser().getId();
+		List<NoteDocument> similarNotes = noteSearchService.findSimilarNotes(noteId, userId, limit);
 
 		List<NoteSearchResult> results = similarNotes.stream()
 			.map(NoteSearchResult::from)

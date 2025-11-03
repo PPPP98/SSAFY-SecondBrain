@@ -30,7 +30,7 @@ public class NoteDocument {
 	private String content;
 
 	@Field(type = FieldType.Keyword)
-	private Long memberId; // member_id (User의 ID)
+	private Long userId; // user_id (User의 ID)
 
 	@Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second_millis)
 	private LocalDateTime createdAt;
@@ -45,13 +45,13 @@ public class NoteDocument {
 	private Integer remindCount;
 
 	@Builder
-	public NoteDocument(Long id, String title, String content, Long memberId,
+	public NoteDocument(Long id, String title, String content, Long userId,
 		LocalDateTime createdAt, LocalDateTime updatedAt,
 		LocalDateTime remindAt, Integer remindCount) {
 		this.id = id;
 		this.title = title;
 		this.content = content;
-		this.memberId = memberId;
+		this.userId = userId;
 		this.createdAt = createdAt;
 		this.updatedAt = updatedAt;
 		this.remindAt = remindAt;
@@ -64,7 +64,7 @@ public class NoteDocument {
 			.id(note.getId())
 			.title(note.getTitle())
 			.content(note.getContent())
-			.memberId(note.getUser().getId())
+			.userId(note.getUser().getId())
 			.createdAt(note.getCreatedAt())
 			.updatedAt(note.getUpdatedAt())
 			.remindAt(note.getRemindAt())

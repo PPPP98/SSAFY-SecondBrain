@@ -35,7 +35,7 @@ public class NoteSearchService {
 	private final ElasticsearchOperations elasticsearchOperations;
 
 	// 키워드로 노트 검색 (제목 + 내용, 유사도 기반)
-	public Page<NoteDocument> searchByKeyword(String keyword, Long memberId, Pageable pageable) {
+	public Page<NoteDocument> searchByKeyword(String keyword, Long userId, Pageable pageable) {
 		// 키워드 검증
 		if (keyword == null || keyword.trim().isEmpty()) {
 			throw new BaseException(BaseResponseStatus.INVALID_SEARCH_KEYWORD);
@@ -53,13 +53,13 @@ public class NoteSearchService {
 			BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder()
 				.must(multiMatchQuery);
 
-			// 3. memberId 필터 추가 (특정 사용자의 노트만 검색)
-			if (memberId != null) {
-				Query memberFilter = TermQuery.of(t -> t
-					.field("memberId")
-					.value(memberId)
+			// 3. userId 필터 추가 (특정 사용자의 노트만 검색)
+			if (userId != null) {
+				Query userFilter = TermQuery.of(t -> t
+					.field("userId")
+					.value(userId)
 				)._toQuery();
-				boolQueryBuilder.filter(memberFilter);
+				boolQueryBuilder.filter(userFilter);
 			}
 
 			// 4. Native Query 생성
@@ -102,7 +102,7 @@ public class NoteSearchService {
 	}
 
 	// 특정 노트와 유사한 노트 찾기 (연관 높은 노트 추천)
-	public List<NoteDocument> findSimilarNotes(Long noteId, Long memberId, int limit) {
+	public List<NoteDocument> findSimilarNotes(Long noteId, Long userId, int limit) {
 		try {
 			// 기준 노트 조회
 			NoteDocument baseNote = noteSearchRepository.findById(noteId.toString())
@@ -117,7 +117,7 @@ public class NoteSearchService {
 				.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.BestFields)
 			)._toQuery();
 
-			// Bool 쿼리 생성 (자기 자신 제외 + memberId 필터)
+			// Bool 쿼리 생성 (자기 자신 제외 + userId 필터)
 			BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder()
 				.must(multiMatchQuery)
 				.mustNot(TermQuery.of(t -> t
@@ -125,11 +125,11 @@ public class NoteSearchService {
 					.value(noteId)
 				)._toQuery());
 
-			// memberId 필터 추가
-			if (memberId != null) {
+			// userId 필터 추가
+			if (userId != null) {
 				boolQueryBuilder.filter(TermQuery.of(t -> t
-					.field("memberId")
-					.value(memberId)
+					.field("userId")
+					.value(userId)
 				)._toQuery());
 			}
 
