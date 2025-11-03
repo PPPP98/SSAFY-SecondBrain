@@ -74,10 +74,16 @@ public class NoteSearchService {
 				NoteDocument.class
 			);
 
-			// 6. 결과 변환
+			// 6. 결과 변환 및 유사도 점수 로깅
 			List<NoteDocument> content = searchHits.getSearchHits().stream()
+				.peek(hit -> log.info("검색 결과 - ID: {}, 제목: '{}', 유사도 점수: {}",
+					hit.getContent().getId(),
+					hit.getContent().getTitle(),
+					String.format("%.2f", hit.getScore())))
 				.map(SearchHit::getContent)
 				.collect(Collectors.toList());
+
+			log.info("키워드 검색 완료 - 키워드: '{}', 총 {}건 발견", keyword, searchHits.getTotalHits());
 
 			return new PageImpl<>(content, pageable, searchHits.getTotalHits());
 		} catch (BaseException e) {
@@ -145,10 +151,18 @@ public class NoteSearchService {
 				NoteDocument.class
 			);
 
-			// 결과 반환
-			return searchHits.getSearchHits().stream()
+			// 결과 반환 및 유사도 점수 로깅
+			List<NoteDocument> results = searchHits.getSearchHits().stream()
+				.peek(hit -> log.info("유사 노트 발견 - ID: {}, 제목: '{}', 유사도 점수: {}",
+					hit.getContent().getId(),
+					hit.getContent().getTitle(),
+					String.format("%.2f", hit.getScore())))
 				.map(SearchHit::getContent)
 				.collect(Collectors.toList());
+
+			log.info("유사 노트 검색 완료 - 기준 노트 ID: {}, {}건 발견", noteId, results.size());
+
+			return results;
 		} catch (BaseException e) {
 			throw e;
 		} catch (ElasticsearchException e) {
