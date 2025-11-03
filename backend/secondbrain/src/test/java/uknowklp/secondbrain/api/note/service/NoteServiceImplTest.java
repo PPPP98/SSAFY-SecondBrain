@@ -599,4 +599,228 @@ class NoteServiceImplTest {
 
 		verify(noteRepository, times(1)).findById(noteId);
 	}
+
+	// ========================================
+	// updateNote 메서드 테스트
+	// ========================================
+
+	@Test
+	@DisplayName("노트 수정 성공 - 정상적인 요청")
+	void updateNote_Success() {
+		// given
+		Long noteId = 1L;
+		Long userId = 1L;
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("수정된 제목")
+			.content("수정된 내용")
+			.build();
+
+		Note existingNote = Note.builder()
+			.id(noteId)
+			.user(testUser)
+			.title("기존 제목")
+			.content("기존 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(existingNote));
+		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when
+		NoteResponse response = noteService.updateNote(noteId, userId, updateRequest);
+
+		// then
+		assertNotNull(response);
+		assertEquals("수정된 제목", response.getTitle());
+		assertEquals("수정된 내용", response.getContent());
+
+		verify(noteRepository, times(1)).findById(noteId);
+		verify(noteRepository, times(1)).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 실패 - 존재하지 않는 노트")
+	void updateNote_NoteNotFound_ThrowsException() {
+		// given
+		Long nonExistentNoteId = 999L;
+		Long userId = 1L;
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("수정된 제목")
+			.content("수정된 내용")
+			.build();
+
+		given(noteRepository.findById(nonExistentNoteId)).willReturn(Optional.empty());
+
+		// when & then
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.updateNote(nonExistentNoteId, userId, updateRequest)
+		);
+		assertEquals(BaseResponseStatus.NOTE_NOT_FOUND, exception.getStatus());
+
+		verify(noteRepository, times(1)).findById(nonExistentNoteId);
+		verify(noteRepository, never()).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 실패 - 다른 사용자의 노트 수정 시도")
+	void updateNote_AccessDenied_ThrowsException() {
+		// given
+		Long noteId = 1L;
+		Long ownerId = 1L;
+		Long unauthorizedUserId = 2L;
+
+		User owner = User.builder()
+			.id(ownerId)
+			.email("owner@example.com")
+			.name("소유자")
+			.build();
+
+		Note otherUserNote = Note.builder()
+			.id(noteId)
+			.user(owner)
+			.title("소유자의 노트")
+			.content("다른 사용자의 내용")
+			.remindCount(0)
+			.build();
+
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("수정된 제목")
+			.content("수정된 내용")
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(otherUserNote));
+
+		// when & then
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.updateNote(noteId, unauthorizedUserId, updateRequest)
+		);
+		assertEquals(BaseResponseStatus.NOTE_ACCESS_DENIED, exception.getStatus());
+
+		verify(noteRepository, times(1)).findById(noteId);
+		verify(noteRepository, never()).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 성공 - 이미지 포함")
+	void updateNote_WithImages_Success() {
+		// given
+		Long noteId = 1L;
+		Long userId = 1L;
+
+		MockMultipartFile imageFile = new MockMultipartFile(
+			"images",
+			"updated-image.jpg",
+			"image/jpeg",
+			"updated image content".getBytes()
+		);
+		List<MultipartFile> images = new ArrayList<>();
+		images.add(imageFile);
+
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("이미지 수정")
+			.content("이미지가 추가된 내용")
+			.images(images)
+			.build();
+
+		Note existingNote = Note.builder()
+			.id(noteId)
+			.user(testUser)
+			.title("기존 제목")
+			.content("기존 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(existingNote));
+		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when
+		NoteResponse response = noteService.updateNote(noteId, userId, updateRequest);
+
+		// then
+		assertNotNull(response);
+		assertTrue(response.getContent().contains("이미지가 추가된 내용"));
+		assertTrue(response.getContent().contains("![updated-image.jpg]"));
+
+		verify(noteRepository, times(1)).findById(noteId);
+		verify(noteRepository, times(1)).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 성공 - 최대 길이 제목과 내용")
+	void updateNote_MaxLength_Success() {
+		// given
+		Long noteId = 1L;
+		Long userId = 1L;
+		String maxTitle = "a".repeat(64);
+		String maxContent = "b".repeat(2048);
+
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title(maxTitle)
+			.content(maxContent)
+			.build();
+
+		Note existingNote = Note.builder()
+			.id(noteId)
+			.user(testUser)
+			.title("기존 제목")
+			.content("기존 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(existingNote));
+		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when
+		NoteResponse response = noteService.updateNote(noteId, userId, updateRequest);
+
+		// then
+		assertNotNull(response);
+		assertEquals(64, response.getTitle().length());
+		assertEquals(2048, response.getContent().length());
+
+		verify(noteRepository, times(1)).findById(noteId);
+		verify(noteRepository, times(1)).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 실패 - 제목이 빈 문자열")
+	void updateNote_EmptyTitle_ThrowsException() {
+		// given
+		Long noteId = 1L;
+		Long userId = 1L;
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("")
+			.content("수정된 내용")
+			.build();
+
+		// when & then
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.updateNote(noteId, userId, updateRequest)
+		);
+		assertEquals(BaseResponseStatus.NOTE_TITLE_EMPTY, exception.getStatus());
+
+		verify(noteRepository, never()).findById(anyLong());
+		verify(noteRepository, never()).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 실패 - 내용이 빈 문자열")
+	void updateNote_EmptyContent_ThrowsException() {
+		// given
+		Long noteId = 1L;
+		Long userId = 1L;
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("수정된 제목")
+			.content("")
+			.build();
+
+		// when & then
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.updateNote(noteId, userId, updateRequest)
+		);
+		assertEquals(BaseResponseStatus.NOTE_CONTENT_EMPTY, exception.getStatus());
+
+		verify(noteRepository, never()).findById(anyLong());
+		verify(noteRepository, never()).save(any(Note.class));
+	}
 }
