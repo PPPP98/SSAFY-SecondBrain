@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -84,6 +85,38 @@ public class NoteController {
 		NoteResponse noteResponse = noteService.getNoteById(noteId, user.getId());
 
 		// 200 OK 응답 생성 및 반환
+		BaseResponse<NoteResponse> response = new BaseResponse<>(noteResponse);
+		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * 노트 수정
+	 * JWT 토큰으로 인증된 사용자의 노트를 수정
+	 * 본인의 노트만 수정 가능 (다른 사용자의 노트는 접근 거부)
+	 * multipart/form-data 형식으로 제목, 내용, 이미지 파일들을 받음
+	 *
+	 * @param userDetails Spring Security의 인증된 사용자 정보
+	 * @param noteId 수정할 노트 ID (URL 경로에서 추출)
+	 * @param title 노트 제목
+	 * @param content 노트 내용
+	 * @param images 이미지 파일 목록 (optional)
+	 * @return ResponseEntity<BaseResponse<NoteResponse>> 200 OK 응답 + 수정된 노트 정보
+	 */
+	@PutMapping(value = "/{noteId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<BaseResponse<NoteResponse>> updateNote(
+		@AuthenticationPrincipal CustomUserDetails userDetails,
+		@PathVariable Long noteId,
+		@RequestParam String title,
+		@RequestParam String content,
+		@RequestParam(required = false) List<MultipartFile> images) {
+
+		User user = userDetails.getUser();
+		log.info("Updating note for userId: {} - NoteId: {}, Title: {}, Content length: {}, Image count: {}",
+			user.getId(), noteId, title, content.length(), images != null ? images.size() : 0);
+
+		NoteRequest request = NoteRequest.of(title, content, images);
+		NoteResponse noteResponse = noteService.updateNote(noteId, user.getId(), request);
+
 		BaseResponse<NoteResponse> response = new BaseResponse<>(noteResponse);
 		return ResponseEntity.ok(response);
 	}
