@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -6,7 +6,7 @@ import logging
 from app.core.config import get_settings
 from app.db.init_db import initialize_schema
 from app.db.neo4j_client import neo4j_client
-from app.api.v1.routers import router
+from app.api.v1.routers import router as v1_router
 
 # 로깅 설정
 logging.basicConfig(
@@ -67,6 +67,8 @@ app = FastAPI(
     description="Neo4j 기반 지식 그래프 서비스",
     version="1.0.0",
     lifespan=lifespan,  # 라이프사이클 관리
+    docs_url="/ai/docs",           # Swagger UI 경로
+    openapi_url="/ai/openapi.json", # OpenAPI 스키마 경로
 )
 
 # CORS 설정 (Spring Boot와 통신)
@@ -80,7 +82,9 @@ app.add_middleware(
 
 
 # ===== 헬스 체크 =====
-@app.get("/health")
+root_router = APIRouter()
+
+@root_router.get("/health")
 async def health_check():
     """서비스 상태 확인"""
     return {
@@ -90,7 +94,7 @@ async def health_check():
     }
 
 
-@app.get("/")
+@root_router.get("/")
 async def root():
     """루트 엔드포인트"""
     return {
@@ -115,7 +119,9 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # ===== 라우터 import =====
-app.include_router(router)
+
+app.include_router(root_router, prefix="/ai")
+app.include_router(v1_router, prefix="/ai")
 
 
 if __name__ == "__main__":
