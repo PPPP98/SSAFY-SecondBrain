@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 지식 그래프</title>
+    
+    <style>
+        body { margin: 0; }
+    </style>
+    
+    <script src="https://unpkg.com/three"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
+</head>
+
+<body>
+    <div id="3d-graph"></div>
+
+    <script>
+        const API_BASE = 'http://192.168.30.173:8000/api/v1';
+        const USER_ID = 'demo-user';
+        const start = new Date();
+
+        // API에서 그래프 데이터 조회
+        fetch(`${API_BASE}/graph/visualization`, {
+            headers: {
+                'X-User-ID': USER_ID,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.links.length + " links loaded in " + (new Date() - start) + " ms");
+            
+            // 노드와 링크 변환
+            const gData = {
+                nodes: data.nodes.map(n => ({
+                    id: n.id,
+                    name: n.title
+                })),
+                links: data.links.map(l => ({
+                    source: l.source,
+                    target: l.target
+                }))
+            };
+            
+            // 3D 그래프 렌더링
+            ForceGraph3D()
+                (document.getElementById('3d-graph'))
+                .graphData(gData)
+                .nodeLabel('name')
+                .nodeColor(() => '#667eea')
+                .linkColor(() => 'rgba(255,255,255,0.2)');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    </script>
+</body>
+
+</html>
