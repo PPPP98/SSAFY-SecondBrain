@@ -1,6 +1,5 @@
 package uknowklp.secondbrain.api.note.service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -139,24 +138,23 @@ public class NoteServiceImpl implements NoteService {
 	public void deleteNotes(List<Long> noteIds, Long userId) {
 		log.info("Deleting {} notes for user ID: {}", noteIds.size(), userId);
 
-		// 1단계: 모든 노트 존재 여부 및 권한 검증 (all-or-nothing 전략)
-		List<Note> notesToDelete = new ArrayList<>();
-		for (Long noteId : noteIds) {
-			// 노트 존재 여부 확인
-			Note note = noteRepository.findById(noteId)
-				.orElseThrow(() -> {
-					log.warn("Note not found during delete validation - Note ID: {}", noteId);
-					return new BaseException(BaseResponseStatus.NOTE_NOT_FOUND);
-				});
+		// 1단계: 모든 노트를 한 번에 조회 (N+1 쿼리 방지)
+		List<Note> notesToDelete = noteRepository.findAllById(noteIds);
 
-			// 권한 검증 (본인 노트만 삭제 가능)
+		// 존재 여부 확인: 요청한 모든 노트가 존재하는지 검증
+		if (notesToDelete.size() != noteIds.size()) {
+			log.warn("Some notes not found during delete validation - Requested: {}, Found: {}",
+				noteIds.size(), notesToDelete.size());
+			throw new BaseException(BaseResponseStatus.NOTE_NOT_FOUND);
+		}
+
+		// 권한 검증: 모든 노트가 본인 소유인지 확인 (all-or-nothing 전략)
+		for (Note note : notesToDelete) {
 			if (!note.getUser().getId().equals(userId)) {
 				log.warn("User {} tried to delete note {} owned by user {}",
-					userId, noteId, note.getUser().getId());
+					userId, note.getId(), note.getUser().getId());
 				throw new BaseException(BaseResponseStatus.NOTE_ACCESS_DENIED);
 			}
-
-			notesToDelete.add(note);
 		}
 
 		// 2단계: 모든 검증 통과 후 일괄 삭제
