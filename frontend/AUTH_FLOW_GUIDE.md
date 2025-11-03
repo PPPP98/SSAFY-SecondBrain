@@ -197,7 +197,7 @@ const handleCallback = async (code: string) => {
       setUser(userInfo);
 
       // 5. 메인 페이지로 리다이렉트
-      navigate('/dashboard');
+      navigate('/main');
     }
   } catch (error) {
     console.error('Login failed:', error);
@@ -577,7 +577,7 @@ src/
 │
 ├── layouts/                          # ✅ 레이아웃 컴포넌트
 │   ├── RootLayout.tsx               # 루트 레이아웃
-│   └── DashboardLayout.tsx          # 대시보드 레이아웃
+│   └── MainLayout.tsx               # 메인 레이아웃
 │
 ├── lib/                              # 라이브러리 설정
 │   ├── query-client.ts              # TanStack Query 클라이언트
@@ -585,7 +585,7 @@ src/
 │
 └── routes/                           # 라우트 정의 (TanStack Router)
     ├── __root.tsx                   # Root Route
-    └── dashboard/                   # 대시보드 라우트
+    └── main/                        # 메인 라우트
 ```
 
 ---

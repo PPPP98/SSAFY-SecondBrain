@@ -102,7 +102,7 @@ useEffect(() => {
           const userData = await userResponse.json();
           setUser(userData);
           // 5. 자동 로그인 완료
-          navigate('/dashboard');
+          navigate('/main');
         }
       }
     } catch (error) {

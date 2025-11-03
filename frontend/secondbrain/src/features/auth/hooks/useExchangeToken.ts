@@ -8,7 +8,7 @@ import { getCurrentUser } from '@/features/auth/services/userService';
 /**
  * Authorization Code를 JWT 토큰으로 교환하는 Mutation 훅
  * - code 교환 후 Access Token 저장
- * - 사용자 정보 조회 후 대시보드로 이동
+ * - 사용자 정보 조회 후 메인으로 이동
  */
 export function useExchangeToken() {
   const navigate = useNavigate();
@@ -27,8 +27,8 @@ export function useExchangeToken() {
           const userInfo = await getCurrentUser();
           setUser(userInfo);
 
-          // 대시보드로 이동
-          void navigate({ to: '/dashboard' });
+          // 메인으로 이동
+          void navigate({ to: '/main' });
         } catch (error) {
           console.error('Failed to fetch user info:', error);
           void navigate({ to: '/', search: { error: 'user_fetch_failed' } });
