@@ -12,6 +12,15 @@
  */
 
 /**
+ * 환경 변수별 설정 힌트
+ * - 개발자 친화적인 에러 메시지를 위한 예시 값
+ */
+const ENV_HINTS: Partial<Record<keyof ImportMetaEnv, string>> = {
+  VITE_API_BASE_URL: 'http://localhost:8080',
+  VITE_OAUTH2_LOGIN_URL: 'http://localhost:8080/oauth2/authorization/google',
+};
+
+/**
  * 환경 변수 안전하게 가져오기
  * - vite-env.d.ts의 ImportMetaEnv 타입 활용
  * - 환경 변수 누락 시 명확한 에러 메시지 제공
@@ -19,9 +28,12 @@
 const getEnvVar = <Key extends keyof ImportMetaEnv>(key: Key): ImportMetaEnv[Key] => {
   const value = import.meta.env[key];
   if (!value) {
+    const hint = ENV_HINTS[key];
     throw new Error(
-      `Missing required environment variable: ${key}\n` +
-        `Please check your .env file and ensure ${key} is defined.`,
+      `❌ Missing required environment variable: ${key}\n\n` +
+        (hint ? `📝 Expected value example:\n   ${hint}\n\n` : '') +
+        `📂 File location: frontend/secondbrain/.env\n\n` +
+        `💡 Please check your .env file and ensure ${key} is defined.`,
     );
   }
   // ESLint: import.meta.env의 값은 안전하게 타입 단언 가능

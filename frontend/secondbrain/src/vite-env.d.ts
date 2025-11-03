@@ -2,12 +2,9 @@
 
 /**
  * Vite 환경 변수 타입 정의
- * - import.meta.env에 대한 TypeScript IntelliSense 제공
- * - 모든 VITE_ 접두사 환경 변수를 여기에 정의
  *
- * ⚠️ 중요: 이 파일에는 import/export 문을 포함하지 마세요.
- * import/export가 있으면 TypeScript가 파일을 모듈로 처리하여
- * 타입 augmentation이 작동하지 않습니다.
+ * ⚠️ 이 파일에 import/export 문을 포함하지 마세요.
+ * (타입 augmentation이 작동하지 않습니다)
  */
 
 interface ImportMetaEnv {
