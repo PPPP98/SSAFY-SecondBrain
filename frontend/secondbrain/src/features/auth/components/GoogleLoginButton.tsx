@@ -1,3 +1,5 @@
+import { env } from '@/config/env';
+
 interface GoogleLoginButtonProps {
   text?: 'signin' | 'signup' | 'continue';
 }
@@ -23,7 +25,7 @@ export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
   };
 
   function handleLogin() {
-    window.location.href = import.meta.env.VITE_OAUTH2_LOGIN_URL as string;
+    window.location.href = env.oauth2LoginUrl;
   }
 
   return (
