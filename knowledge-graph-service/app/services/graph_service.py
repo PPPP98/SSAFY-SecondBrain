@@ -118,7 +118,7 @@ class GraphVisualizationService:
         query = f"""
         MATCH (center:Note {{note_id: $note_id, user_id: $user_id}})
         MATCH path=(center)-[:SIMILAR_TO*1..{depth}]-(neighbor:Note {{user_id: $user_id}})
-        WITH center, neighbor, apoc.path.length(path) AS distance
+        WITH center, neighbor, length(path) AS distance
         RETURN DISTINCT 
             center.note_id AS center_id,
             center.title AS center_title,
