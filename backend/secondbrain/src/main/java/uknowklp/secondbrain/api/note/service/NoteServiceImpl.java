@@ -39,6 +39,9 @@ public class NoteServiceImpl implements NoteService {
 		// 이미지 파일 처리 및 마크다운 content 생성
 		String finalContent = processImagesAndContent(request.getContent(), request.getImages());
 
+		// 서비스 레벨 검증: 최종 content 길이 확인
+		validateContentLength(finalContent);
+
 		// 노트 생성
 		Note note = Note.builder()
 			.user(user)
@@ -94,5 +97,20 @@ public class NoteServiceImpl implements NoteService {
 		}
 
 		return contentBuilder.toString().trim();
+	}
+
+	/**
+	 * 최종 content 길이 검증
+	 * 이미지 마크다운 추가 후 DB 제약조건(2048자)을 초과하는지 확인
+	 *
+	 * @param content 검증할 content
+	 * @throws BaseException content가 2048자를 초과하는 경우
+	 */
+	private void validateContentLength(String content) {
+		final int MAX_CONTENT_LENGTH = 2048;
+		if (content != null && content.length() > MAX_CONTENT_LENGTH) {
+			log.warn("Content length exceeds maximum: {} > {}", content.length(), MAX_CONTENT_LENGTH);
+			throw new BaseException(BaseResponseStatus.BAD_REQUEST);
+		}
 	}
 }

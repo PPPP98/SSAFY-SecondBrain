@@ -350,4 +350,61 @@ class NoteServiceImplTest {
 		assertEquals("이미지 리스트가 비어있습니다.", createdNote.getContent());
 		verify(noteRepository, times(1)).save(any(Note.class));
 	}
+
+	@Test
+	@DisplayName("노트 생성 실패 - 이미지 추가 후 content 길이 초과")
+	void createNote_ContentLengthExceeded_ShouldThrowException() {
+		// given: content가 거의 2048자에 가까운 상태에서 이미지 추가 시 초과
+		Long userId = 1L;
+		String longContent = "a".repeat(2000); // 2000자 content
+		MockMultipartFile image = new MockMultipartFile(
+			"images",
+			"large-image-name-that-will-exceed-limit.jpg",
+			"image/jpeg",
+			"image content".getBytes()
+		);
+		List<MultipartFile> images = new ArrayList<>();
+		images.add(image);
+
+		NoteRequest requestWithLongContent = NoteRequest.builder()
+			.title("길이 초과 노트")
+			.content(longContent)
+			.images(images)
+			.build();
+
+		given(userService.findById(userId)).willReturn(Optional.of(testUser));
+
+		// when & then: BAD_REQUEST 예외가 발생하는지 확인
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.createNote(userId, requestWithLongContent)
+		);
+		assertEquals(BaseResponseStatus.BAD_REQUEST, exception.getStatus());
+
+		// verify: noteRepository.save는 호출되지 않았는지 확인
+		verify(noteRepository, never()).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 생성 성공 - content 길이가 정확히 2048자")
+	void createNote_ContentLengthExactly2048_Success() {
+		// given: content가 정확히 2048자
+		Long userId = 1L;
+		String exactLengthContent = "b".repeat(2048); // 정확히 2048자
+		NoteRequest requestWithExactLength = NoteRequest.builder()
+			.title("정확한 길이 노트")
+			.content(exactLengthContent)
+			.images(null)
+			.build();
+
+		given(userService.findById(userId)).willReturn(Optional.of(testUser));
+		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when: 노트 생성
+		Note createdNote = noteService.createNote(userId, requestWithExactLength);
+
+		// then: 정상적으로 저장됨
+		assertNotNull(createdNote);
+		assertEquals(2048, createdNote.getContent().length());
+		verify(noteRepository, times(1)).save(any(Note.class));
+	}
 }
