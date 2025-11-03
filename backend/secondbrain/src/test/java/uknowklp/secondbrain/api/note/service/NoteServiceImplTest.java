@@ -39,6 +39,9 @@ class NoteServiceImplTest {
 	@Mock
 	private UserService userService;
 
+	@Mock
+	private NoteSearchService noteSearchService;
+
 	private User testUser;
 	private NoteRequest validRequest;
 
@@ -364,8 +367,6 @@ class NoteServiceImplTest {
 			.content(tooLongContent)
 			.images(null)
 			.build();
-
-		given(userService.findById(userId)).willReturn(Optional.of(testUser));
 
 		// when & then: NOTE_CONTENT_TOO_LONG 예외가 발생하는지 확인
 		BaseException exception = assertThrows(BaseException.class, () ->
