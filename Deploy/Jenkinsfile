@@ -105,7 +105,6 @@ pipeline {
     string(name: 'DEVELOP_BRANCH', defaultValue: 'develop', description: 'Develop branch name')
     string(name: 'RELEASE_BRANCH', defaultValue: 'master', description: 'Release branch name')
     string(name: 'COMPOSE_FILE',   defaultValue: 'Deploy/docker-compose.yml', description: 'Main compose file')
-    string(name: 'COMPOSE_AI_FILE',defaultValue: 'Deploy/docker-compose.ai.yml', description: 'AI compose file')
     string(name: 'BACK_SERVICE',  defaultValue: 'klp_back',  description: 'Compose service name for backend')
     string(name: 'FRONT_SERVICE', defaultValue: 'klp_front', description: 'Compose service name for frontend')
     string(name: 'AI_SERVICE',    defaultValue: 'klp_ai',    description: 'Compose service name for ai')
@@ -145,7 +144,6 @@ pipeline {
     DEVELOP_BRANCH  = "${params.DEVELOP_BRANCH}"
     RELEASE_BRANCH  = "${params.RELEASE_BRANCH}"
     COMPOSE_FILE    = "${params.COMPOSE_FILE}"
-    COMPOSE_AI_FILE = "${params.COMPOSE_AI_FILE}"
     BACK_SERVICE    = "${params.BACK_SERVICE}"
     FRONT_SERVICE   = "${params.FRONT_SERVICE}"
     AI_SERVICE      = "${params.AI_SERVICE}"
