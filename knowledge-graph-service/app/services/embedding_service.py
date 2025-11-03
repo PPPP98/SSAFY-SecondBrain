@@ -18,11 +18,11 @@ class EmbeddingService:
             self.client = OpenAI(
                 api_key=settings.openai_api_key, base_url=settings.openai_base_url
             )
-            logger.info(f"✅ OpenAI 클라이언트 (GMS): {settings.openai_base_url}")
+            logger.debug(f"✅ OpenAI 클라이언트 (GMS): {settings.openai_base_url}")
         else:
             # 기본 OpenAI API 사용
             self.client = OpenAI(api_key=settings.openai_api_key)
-            logger.info("✅ OpenAI 클라이언트 (Base API)")
+            logger.debug("✅ OpenAI 클라이언트 (Base API)")
 
         self.model = settings.openai_model
         self.encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
@@ -55,10 +55,10 @@ class EmbeddingService:
         try:
             # 1. 토큰 수 계산 (정보용)
             token_count = self.count_tokens(text)
-            logger.info(f"📊 토큰 수: {token_count}개")
+            logger.debug(f"📊 토큰 수: {token_count}개")
 
             # 2. OpenAI API 호출 (제한 없이 전체 임베딩)
-            logger.info(f"🤖 임베딩 생성 중...")
+            logger.debug(f"🤖 임베딩 생성 중...")
 
             response = self.client.embeddings.create(
                 model=self.model,
@@ -69,7 +69,7 @@ class EmbeddingService:
             # 3. 임베딩 추출
             embedding = response.data[0].embedding
 
-            logger.info(f"✅ 임베딩 생성 완료: {len(embedding)}차원")
+            logger.debug(f"✅ 임베딩 생성 완료: {len(embedding)}차원")
 
             return embedding, token_count
 

@@ -48,9 +48,9 @@ def initialize_schema() -> bool:
         try:
             for i, query in enumerate(queries, 1):
                 session.run(query)
-                logger.info(f"✅ 스키마 초기화 {i}/{len(queries)} 완료")
+                logger.debug(f"✅ 스키마 초기화 {i}/{len(queries)} 완료")
 
-            logger.info("전체 스키마 초기화 완료")
+            logger.info("✅ 전체 스키마 초기화 완료")
             return True
 
         except Exception as e:

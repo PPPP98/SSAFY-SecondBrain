@@ -43,7 +43,7 @@ async def search_by_title(
     try:
         user_id = get_user_id(x_user_id)
 
-        logger.info(f"🔍 제목 검색: {user_id} - '{title}'")
+        logger.debug(f"🔍 제목 검색: {user_id} - '{title}'")
 
         # 검색
         notes = note_crud.get_note_by_title(
@@ -52,7 +52,7 @@ async def search_by_title(
             limit=limit,
         )
 
-        logger.info(f"✅ 검색 완료: {len(notes)}개")
+        logger.debug(f"✅ 검색 완료: {len(notes)}개")
 
         return NoteListResponse(
             user_id=user_id,

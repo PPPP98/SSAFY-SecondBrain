@@ -65,7 +65,7 @@ def create_note(
         )
 
         result.single()  # 결과 소비
-        logger.info(f"✅ 노트 생성: {user_id} - {note_id} - {title}")
+        logger.debug(f"✅ 노트 생성: {user_id} - {note_id} - {title}")
         return note_id
 
 
@@ -106,7 +106,7 @@ def get_note(
         if record:
             note_dict = dict(record)
             note_dict = _convert_datetime(note_dict)  
-            logger.info(f"✅ 노트 조회: {user_id} - {note_id}")
+            logger.debug(f"✅ 노트 조회: {user_id} - {note_id}")
             return note_dict
 
         logger.warning(f"⚠️ 노트 없음: {user_id} - {note_id}")
@@ -174,7 +174,7 @@ def get_all_notes(
         notes = [_convert_datetime(dict(record)) for record in result]
 
         if NoteConfig.ENABLE_QUERY_LOGGING:
-            logger.info(
+            logger.debug(
                 f"✅ 노트 목록 조회: {user_id} - {len(notes)}개 (전체: {total})"
             )
 
@@ -214,7 +214,7 @@ def delete_note(
 
         deleted = record["deleted"] if record else 0
         if deleted > 0:
-            logger.info(f"✅ 노트 삭제: {user_id} - {note_id}")
+            logger.debug(f"✅ 노트 삭제: {user_id} - {note_id}")
             return True
 
         logger.warning(f"⚠️ 삭제 실패 (노트 없음): {user_id} - {note_id}")
@@ -260,7 +260,7 @@ def get_similar_notes(
             },
         )
         similar_notes = [_convert_datetime(dict(record)) for record in result]
-        logger.info(
+        logger.debug(
             f"✅ 유사 노트 조회: {user_id} - {note_id} - {len(similar_notes)}개"
         )
         return similar_notes
@@ -304,7 +304,7 @@ def get_stats(
                 "total_relationships": int(record["total_relationships"]),
                 "avg_connections": float(record["avg_connections"]),
             }
-            logger.info(f"✅ 통계 조회: {user_id}")
+            logger.debug(f"✅ 통계 조회: {user_id}")
             return stats
 
         return {
@@ -335,7 +335,7 @@ def count_user_notes(user_id: str) -> int:
         result = session.run(query, {"user_id": user_id})
         record = result.single()
         total = record["total"] if record else 0
-        logger.info(f"✅ 노트 개수 조회: {user_id} - {total}개")
+        logger.debug(f"✅ 노트 개수 조회: {user_id} - {total}개")
         return total
 
 
@@ -386,6 +386,6 @@ def get_note_by_title(
         notes = [_convert_datetime(dict(record)) for record in result]
 
         if NoteConfig.ENABLE_QUERY_LOGGING:
-            logger.info(f"✅ 제목 검색: {user_id} - '{title}' - {len(notes)}개")
+            logger.debug(f"✅ 제목 검색: {user_id} - '{title}' - {len(notes)}개")
 
         return notes

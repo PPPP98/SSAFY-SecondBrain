@@ -48,6 +48,19 @@ public enum BaseResponseStatus {
 	CODE_NOT_PROVIDED(false, HttpStatus.BAD_REQUEST, -10421, "인증 코드가 제공되지 않았습니다."),
 
 	/**
+	 * -10100 ~ -10199 : 노트(Note) 관련 에러
+	 */
+	NOTE_NOT_FOUND(false, HttpStatus.NOT_FOUND, -10101, "존재하지 않는 노트입니다."),
+	NOTE_TITLE_EMPTY(false, HttpStatus.BAD_REQUEST, -10102, "노트 제목은 필수입니다."),
+	NOTE_TITLE_TOO_LONG(false, HttpStatus.BAD_REQUEST, -10103, "노트 제목은 최대 64자까지 입력 가능합니다."),
+	NOTE_CONTENT_EMPTY(false, HttpStatus.BAD_REQUEST, -10104, "노트 내용은 필수입니다."),
+	NOTE_CONTENT_TOO_LONG(false, HttpStatus.BAD_REQUEST, -10105, "노트 내용은 최대 2048자까지 입력 가능합니다."),
+	NOTE_ACCESS_DENIED(false, HttpStatus.FORBIDDEN, -10106, "해당 노트에 접근 권한이 없습니다."),
+	NOTE_INVALID_REQUEST(false, HttpStatus.BAD_REQUEST, -10107, "잘못된 노트 요청입니다."),
+	NOTE_IMAGE_UPLOAD_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10108, "이미지 업로드에 실패했습니다."),
+	NOTE_SAVE_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10109, "노트 저장에 실패했습니다."),
+
+	/**
 	 * -10500 : 서버 에러
 	 */
 	SERVER_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10500, "요청 처리 중 서버 오류가 발생했습니다."),
