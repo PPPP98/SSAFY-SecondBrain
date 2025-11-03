@@ -16,6 +16,8 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: false
 
   elasticsearch:
     uris: ${ELASTICSEARCH_URIS}
@@ -49,18 +51,24 @@ jwt:
   secret: ${JWT_SECRET}
   algorithm: HS256
   expire-time:
-    access: 21d
-    refresh: 30d
+    access: 1h
+    refresh: 7d
 
 secondbrain:
   oauth2:
     redirect-url: ${OAUTH2_REDIRECT_URL}
     failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL:${OAUTH2_REDIRECT_URL}?error=true}
+    authorization-code:
+      ttl-seconds: 300  # Authorization Code 유효 시간 (5분)
 
 security:
   jwt:
     cookie:
-      secure: ${JWT_COOKIE_SECURE}
+      secure: ${JWT_COOKIE_SECURE}   # HTTPS 환경에서 쿠키 보안 설정
+  cors:
+    allowed-origins:
+      - ${CORS_ALLOWED_ORIGIN_1}
+      - ${CORS_ALLOWED_ORIGIN_2}
 
 swagger:
   url: ${BASE_URL}
@@ -68,4 +76,4 @@ swagger:
 logging:
   level:
     root: INFO
-    uknowklp.secondBrain: DEBUG
+    uknowklp.secondbrain: DEBUG
