@@ -1,0 +1,33 @@
+[project]
+name = "knowledge-graph-service"
+version = "1.0.0"
+description = "Neo4j 기반 지식 그래프 서비스"
+requires-python = ">=3.11"
+
+# 프로덕션 의존성 (현재 requirements.txt 기반)
+dependencies = [
+    "fastapi==0.120.0",
+    "uvicorn[standard]==0.32.0",
+    "pydantic==2.9.2",
+    "pydantic-settings==2.6.1",
+    "neo4j==5.26.0",
+    "openai==1.54.4",
+    "tiktoken==0.8.0",
+    "python-dotenv==1.0.1",
+    "python-multipart==0.0.18",
+    "httpx==0.27.2",
+]
+
+# 개발 의존성
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.3",
+    "pytest-asyncio==0.24.0",
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv]
+python-version = "3.11"
