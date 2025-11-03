@@ -33,7 +33,7 @@ services:
 
   klp_ai:
     build:
-      context: ../ai
+      context: ../knowledge-graph-service
       dockerfile: Dockerfile
     container_name: klp_ai
     expose:

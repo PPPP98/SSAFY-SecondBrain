@@ -111,7 +111,7 @@ pipeline {
     string(name: 'AI_SERVICE',    defaultValue: 'klp_ai',    description: 'Compose service name for ai')
     string(name: 'BACK_DIR',  defaultValue: 'backend/secondbrain', description: 'Backend root dir')
     string(name: 'FRONT_DIR', defaultValue: 'frontend/secondbrain', description: 'Frontend root dir')
-    string(name: 'AI_DIR',    defaultValue: 'ai', description: 'AI root dir')
+    string(name: 'AI_DIR',    defaultValue: 'knowledge-graph-service', description: 'AI root dir')
   }
 
   triggers {
@@ -324,7 +324,7 @@ pipeline {
             def targets = [
               [flag: env.CHANGED_BACK,  name: 'backend',  ctx: env.BACK_DIR,  df: 'Dockerfile', image: 'seok1419/klp-backend'],
               [flag: env.CHANGED_FRONT, name: 'frontend', ctx: env.FRONT_DIR, df: 'Dockerfile', image: 'seok1419/klp-frontend'],
-              // [flag: env.CHANGED_AI,    name: 'ai',       ctx: env.AI_DIR,    df: 'Dockerfile', image: 'seok1419/klp-ai']
+              [flag: env.CHANGED_AI,    name: 'ai',       ctx: env.AI_DIR,    df: 'Dockerfile', image: 'seok1419/klp-ai']
             ]
 
             sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
@@ -366,57 +366,57 @@ pipeline {
       }
     }
 
-    // stage('Deploy (compose up — changed services only)') {
-    //   when {
-    //     expression {
-    //       ((env.GL_MR_ACTION ?: "") == "merge" && (env.GL_MR_STATE ?: "") == "merged")
-    //     }
-    //   }
-    //   steps {
-    //     script {
-    //       try {
-    //         timeout(time: 20, unit: 'MINUTES') {
-    //           sh '''
-    //             set -eux
-    //             docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" pull || true
-    //           '''
-    //           if (env.CHANGED_BACK == "1" || env.CHANGED_DEPLOY == "1") {
-    //             sh """
-    //               set -eux
-    //               docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.BACK_SERVICE}
-    //             """
-    //           } else { echo "Skip compose up for ${env.BACK_SERVICE}" }
+    stage('Deploy (compose up — changed services only)') {
+      when {
+        expression {
+          ((env.GL_MR_ACTION ?: "") == "merge" && (env.GL_MR_STATE ?: "") == "merged")
+        }
+      }
+      steps {
+        script {
+          try {
+            timeout(time: 20, unit: 'MINUTES') {
+              sh '''
+                set -eux
+                docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" pull || true
+              '''
+              if (env.CHANGED_BACK == "1" || env.CHANGED_DEPLOY == "1") {
+                sh """
+                  set -eux
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.BACK_SERVICE}
+                """
+              } else { echo "Skip compose up for ${env.BACK_SERVICE}" }
 
-    //           if (env.CHANGED_FRONT == "1" || env.CHANGED_DEPLOY == "1") {
-    //             sh """
-    //               set -eux
-    //               docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.FRONT_SERVICE}
-    //             """
-    //           } else { echo "Skip compose up for ${env.FRONT_SERVICE}" }
+              if (env.CHANGED_FRONT == "1" || env.CHANGED_DEPLOY == "1") {
+                sh """
+                  set -eux
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.FRONT_SERVICE}
+                """
+              } else { echo "Skip compose up for ${env.FRONT_SERVICE}" }
 
-    //           if (env.CHANGED_AI == "1") {
-    //             sh """
-    //               set -eux
-    //               if [ -f "$COMPOSE_FILE" ]; then
-    //                 docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
-    //               else
-    //                 docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
-    //               fi
-    //             """
-    //           } else { echo "Skip compose up for ${env.AI_SERVICE}" }
+              if (env.CHANGED_AI == "1") {
+                sh """
+                  set -eux
+                  if [ -f "$COMPOSE_FILE" ]; then
+                    docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
+                  else
+                    docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
+                  fi
+                """
+              } else { echo "Skip compose up for ${env.AI_SERVICE}" }
 
-    //           if (env.CHANGED_BACK != "1" && env.CHANGED_FRONT != "1" && env.CHANGED_AI != "1" && env.CHANGED_DEPLOY != "1") {
-    //             echo "No relevant changes — nothing to deploy."
-    //           }
-    //         }
-    //         mmNotify(status:'success', category:'deploy', template:'merge_success', targetBranch: env.GL_MR_TARGET)
-    //       } catch (e) {
-    //         mmNotify(status:'failure', category:'deploy', template:'failure', targetBranch: env.GL_MR_TARGET, extra: clipText(e.toString()))
-    //         error "Deploy failed: ${e}"
-    //       }
-    //     }
-    //   }
-    // }
+              if (env.CHANGED_BACK != "1" && env.CHANGED_FRONT != "1" && env.CHANGED_AI != "1" && env.CHANGED_DEPLOY != "1") {
+                echo "No relevant changes — nothing to deploy."
+              }
+            }
+            mmNotify(status:'success', category:'deploy', template:'merge_success', targetBranch: env.GL_MR_TARGET)
+          } catch (e) {
+            mmNotify(status:'failure', category:'deploy', template:'failure', targetBranch: env.GL_MR_TARGET, extra: clipText(e.toString()))
+            error "Deploy failed: ${e}"
+          }
+        }
+      }
+    }
 
     stage('Tag & Push (release only)') {
       when {
