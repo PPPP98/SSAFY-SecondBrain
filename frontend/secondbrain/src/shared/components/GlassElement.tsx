@@ -1,38 +1,33 @@
-import React, { useEffect, useRef } from 'react';
-import type { ElementType, ComponentPropsWithoutRef } from 'react';
+import { useRef, useEffect, createElement } from 'react';
+import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import '@/shared/styles/glass-base.css';
 
-type PolymorphicProps<El extends ElementType> = {
-  as?: 'button' | 'input' | 'div';
-  icon?: React.ReactNode;
+type ElementType = 'button' | 'input' | 'div';
+
+type GlassElementProps<El extends ElementType> = {
+  as: El;
+  icon?: ReactNode;
+  scale?: El extends 'input' ? 'sm' | 'md' : never;
   children?: React.ReactNode;
-  scale?: 'sm' | 'md';
-} & ComponentPropsWithoutRef<El>;
+} & Omit<ComponentPropsWithoutRef<El>, 'as' | 'icon' | 'scale'>;
 
-type GlassElementProps<El extends ElementType = 'div'> = PolymorphicProps<El>;
-
-const GlassElement = <El extends ElementType = 'div'>({
+const GlassElement = <El extends ElementType>({
   as,
   icon,
-  children,
   scale,
   className = '',
-  ...rest
+  children,
+  ...props
 }: GlassElementProps<El>) => {
-  const Component = as || ('div' as ElementType);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const border1Ref = useRef<HTMLSpanElement>(null);
   const border2Ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      const wrapper = wrapperRef.current;
-      const border1 = border1Ref.current;
-      const border2 = border2Ref.current;
+      if (!wrapperRef.current || !border1Ref.current || !border2Ref.current) return;
 
-      if (!wrapper || !border1 || !border2) return;
-
-      const rect = wrapper.getBoundingClientRect();
+      const rect = wrapperRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
 
@@ -44,31 +39,29 @@ const GlassElement = <El extends ElementType = 'div'>({
 
       const absMouseX = Math.abs(mouseX);
 
-      // Border 1 (screen blend mode)
-      const border1Angle = 135 + mouseX * 1.2;
-      const border1OpacityStart = 0.12 + absMouseX * 0.008;
-      const border1StopStart = Math.max(10, 33 + mouseY * 0.3);
-      const border1OpacityEnd = 0.4 + absMouseX * 0.012;
-      const border1StopEnd = Math.min(90, 66 + mouseY * 0.4);
+      const angle1 = 135 + mouseX * 1.2;
+      const opacity1First = 0.12 + absMouseX * 0.008;
+      const stop1First = Math.max(10, 33 + mouseY * 0.3);
+      const opacity1Second = 0.4 + absMouseX * 0.012;
+      const stop1Second = Math.min(90, 66 + mouseY * 0.4);
 
-      // Border 2 (overlay blend mode)
-      const border2Angle = 135 + mouseX * 1.2;
-      const border2OpacityStart = 0.32 + absMouseX * 0.008;
-      const border2StopStart = Math.max(10, 33 + mouseY * 0.3);
-      const border2OpacityEnd = 0.6 + absMouseX * 0.012;
-      const border2StopEnd = Math.min(90, 66 + mouseY * 0.4);
+      const angle2 = 135 + mouseX * 1.2;
+      const opacity2First = 0.32 + absMouseX * 0.008;
+      const stop2First = Math.max(10, 33 + mouseY * 0.3);
+      const opacity2Second = 0.6 + absMouseX * 0.012;
+      const stop2Second = Math.min(90, 66 + mouseY * 0.4);
 
-      border1.style.background = `linear-gradient(${border1Angle}deg,
-        rgba(255, 255, 255, 0.0) 0%,
-        rgba(255, 255, 255, ${border1OpacityStart}) ${border1StopStart}%,
-        rgba(255, 255, 255, ${border1OpacityEnd}) ${border1StopEnd}%,
-        rgba(255, 255, 255, 0.0) 100%)`;
+      border1Ref.current.style.background = `linear-gradient(${angle1}deg,
+          rgba(255, 255, 255, 0.0) 0%,
+          rgba(255, 255, 255, ${opacity1First}) ${stop1First}%,
+          rgba(255, 255, 255, ${opacity1Second}) ${stop1Second}%,
+          rgba(255, 255, 255, 0.0) 100%)`;
 
-      border2.style.background = `linear-gradient(${border2Angle}deg,
-        rgba(255, 255, 255, 0.0) 0%,
-        rgba(255, 255, 255, ${border2OpacityStart}) ${border2StopStart}%,
-        rgba(255, 255, 255, ${border2OpacityEnd}) ${border2StopEnd}%,
-        rgba(255, 255, 255, 0.0) 100%)`;
+      border2Ref.current.style.background = `linear-gradient(${angle2}deg,
+          rgba(255, 255, 255, 0.0) 0%,
+          rgba(255, 255, 255, ${opacity2First}) ${stop2First}%,
+          rgba(255, 255, 255, ${opacity2Second}) ${stop2Second}%,
+          rgba(255, 255, 255, 0.0) 100%)`;
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -78,45 +71,93 @@ const GlassElement = <El extends ElementType = 'div'>({
     };
   }, []);
 
-  const isInput = as === 'input';
-  const isButton = as === 'button';
+  const scaleClasses =
+    as === 'button'
+      ? 'p-0 text-xl'
+      : as === 'input' && scale
+        ? {
+            sm: 'p-0 text-sm',
+            md: 'p-4 px-6 text-base',
+          }[scale]
+        : 'p-6 px-8 text-xl';
 
-  const elementScaleClasses = isButton
-    ? 'h-14 w-14 rounded-full'
-    : isInput && scale
-      ? scale === 'sm'
-        ? 'h-14 w-14 rounded-full'
-        : 'h-14 w-[22rem]'
-      : 'w-[27rem]';
+  const sizeClasses =
+    as === 'button'
+      ? 'w-14 h-14 rounded-full'
+      : as === 'input' && scale === 'sm'
+        ? 'w-14 h-14 rounded-full'
+        : as === 'input' && scale === 'md'
+          ? 'w-[22rem] h-14'
+          : as === 'div'
+            ? 'w-[27rem]'
+            : '';
 
-  const inputFocusClasses = isInput ? 'outline-none focus:outline-none focus:ring-0' : '';
+  const borderRadius =
+    as === 'button' || (as === 'input' && scale === 'sm') ? 'rounded-full' : 'rounded-3xl';
 
-  const wrapperScaleClasses = isButton
-    ? 'h-14 w-14'
-    : isInput && scale
-      ? scale === 'sm'
-        ? 'h-14 w-14'
-        : 'h-14 w-[22rem]'
-      : 'w-[27rem]';
+  const baseClassName = `backdrop-saturate-180 text-shadow-[0px_2px_12px_rgba(0,0,0,0.4)] relative ${as === 'button' ? 'flex cursor-pointer items-center justify-center' : as === 'input' ? 'block appearance-none outline-none focus:outline-none' : ''} ${borderRadius} bg-white/15 ${scaleClasses} font-medium text-white shadow-[0px_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-[3.5px] ${sizeClasses}`;
 
-  const borderShapeClasses = isButton || (isInput && scale === 'sm') ? 'rounded-full' : '';
+  // children 렌더링 로직
+  const elementChildren =
+    as !== 'input' ? (
+      <>
+        {icon && (
+          <span className={`${as !== 'button' ? 'mr-2' : ''} inline-flex items-center`}>
+            {icon}
+          </span>
+        )}
+        {children}
+      </>
+    ) : null;
+
+  // 타입 안전성을 위해 각 element type별로 분기 처리
+  const renderElement = () => {
+    const commonProps = { className: baseClassName };
+
+    if (as === 'button') {
+      return createElement(
+        'button',
+        { ...props, ...commonProps } as ComponentPropsWithoutRef<'button'>,
+        elementChildren,
+      );
+    }
+
+    if (as === 'input') {
+      const inputTypeAttr = scale === 'sm' ? 'checkbox' : scale === 'md' ? 'text' : undefined;
+      return createElement('input', {
+        ...props,
+        ...commonProps,
+        ...(inputTypeAttr && { type: inputTypeAttr }),
+      } as ComponentPropsWithoutRef<'input'>);
+    }
+
+    // as === 'div'
+    return createElement(
+      'div',
+      { ...props, ...commonProps } as ComponentPropsWithoutRef<'div'>,
+      elementChildren,
+    );
+  };
 
   return (
-    <div ref={wrapperRef} className={`glass-wrapper ${wrapperScaleClasses}`}>
-      {isInput ? (
-        <Component
-          className={`glass-element ${elementScaleClasses} ${inputFocusClasses} ${className}`}
-          type={scale === 'sm' ? 'checkbox' : scale === 'md' ? 'text' : undefined}
-          {...rest}
-        />
-      ) : (
-        <Component className={`glass-element ${elementScaleClasses} ${className}`} {...rest}>
-          {icon && <span className="glass-icon">{icon}</span>}
-          {children}
-        </Component>
-      )}
-      <span ref={border1Ref} className={`glass-border border-1 ${borderShapeClasses}`} />
-      <span ref={border2Ref} className={`glass-border border-2 ${borderShapeClasses}`} />
+    <div
+      ref={wrapperRef}
+      className={`relative ${as === 'input' ? 'w-fit' : as === 'div' ? 'w-[27rem]' : 'w-fit'} ${className}`}
+    >
+      {/* Glass 본체 (컨텐츠 영역) */}
+      {renderElement()}
+
+      {/* 동적 테두리 1 (mix-blend-mode: screen) */}
+      <span
+        ref={border1Ref}
+        className={`glass-border pointer-events-none absolute inset-0 z-10 ${borderRadius} p-px opacity-20 mix-blend-screen`}
+      ></span>
+
+      {/* 동적 테두리 2 (mix-blend-mode: overlay) */}
+      <span
+        ref={border2Ref}
+        className={`glass-border pointer-events-none absolute inset-0 z-10 ${borderRadius} p-px mix-blend-overlay`}
+      ></span>
     </div>
   );
 };
