@@ -138,4 +138,4 @@ const createApiClient = () => {
 // API Client 인스턴스 생성 및 초기화
 createApiClient();
 
-export default apiClient;
+export { apiClient };
