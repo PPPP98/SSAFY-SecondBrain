@@ -14,6 +14,9 @@
     "prepare": "cd ../.. && husky frontend/secondbrain/.husky"
   },
   "dependencies": {
+    "@blocknote/core": "^0.41.1",
+    "@blocknote/mantine": "^0.41.1",
+    "@blocknote/react": "^0.41.1",
     "@tanstack/react-query": "^5.90.6",
     "@tanstack/react-router": "^1.134.4",
     "axios": "^1.13.1",
