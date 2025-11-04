@@ -36,11 +36,15 @@ public class User {
 	private String picture;
 
 	@Column(nullable = false)
-	private Boolean setAlarm;
+	private boolean setAlarm;
 
 	public User update(String name, String picture) {
 		this.name = name;
 		this.picture = picture;
 		return this;
+	}
+
+	public void toggleSetAlarm() {
+		this.setAlarm = !this.setAlarm;
 	}
 }

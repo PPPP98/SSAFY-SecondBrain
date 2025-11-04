@@ -10,4 +10,6 @@ public interface UserService {
 	Optional<User> findById(Long id);
 
 	User saveOrUpdate(String email, String name, String pictureUrl);
+
+	User toggleSetAlarm(Long id);
 }
