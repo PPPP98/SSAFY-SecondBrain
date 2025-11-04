@@ -17,6 +17,12 @@ RUN pnpm install --frozen-lockfile
 
 # 소스 복사 & 프로덕션 빌드
 COPY . .
+
+ARG VITE_API_BASE_URL
+ARG VITE_OAUTH2_LOGIN_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_OAUTH2_LOGIN_URL=$VITE_OAUTH2_LOGIN_URL
+
 RUN pnpm build
 
 # ---------- 2) Runtime stage: Nginx serve ----------
