@@ -43,6 +43,13 @@ def mmNotify(Map m = [:]) {
 :springboot: [Backend Spring Server](https://api.brainsecond.site/swagger-ui/index.html)
 :fastapi: [FastAPI Server](https://brainsecond.site/ai/docs)
 :react: [Frontend React Server](https://brainsecond.site)
+---
+##### Tools
+:redis: [RedisInsight](https://brainsecond.site/redis/)
+:neo: [Neo4j UI](https://brainsecond.site/neo4j/browser/)
+:elasticsearch: [Kibana Dashboard](https://brainsecond.site/kibana/)
+:grafana: [Grafana Dashboard](https://brainsecond.site/grafana/)
+
 ${extra}
 """
       break
@@ -68,7 +75,7 @@ ${extra}
 ##### [${title}](${url})
 :pencil2: **Assignee**: @${assign}
 :gun_cat: **Target**: `${target}`
-
+---
 ##### Error
 ${extra}
 """
