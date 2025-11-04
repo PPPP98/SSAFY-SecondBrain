@@ -76,10 +76,11 @@ public class NoteServiceImpl implements NoteService {
 
 	@Override
 	public NoteResponse getNoteById(Long noteId, Long userId) {
-		log.info("Getting note ID: {} for user ID: {}",noteId, userId);
+		log.info("Getting note ID: {} for user ID: {}", noteId, userId);
 
 		// 1. 노트 존재 여부 확인
-		Note note = noteRepository.findById(noteId).orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
+		Note note = noteRepository.findById(noteId)
+			.orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
 
 		// 2. 노트 소유자 확인 (권한 검증)
 		if (!note.getUser().getId().equals(userId)) {
@@ -325,9 +326,6 @@ public class NoteServiceImpl implements NoteService {
 		// 리마인더 비활
 		note.disableReminder();
 		Note saveNote = noteRepository.save(note);
-
-		// todo: RabbitMQ 연동 후 메시지 취소
-		// reminderProducerService.cancelScheduledReminder(noteId);
 
 		return saveNote;
 	}
