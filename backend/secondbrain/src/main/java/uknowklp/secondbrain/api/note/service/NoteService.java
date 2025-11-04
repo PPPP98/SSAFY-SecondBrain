@@ -42,4 +42,13 @@ public interface NoteService {
 	 * @param userId 사용자 ID (권한 검증용)
 	 */
 	void deleteNotes(List<Long> noteIds, Long userId);
+
+	// 특정 노트의 리마인더 활성화
+	Note enableNoteReminder(Long noteId, Long userId);
+
+	// 특정 노트의 리마인더 비활성화
+	Note disableNoteReminder(Long noteId, Long userId);
+
+	// 리마인더 처리 및 다음 리마인더 스케줄링
+	void processReminder(Long noteId);
 }

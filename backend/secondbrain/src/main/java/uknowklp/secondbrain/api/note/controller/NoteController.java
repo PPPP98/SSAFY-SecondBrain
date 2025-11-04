@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -75,7 +76,7 @@ public class NoteController {
 	 *
 	 * @param userDetails Spring Security의 인증된 사용자 정보
 	 * @param noteId 조회할 노트 ID (URL 경로에서 추출)
-	 * @return ResponseEntity<BaseResponse<NoteResponse>> 200 OK 응답 + 노트 정보
+	 * @return ResponseEntity<BaseResponse < NoteResponse>> 200 OK 응답 + 노트 정보
 	 */
 	@GetMapping("/{noteId}")
 	public ResponseEntity<BaseResponse<NoteResponse>> getNote(
@@ -104,7 +105,7 @@ public class NoteController {
 	 * @param title 노트 제목
 	 * @param content 노트 내용
 	 * @param images 이미지 파일 목록 (optional)
-	 * @return ResponseEntity<BaseResponse<NoteResponse>> 200 OK 응답 + 수정된 노트 정보
+	 * @return ResponseEntity<BaseResponse < NoteResponse>> 200 OK 응답 + 수정된 노트 정보
 	 */
 	@PutMapping(value = "/{noteId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<BaseResponse<NoteResponse>> updateNote(
@@ -133,7 +134,7 @@ public class NoteController {
 	 *
 	 * @param userDetails Spring Security의 인증된 사용자 정보
 	 * @param request 삭제할 노트 ID 목록을 담은 요청 DTO
-	 * @return ResponseEntity<BaseResponse<Void>> 200 OK 응답
+	 * @return ResponseEntity<BaseResponse < Void>> 200 OK 응답
 	 */
 	@DeleteMapping
 	public ResponseEntity<BaseResponse<Void>> deleteNotes(
@@ -149,6 +150,25 @@ public class NoteController {
 		return ResponseEntity.ok(response);
 	}
 
+	@PostMapping("/{noteId}/reminders")
+	@Operation(summary = "개별 노트 리마인더 활성화", description = "망각 곡선 기반 3회 리마인더 발송")
+	public BaseResponse<Void> enableNoteReminder(
+		@PathVariable Long noteId,
+		@AuthenticationPrincipal CustomUserDetails userDetails
+	) {
+		noteService.enableNoteReminder(noteId, userDetails.getUser().getId());
+		return new BaseResponse<>(BaseResponseStatus.SUCCESS);
+	}
+
+	@DeleteMapping("/{noteId}/reminders")
+	@Operation(summary = "개별 노트 리마인더 비활성화", description = "해당 노트 리마인더 중단하고 리마인드 횟수 0으로 초기화")
+	public BaseResponse<Void> disableNoteReminder(
+		@PathVariable Long noteId,
+		@AuthenticationPrincipal CustomUserDetails userDetails
+	) {
+		noteService.disableNoteReminder(noteId, userDetails.getUser().getId());
+		return new BaseResponse<>(BaseResponseStatus.SUCCESS);
+	}
 
 	/**
 	 * 노트 생성 요청 로깅
