@@ -10,7 +10,21 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Global ignore patterns (마이그레이션: .eslintignore → ignores 속성)
+  globalIgnores([
+    'dist',
+    'src/routeTree.gen.ts', // TanStack Router 자동 생성 파일
+  ]),
+
+  // Config 파일들: default export 허용
+  {
+    files: ['*.config.{js,ts}'],
+    rules: {
+      // Config 파일은 도구(Vite, Tailwind 등)가 default export를 요구함
+    },
+  },
+
+  // 소스 코드: 엄격한 규칙 적용
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -43,10 +57,10 @@ export default defineConfig([
       },
     },
     rules: {
-      // 절대 경로 강제 규칙
+      // 절대 경로 강제 규칙 (같은 폴더 내에서도 절대 경로 사용)
       'no-relative-import-paths/no-relative-import-paths': [
         'error',
-        { allowSameFolder: true, rootDir: 'src', prefix: '@' },
+        { allowSameFolder: false, rootDir: 'src', prefix: '@' },
       ],
 
       // TypeScript 네이밍 컨벤션
