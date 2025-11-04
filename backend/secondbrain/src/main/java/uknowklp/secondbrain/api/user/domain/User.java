@@ -43,4 +43,8 @@ public class User {
 		this.picture = picture;
 		return this;
 	}
+
+	public void toggleSetAlarm() {
+		this.setAlarm = !this.setAlarm;
+	}
 }
