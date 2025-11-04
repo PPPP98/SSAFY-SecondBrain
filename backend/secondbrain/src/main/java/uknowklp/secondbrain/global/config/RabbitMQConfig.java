@@ -14,8 +14,7 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import com.rabbitmq.client.ConnectionFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 
 @Configuration
 @EnableRabbit
@@ -28,7 +27,7 @@ public class RabbitMQConfig {
 			.build();
 	}
 
-	// Delayed Exchange, delay 시간 만료 후 큐로 전달
+	// Delayed Exchange 사용, delay 시간 만료 후 큐로 전달
 	@Bean
 	public CustomExchange delayedExchange(){
 		Map<String, Object> args = new HashMap<>();
@@ -62,7 +61,12 @@ public class RabbitMQConfig {
 	// RabbitTemplate 설정, producer가 메시지 발송할 때 사용
 	@Bean
 	public RabbitTemplate rabbitTemplate(
-		ConnectionFactory connectionFactory
-	){}
+		ConnectionFactory connectionFactory,
+		MessageConverter jsonMessageConverter
+	) {
+		RabbitTemplate template = new RabbitTemplate(connectionFactory);
+		template.setMessageConverter(jsonMessageConverter);
+		return template;
+	}
 
 }
