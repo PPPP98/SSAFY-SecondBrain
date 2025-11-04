@@ -7,8 +7,8 @@ import {
   getBorderRadius,
   getElementSpecificClasses,
   getInputType,
-} from './glassElement.utils';
-import { useGlassEffect } from './useGlassEffect';
+} from '@/shared/components/GlassElement/glassElement.utils';
+import { useGlassEffect } from '@/shared/components/GlassElement/useGlassEffect';
 
 type ElementType = 'button' | 'input' | 'div';
 
@@ -109,4 +109,4 @@ const GlassElement = <El extends ElementType>({
   );
 };
 
-export default GlassElement;
+export { GlassElement };
