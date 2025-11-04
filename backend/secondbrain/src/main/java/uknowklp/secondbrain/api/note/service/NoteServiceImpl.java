@@ -77,7 +77,7 @@ public class NoteServiceImpl implements NoteService {
 
 	@Override
 	public NoteResponse getNoteById(Long noteId, Long userId) {
-		log.info("Getting note ID: {} for user ID: {}",noteId, userId);
+		log.info("Getting note ID: {} for user ID: {}", noteId, userId);
 
 		// 1. 노트 존재 여부 확인
 		Note note = noteRepository.findById(noteId).orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
@@ -269,6 +269,7 @@ public class NoteServiceImpl implements NoteService {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<NoteRecentResponse> getRecentNotes(Long userId) {
 		log.info("Getting recent notes for user ID: {}", userId);
 
