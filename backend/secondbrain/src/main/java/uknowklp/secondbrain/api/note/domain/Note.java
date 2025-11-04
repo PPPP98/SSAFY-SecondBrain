@@ -60,4 +60,15 @@ public class Note {
 	@Column(name = "remind_count", nullable = false)
 	@Builder.Default
 	private Integer remindCount = 0;
+
+	/**
+	 * 노트 내용 수정
+	 *
+	 * @param title 수정할 제목
+	 * @param content 수정할 내용
+	 */
+	public void update(String title, String content) {
+		this.title = title;
+		this.content = content;
+	}
 }

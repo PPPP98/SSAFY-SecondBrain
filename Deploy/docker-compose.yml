@@ -19,6 +19,9 @@ services:
     build:
       context: ../frontend/secondbrain
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_OAUTH2_LOGIN_URL: ${VITE_OAUTH2_LOGIN_URL}
     container_name: klp_front
     expose:
       - "80"

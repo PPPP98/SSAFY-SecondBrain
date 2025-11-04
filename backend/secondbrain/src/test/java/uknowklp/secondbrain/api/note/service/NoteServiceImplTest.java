@@ -599,4 +599,479 @@ class NoteServiceImplTest {
 
 		verify(noteRepository, times(1)).findById(noteId);
 	}
+
+	// ========================================
+	// updateNote 메서드 테스트
+	// ========================================
+
+	@Test
+	@DisplayName("노트 수정 성공 - 정상적인 요청")
+	void updateNote_Success() {
+		// given
+		Long noteId = 1L;
+		Long userId = 1L;
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("수정된 제목")
+			.content("수정된 내용")
+			.build();
+
+		Note existingNote = Note.builder()
+			.id(noteId)
+			.user(testUser)
+			.title("기존 제목")
+			.content("기존 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(existingNote));
+		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when
+		NoteResponse response = noteService.updateNote(noteId, userId, updateRequest);
+
+		// then
+		assertNotNull(response);
+		assertEquals("수정된 제목", response.getTitle());
+		assertEquals("수정된 내용", response.getContent());
+
+		verify(noteRepository, times(1)).findById(noteId);
+		verify(noteRepository, times(1)).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 실패 - 존재하지 않는 노트")
+	void updateNote_NoteNotFound_ThrowsException() {
+		// given
+		Long nonExistentNoteId = 999L;
+		Long userId = 1L;
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("수정된 제목")
+			.content("수정된 내용")
+			.build();
+
+		given(noteRepository.findById(nonExistentNoteId)).willReturn(Optional.empty());
+
+		// when & then
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.updateNote(nonExistentNoteId, userId, updateRequest)
+		);
+		assertEquals(BaseResponseStatus.NOTE_NOT_FOUND, exception.getStatus());
+
+		verify(noteRepository, times(1)).findById(nonExistentNoteId);
+		verify(noteRepository, never()).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 실패 - 다른 사용자의 노트 수정 시도")
+	void updateNote_AccessDenied_ThrowsException() {
+		// given
+		Long noteId = 1L;
+		Long ownerId = 1L;
+		Long unauthorizedUserId = 2L;
+
+		User owner = User.builder()
+			.id(ownerId)
+			.email("owner@example.com")
+			.name("소유자")
+			.build();
+
+		Note otherUserNote = Note.builder()
+			.id(noteId)
+			.user(owner)
+			.title("소유자의 노트")
+			.content("다른 사용자의 내용")
+			.remindCount(0)
+			.build();
+
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("수정된 제목")
+			.content("수정된 내용")
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(otherUserNote));
+
+		// when & then
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.updateNote(noteId, unauthorizedUserId, updateRequest)
+		);
+		assertEquals(BaseResponseStatus.NOTE_ACCESS_DENIED, exception.getStatus());
+
+		verify(noteRepository, times(1)).findById(noteId);
+		verify(noteRepository, never()).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 성공 - 이미지 포함")
+	void updateNote_WithImages_Success() {
+		// given
+		Long noteId = 1L;
+		Long userId = 1L;
+
+		MockMultipartFile imageFile = new MockMultipartFile(
+			"images",
+			"updated-image.jpg",
+			"image/jpeg",
+			"updated image content".getBytes()
+		);
+		List<MultipartFile> images = new ArrayList<>();
+		images.add(imageFile);
+
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("이미지 수정")
+			.content("이미지가 추가된 내용")
+			.images(images)
+			.build();
+
+		Note existingNote = Note.builder()
+			.id(noteId)
+			.user(testUser)
+			.title("기존 제목")
+			.content("기존 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(existingNote));
+		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when
+		NoteResponse response = noteService.updateNote(noteId, userId, updateRequest);
+
+		// then
+		assertNotNull(response);
+		assertTrue(response.getContent().contains("이미지가 추가된 내용"));
+		assertTrue(response.getContent().contains("![updated-image.jpg]"));
+
+		verify(noteRepository, times(1)).findById(noteId);
+		verify(noteRepository, times(1)).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 성공 - 최대 길이 제목과 내용")
+	void updateNote_MaxLength_Success() {
+		// given
+		Long noteId = 1L;
+		Long userId = 1L;
+		String maxTitle = "a".repeat(64);
+		String maxContent = "b".repeat(2048);
+
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title(maxTitle)
+			.content(maxContent)
+			.build();
+
+		Note existingNote = Note.builder()
+			.id(noteId)
+			.user(testUser)
+			.title("기존 제목")
+			.content("기존 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findById(noteId)).willReturn(Optional.of(existingNote));
+		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when
+		NoteResponse response = noteService.updateNote(noteId, userId, updateRequest);
+
+		// then
+		assertNotNull(response);
+		assertEquals(64, response.getTitle().length());
+		assertEquals(2048, response.getContent().length());
+
+		verify(noteRepository, times(1)).findById(noteId);
+		verify(noteRepository, times(1)).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 실패 - 제목이 빈 문자열")
+	void updateNote_EmptyTitle_ThrowsException() {
+		// given
+		Long noteId = 1L;
+		Long userId = 1L;
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("")
+			.content("수정된 내용")
+			.build();
+
+		// when & then
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.updateNote(noteId, userId, updateRequest)
+		);
+		assertEquals(BaseResponseStatus.NOTE_TITLE_EMPTY, exception.getStatus());
+
+		verify(noteRepository, never()).findById(anyLong());
+		verify(noteRepository, never()).save(any(Note.class));
+	}
+
+	@Test
+	@DisplayName("노트 수정 실패 - 내용이 빈 문자열")
+	void updateNote_EmptyContent_ThrowsException() {
+		// given
+		Long noteId = 1L;
+		Long userId = 1L;
+		NoteRequest updateRequest = NoteRequest.builder()
+			.title("수정된 제목")
+			.content("")
+			.build();
+
+		// when & then
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.updateNote(noteId, userId, updateRequest)
+		);
+		assertEquals(BaseResponseStatus.NOTE_CONTENT_EMPTY, exception.getStatus());
+
+		verify(noteRepository, never()).findById(anyLong());
+		verify(noteRepository, never()).save(any(Note.class));
+	}
+
+	// ========================================
+	// deleteNotes 메서드 테스트
+	// ========================================
+
+	@Test
+	@DisplayName("노트 삭제 성공 - 단일 노트 삭제")
+	void deleteNotes_Success_SingleNote() {
+		// given: 삭제할 단일 노트 준비
+		Long noteId = 1L;
+		Long userId = 1L;
+		List<Long> noteIds = List.of(noteId);
+
+		Note noteToDelete = Note.builder()
+			.id(noteId)
+			.user(testUser)
+			.title("삭제할 노트")
+			.content("삭제될 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findAllById(noteIds)).willReturn(List.of(noteToDelete));
+
+		// when: 노트 삭제 실행
+		noteService.deleteNotes(noteIds, userId);
+
+		// then: 삭제 메서드가 호출되었는지 확인
+		verify(noteRepository, times(1)).findAllById(noteIds);
+		verify(noteRepository, times(1)).deleteAll(List.of(noteToDelete));
+	}
+
+	@Test
+	@DisplayName("노트 삭제 성공 - 다중 노트 삭제")
+	void deleteNotes_Success_MultipleNotes() {
+		// given: 삭제할 여러 노트 준비
+		Long noteId1 = 1L;
+		Long noteId2 = 2L;
+		Long noteId3 = 3L;
+		Long userId = 1L;
+		List<Long> noteIds = List.of(noteId1, noteId2, noteId3);
+
+		Note note1 = Note.builder()
+			.id(noteId1)
+			.user(testUser)
+			.title("노트1")
+			.content("내용1")
+			.remindCount(0)
+			.build();
+
+		Note note2 = Note.builder()
+			.id(noteId2)
+			.user(testUser)
+			.title("노트2")
+			.content("내용2")
+			.remindCount(0)
+			.build();
+
+		Note note3 = Note.builder()
+			.id(noteId3)
+			.user(testUser)
+			.title("노트3")
+			.content("내용3")
+			.remindCount(0)
+			.build();
+
+		List<Note> notesToDelete = List.of(note1, note2, note3);
+		given(noteRepository.findAllById(noteIds)).willReturn(notesToDelete);
+
+		// when: 노트 삭제 실행
+		noteService.deleteNotes(noteIds, userId);
+
+		// then: 삭제 메서드가 호출되었는지 확인
+		verify(noteRepository, times(1)).findAllById(noteIds);
+		verify(noteRepository, times(1)).deleteAll(notesToDelete);
+	}
+
+	@Test
+	@DisplayName("노트 삭제 실패 - 중복된 ID가 포함된 경우")
+	void deleteNotes_DuplicateIds_ThrowsException() {
+		// given: 중복된 ID를 포함한 요청
+		Long noteId = 1L;
+		Long userId = 1L;
+		List<Long> duplicateNoteIds = List.of(noteId, noteId, 2L); // ID 1이 중복
+
+		// when & then: BAD_REQUEST 예외가 발생하는지 확인
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.deleteNotes(duplicateNoteIds, userId)
+		);
+		assertEquals(BaseResponseStatus.BAD_REQUEST, exception.getStatus());
+
+		// verify: 중복 검증 단계에서 실패하므로 repository 메서드는 호출되지 않음
+		verify(noteRepository, never()).findAllById(anyList());
+		verify(noteRepository, never()).deleteAll(anyList());
+	}
+
+	@Test
+	@DisplayName("노트 삭제 실패 - 존재하지 않는 노트")
+	void deleteNotes_NoteNotFound_ThrowsException() {
+		// given: 일부 노트가 존재하지 않는 경우
+		Long noteId1 = 1L;
+		Long noteId2 = 999L; // 존재하지 않는 노트
+		Long userId = 1L;
+		List<Long> noteIds = List.of(noteId1, noteId2);
+
+		Note note1 = Note.builder()
+			.id(noteId1)
+			.user(testUser)
+			.title("노트1")
+			.content("내용1")
+			.remindCount(0)
+			.build();
+
+		// findAllById는 note1만 반환 (note2는 존재하지 않음)
+		given(noteRepository.findAllById(noteIds)).willReturn(List.of(note1));
+
+		// when & then: NOTE_NOT_FOUND 예외가 발생하는지 확인
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.deleteNotes(noteIds, userId)
+		);
+		assertEquals(BaseResponseStatus.NOTE_NOT_FOUND, exception.getStatus());
+
+		// verify: findAllById는 호출되었지만 deleteAll은 호출되지 않음
+		verify(noteRepository, times(1)).findAllById(noteIds);
+		verify(noteRepository, never()).deleteAll(anyList());
+	}
+
+	@Test
+	@DisplayName("노트 삭제 실패 - 다른 사용자의 노트 삭제 시도")
+	void deleteNotes_AccessDenied_ThrowsException() {
+		// given: 다른 사용자의 노트를 삭제 시도
+		Long noteId = 1L;
+		Long ownerId = 1L;
+		Long unauthorizedUserId = 2L;
+		List<Long> noteIds = List.of(noteId);
+
+		User owner = User.builder()
+			.id(ownerId)
+			.email("owner@example.com")
+			.name("소유자")
+			.build();
+
+		Note otherUserNote = Note.builder()
+			.id(noteId)
+			.user(owner)
+			.title("소유자의 노트")
+			.content("다른 사용자의 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findAllById(noteIds)).willReturn(List.of(otherUserNote));
+
+		// when & then: NOTE_ACCESS_DENIED 예외가 발생하는지 확인
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.deleteNotes(noteIds, unauthorizedUserId)
+		);
+		assertEquals(BaseResponseStatus.NOTE_ACCESS_DENIED, exception.getStatus());
+
+		// verify: findAllById는 호출되었지만 deleteAll은 호출되지 않음
+		verify(noteRepository, times(1)).findAllById(noteIds);
+		verify(noteRepository, never()).deleteAll(anyList());
+	}
+
+	@Test
+	@DisplayName("노트 삭제 실패 - 모든 노트가 다른 사용자 소유")
+	void deleteNotes_AllNotesOtherUser_ThrowsException() {
+		// given: 여러 노트 모두 다른 사용자 소유
+		Long noteId1 = 1L;
+		Long noteId2 = 2L;
+		Long ownerId = 1L;
+		Long unauthorizedUserId = 2L;
+		List<Long> noteIds = List.of(noteId1, noteId2);
+
+		User owner = User.builder()
+			.id(ownerId)
+			.email("owner@example.com")
+			.name("소유자")
+			.build();
+
+		Note note1 = Note.builder()
+			.id(noteId1)
+			.user(owner)
+			.title("소유자의 노트1")
+			.content("내용1")
+			.remindCount(0)
+			.build();
+
+		Note note2 = Note.builder()
+			.id(noteId2)
+			.user(owner)
+			.title("소유자의 노트2")
+			.content("내용2")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findAllById(noteIds)).willReturn(List.of(note1, note2));
+
+		// when & then: NOTE_ACCESS_DENIED 예외가 발생하는지 확인
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.deleteNotes(noteIds, unauthorizedUserId)
+		);
+		assertEquals(BaseResponseStatus.NOTE_ACCESS_DENIED, exception.getStatus());
+
+		// verify: findAllById는 호출되었지만 deleteAll은 호출되지 않음
+		verify(noteRepository, times(1)).findAllById(noteIds);
+		verify(noteRepository, never()).deleteAll(anyList());
+	}
+
+	@Test
+	@DisplayName("노트 삭제 실패 - 일부 노트만 본인 소유 (혼합 소유권)")
+	void deleteNotes_PartialOwnership_ThrowsException() {
+		// given: 일부는 본인 소유, 일부는 다른 사용자 소유
+		Long noteId1 = 1L;
+		Long noteId2 = 2L;
+		Long userId = 1L;
+		Long otherUserId = 2L;
+		List<Long> noteIds = List.of(noteId1, noteId2);
+
+		User otherUser = User.builder()
+			.id(otherUserId)
+			.email("other@example.com")
+			.name("다른 사용자")
+			.build();
+
+		Note ownNote = Note.builder()
+			.id(noteId1)
+			.user(testUser)
+			.title("내 노트")
+			.content("내 내용")
+			.remindCount(0)
+			.build();
+
+		Note otherNote = Note.builder()
+			.id(noteId2)
+			.user(otherUser)
+			.title("다른 사람 노트")
+			.content("다른 사람 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findAllById(noteIds)).willReturn(List.of(ownNote, otherNote));
+
+		// when & then: NOTE_ACCESS_DENIED 예외가 발생하는지 확인
+		BaseException exception = assertThrows(BaseException.class, () ->
+			noteService.deleteNotes(noteIds, userId)
+		);
+		assertEquals(BaseResponseStatus.NOTE_ACCESS_DENIED, exception.getStatus());
+
+		// verify: findAllById는 호출되었지만 deleteAll은 호출되지 않음 (all-or-nothing)
+		verify(noteRepository, times(1)).findAllById(noteIds);
+		verify(noteRepository, never()).deleteAll(anyList());
+	}
 }

@@ -1,5 +1,6 @@
 package uknowklp.secondbrain.api.note.service;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,10 +76,10 @@ public class NoteServiceImpl implements NoteService {
 	@Override
 	public NoteResponse getNoteById(Long noteId, Long userId) {
 		log.info("Getting note ID: {} for user ID: {}",noteId, userId);
-		
+
 		// 1. 노트 존재 여부 확인
 		Note note = noteRepository.findById(noteId).orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
-		
+
 		// 2. 노트 소유자 확인 (권한 검증)
 		if (!note.getUser().getId().equals(userId)) {
 			log.warn("User {} tried to access note {} owned by user {}",
@@ -89,6 +90,95 @@ public class NoteServiceImpl implements NoteService {
 		// 3. NoteResponse로 변환 후 반환
 		log.info("Note found successfully - ID: {}, User ID: {}", noteId, userId);
 		return NoteResponse.from(note);
+	}
+
+	@Override
+	public NoteResponse updateNote(Long noteId, Long userId, NoteRequest request) {
+		log.info("Updating note ID: {} for user ID: {}", noteId, userId);
+
+		// 요청 데이터 검증
+		validateNoteRequest(request);
+
+		// 노트 존재 여부 확인
+		Note note = noteRepository.findById(noteId)
+			.orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
+
+		// 권한 검증 (본인 노트만 수정 가능)
+		if (!note.getUser().getId().equals(userId)) {
+			log.warn("User {} tried to update note {} owned by user {}",
+				userId, noteId, note.getUser().getId());
+			throw new BaseException(BaseResponseStatus.NOTE_ACCESS_DENIED);
+		}
+
+		// 이미지 파일 처리 및 마크다운 content 생성
+		String finalContent = processImagesAndContent(request.getContent(), request.getImages());
+
+		// 최종 content 길이 검증
+		validateContentLength(finalContent);
+
+		// 노트 수정 (updatedAt은 @UpdateTimestamp로 자동 갱신)
+		note.update(request.getTitle(), finalContent);
+
+		// 변경사항 저장 (JPA dirty checking)
+		Note updatedNote = noteRepository.save(note);
+		log.info("노트 수정 완료 - 노트 ID: {}, 사용자 ID: {}", noteId, userId);
+
+		// Elasticsearch 인덱스 업데이트
+		try {
+			NoteDocument noteDocument = NoteDocument.from(updatedNote);
+			noteSearchService.indexNote(noteDocument);
+			log.info("Elasticsearch 인덱스 업데이트 완료 - 노트 ID: {}", noteId);
+		} catch (Exception e) {
+			log.error("Elasticsearch 인덱스 업데이트 실패 - 노트 ID: {}", noteId, e);
+		}
+
+		return NoteResponse.from(updatedNote);
+	}
+
+	@Override
+	public void deleteNotes(List<Long> noteIds, Long userId) {
+		log.info("Deleting {} notes for user ID: {}", noteIds.size(), userId);
+
+		// 중복 ID 검증: UI에서 정상적으로 선택한 경우 중복이 없어야 함
+		if (noteIds.size() != new HashSet<>(noteIds).size()) {
+			log.warn("Duplicate note IDs detected in delete request - User ID: {}", userId);
+			throw new BaseException(BaseResponseStatus.BAD_REQUEST);
+		}
+
+		// 1단계: 모든 노트를 한 번에 조회 (N+1 쿼리 방지)
+		List<Note> notesToDelete = noteRepository.findAllById(noteIds);
+
+		// 존재 여부 확인: 요청한 모든 노트가 존재하는지 검증
+		if (notesToDelete.size() != noteIds.size()) {
+			log.warn("Some notes not found during delete validation - Requested: {}, Found: {}",
+				noteIds.size(), notesToDelete.size());
+			throw new BaseException(BaseResponseStatus.NOTE_NOT_FOUND);
+		}
+
+		// 권한 검증: 모든 노트가 본인 소유인지 확인 (all-or-nothing 전략)
+		for (Note note : notesToDelete) {
+			if (!note.getUser().getId().equals(userId)) {
+				log.warn("User {} tried to delete note {} owned by user {}",
+					userId, note.getId(), note.getUser().getId());
+				throw new BaseException(BaseResponseStatus.NOTE_ACCESS_DENIED);
+			}
+		}
+
+		// 2단계: 모든 검증 통과 후 일괄 삭제
+		noteRepository.deleteAll(notesToDelete);
+		log.info("노트 삭제 완료 - 삭제된 노트 수: {}, 사용자 ID: {}", notesToDelete.size(), userId);
+
+		// 3단계 : Elasticsearch 인덱스 삭제
+		List<String> elasticNoteIds = notesToDelete.stream()
+			.map(note -> note.getId().toString())
+			.toList();
+
+		try {
+			noteSearchService.bulkDeleteNotes(elasticNoteIds);
+			log.info("Elasticsearch bulk 삭제 완료 - 삭제된 노트 수: {}", elasticNoteIds.size());
+		} catch (Exception e) {
+			log.error("Elasticsearch bulk 삭제 실패", e);
+		}
 	}
 
 	/**
