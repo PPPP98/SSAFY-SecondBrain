@@ -41,7 +41,16 @@ def mmNotify(Map m = [:]) {
 ---
 ##### 서비스 점검하러 가기
 :springboot: [Backend Spring Server](https://api.brainsecond.site/swagger-ui/index.html)
+:fastapi: [FastAPI Server](https://brainsecond.site/ai/docs)
 :react: [Frontend React Server](https://brainsecond.site)
+---
+##### Tools
+:redis: [RedisInsight](https://brainsecond.site/redis/)
+:neo: [Neo4j UI](https://brainsecond.site/neo4j/browser/)
+:elasticsearch: [Kibana Dashboard](https://brainsecond.site/kibana/)
+:rabbit_sleep: [RabbitMQ Management](https://brainsecond.site/rabbitmq/)
+:grafana: [Grafana Dashboard](https://brainsecond.site/grafana/)
+
 ${extra}
 """
       break
@@ -67,7 +76,7 @@ ${extra}
 ##### [${title}](${url})
 :pencil2: **Assignee**: @${assign}
 :gun_cat: **Target**: `${target}`
-
+---
 ##### Error
 ${extra}
 """
@@ -220,7 +229,7 @@ pipeline {
               mmNotify(status:'success', category:'mr-open', template:'merge_open')
             }
           } catch (e) {
-            mmNotify(status:'failure', category:'mr-title', template:'failure', extra: clipText(e.toString()))
+            mmNotify(status:'failure', category:'mr-title', template:'failure', extra: "MR title validation failed")
             error "MR title validation failed: ${e}"
           }
         }
@@ -246,7 +255,7 @@ pipeline {
 
             echo "RESULT | BACK:${env.CHANGED_BACK}, FRONT:${env.CHANGED_FRONT}, AI:${env.CHANGED_AI}, INFRA:${env.CHANGED_DEPLOY}"
           } catch (e) {
-            mmNotify(status:'failure', category:'change-detect', template:'failure', extra: clipText(e.toString()))
+            mmNotify(status:'failure', category:'change-detect', template:'failure', extra: "Change detection failed")
             error "Change detection failed: ${e}"
           }
         }
@@ -275,7 +284,7 @@ pipeline {
               '''
             }
           } catch (e) {
-            mmNotify(status:'failure', category:'gitlab-status', template:'failure', extra: clipText(e.toString()))
+            mmNotify(status:'failure', category:'gitlab-status', template:'failure', extra: "GitLab status report failed")
           }
         }
       }
@@ -297,7 +306,7 @@ pipeline {
               '''
             }
           } catch (e) {
-            mmNotify(status:'failure', category:'prepare-env', template:'failure', extra: clipText(e.toString()))
+            mmNotify(status:'failure', category:'prepare-env', template:'failure', extra: "Prepare env failed")
             error "Prepare env failed: ${e}"
           }
         }
@@ -405,7 +414,7 @@ pipeline {
             }
             mmNotify(status:'success', category:'deploy', template:'merge_success', targetBranch: env.GL_MR_TARGET)
           } catch (e) {
-            mmNotify(status:'failure', category:'deploy', template:'failure', targetBranch: env.GL_MR_TARGET, extra: clipText(e.toString()))
+            mmNotify(status:'failure', category:'deploy', template:'failure', targetBranch: env.GL_MR_TARGET, extra: "Deploy failed")
             error "Deploy failed: ${e}"
           }
         }
@@ -448,7 +457,7 @@ pipeline {
             }
             mmNotify(status:'success', category:'tagging')
           } catch (e) {
-            mmNotify(status:'failure', category:'tagging', template:'failure', extra: clipText(e.toString()))
+            mmNotify(status:'failure', category:'tagging', template:'failure', extra: "Tag & push failed")
             error "Tag & push failed: ${e}"
           }
         }
