@@ -193,4 +193,9 @@ public class NoteSearchService {
 	public void deleteNote(Long noteId) {
 		noteSearchRepository.deleteById(noteId.toString());
 	}
+
+	// 노트 일괄 삭제
+	public void bulkDeleteNotes(List<String> noteIds) {
+		noteSearchRepository.deleteAllById(noteIds);
+	}
 }
