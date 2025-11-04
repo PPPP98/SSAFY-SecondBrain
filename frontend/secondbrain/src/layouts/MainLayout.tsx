@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import BaseLayout from '@/layouts/BaseLayout';
-import GlassElement from '@/shared/components/GlassElement';
+import GlassElement from '@/shared/components/GlassElement/GlassElement';
 import UserIcon from '@/shared/components/icon/User.svg?react';
 import PlusIcon from '@/shared/components/icon/Plus.svg?react';
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import BaseLayout from '@/layouts/BaseLayout';
-import GlassElement from '@/shared/components/GlassElement';
+import GlassElement from '@/shared/components/GlassElement/GlassElement';
 import BackArrowIcon from '@/shared/components/icon/BackArrow.svg?react';
 import DeleteIcon from '@/shared/components/icon/Delete.svg?react';
 import PlusIcon from '@/shared/components/icon/Plus.svg?react';
