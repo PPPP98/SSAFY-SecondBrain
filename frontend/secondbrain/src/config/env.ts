@@ -16,8 +16,8 @@
  * - 개발자 친화적인 에러 메시지를 위한 예시 값
  */
 const ENV_HINTS: Partial<Record<keyof ImportMetaEnv, string>> = {
-  VITE_API_BASE_URL: 'http://localhost:8080',
-  VITE_OAUTH2_LOGIN_URL: 'http://localhost:8080/oauth2/authorization/google',
+  VITE_API_BASE_URL: 'https://api.example.com',
+  VITE_OAUTH2_LOGIN_URL: 'https://api.example.com/oauth2/authorization/google',
 };
 
 /**
