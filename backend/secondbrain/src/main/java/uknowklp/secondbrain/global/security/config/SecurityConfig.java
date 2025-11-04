@@ -37,7 +37,7 @@ public class SecurityConfig {
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
 	// CORS 허용 출처 (환경변수로 override 가능)
-	@Value("${security.cors.allowed-origins}")
+	@Value("${security.cors.allowed-origins:}")
 	private List<String> allowedOrigins;
 
 	@Bean
@@ -65,6 +65,7 @@ public class SecurityConfig {
 
 				// 인증 API (인증 불필요)
 				.requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
 
 				// 보호된 엔드포인트 (인증 필수)
 				.requestMatchers("/api/**").authenticated()
