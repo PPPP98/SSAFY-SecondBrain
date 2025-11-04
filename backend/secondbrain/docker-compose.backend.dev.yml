@@ -45,6 +45,14 @@ services:
     networks:
       - secondbrain-network
     restart: unless-stopped
+    # 한글 형태소 분석을 위한 Nori 플러그인 설치
+    command: >
+      bash -c "
+        if ! elasticsearch-plugin list | grep -q analysis-nori; then
+          elasticsearch-plugin install analysis-nori --batch
+        fi &&
+        /usr/local/bin/docker-entrypoint.sh
+      "
 
 volumes:
   postgres_data:
