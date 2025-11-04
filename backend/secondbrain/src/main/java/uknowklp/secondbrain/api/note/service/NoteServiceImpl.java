@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.domain.NoteDocument;
+import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.repository.NoteRepository;
@@ -75,7 +77,7 @@ public class NoteServiceImpl implements NoteService {
 
 	@Override
 	public NoteResponse getNoteById(Long noteId, Long userId) {
-		log.info("Getting note ID: {} for user ID: {}",noteId, userId);
+		log.info("Getting note ID: {} for user ID: {}", noteId, userId);
 
 		// 1. 노트 존재 여부 확인
 		Note note = noteRepository.findById(noteId).orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
@@ -264,5 +266,28 @@ public class NoteServiceImpl implements NoteService {
 			log.warn("Content length exceeds maximum: {} > {}", content.length(), MAX_CONTENT_LENGTH);
 			throw new BaseException(BaseResponseStatus.BAD_REQUEST);
 		}
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<NoteRecentResponse> getRecentNotes(Long userId) {
+		log.info("Getting recent notes for user ID: {}", userId);
+
+		// 최근 노트 10개 조회 (updatedAt DESC, noteId DESC)
+		List<Note> notes = noteRepository.findRecentByUserId(userId, PageRequest.of(0, 10));
+
+		// 데이터 없으면 null 반환
+		if (notes.isEmpty()) {
+			log.info("No recent notes found for user ID: {}", userId);
+			return null;
+		}
+
+		// Note → NoteRecentResponse 변환
+		List<NoteRecentResponse> recentNotes = notes.stream()
+			.map(NoteRecentResponse::from)
+			.toList();
+
+		log.info("Found {} recent notes for user ID: {}", recentNotes.size(), userId);
+		return recentNotes;
 	}
 }
