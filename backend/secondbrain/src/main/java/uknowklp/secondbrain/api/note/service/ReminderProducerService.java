@@ -42,7 +42,7 @@ public class ReminderProducerService {
 				note.getRemindCount()
 			);
 
-			Long delay = getDelay(note.getRemindAt());
+			long delay = getDelay(note.getRemindAt());
 
 			// todo: 개발 완료 후 제거
 			log.info("리마인더 전송하는 노트 ID: {}, delay: {}초", note.getId(), delay);
