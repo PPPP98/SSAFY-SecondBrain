@@ -34,7 +34,7 @@ services:
     container_name: secondbrain-elasticsearch
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=true
+      - xpack.security.enabled=false
       - ELASTIC_PASSWORD=${ELASTICSEARCH_PASSWORD}
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
