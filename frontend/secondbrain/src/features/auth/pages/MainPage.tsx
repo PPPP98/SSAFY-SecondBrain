@@ -1,7 +1,7 @@
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { UserProfile } from '@/features/auth/components/UserProfile';
 import { LogoutButton } from '@/features/auth/components/LogoutButton';
-import MainLayout from '@/layouts/MainLayout';
+import { MainLayout } from '@/layouts/MainLayout';
 
 /**
  * 메인 페이지

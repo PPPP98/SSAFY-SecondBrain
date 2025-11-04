@@ -1,4 +1,4 @@
-import apiClient from '@/api/client';
+import { apiClient } from '@/api/client';
 import type { UserInfo } from '@/features/auth/types/auth';
 
 /**

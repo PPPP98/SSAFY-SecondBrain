@@ -1,5 +1,5 @@
 import { GoogleLoginButton } from '@/features/auth/components/GoogleLoginButton';
-import LandingLayout from '@/layouts/LandingLayout';
+import { LandingLayout } from '@/layouts/LandingLayout';
 
 /**
  * 랜딩 페이지

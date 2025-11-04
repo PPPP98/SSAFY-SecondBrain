@@ -1,4 +1,4 @@
-import apiClient from '@/api/client';
+import { apiClient } from '@/api/client';
 import type { BaseResponse } from '@/shared/types/api';
 import type { TokenResponse } from '@/features/auth/types/auth';
 
