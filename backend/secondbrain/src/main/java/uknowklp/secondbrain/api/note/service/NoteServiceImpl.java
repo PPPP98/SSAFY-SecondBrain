@@ -168,7 +168,16 @@ public class NoteServiceImpl implements NoteService {
 		noteRepository.deleteAll(notesToDelete);
 		log.info("노트 삭제 완료 - 삭제된 노트 수: {}, 사용자 ID: {}", notesToDelete.size(), userId);
 
-		// TODO: Elasticsearch에서 삭제 (팀원과 협의 후 추가 예정)
+		// 3단계 : Elasticsearch 인덱스 삭제
+		for (Note note: notesToDelete) {
+			try {
+				noteSearchService.deleteNote(note.getId());
+				log.info("엘라스틱 서치 인덱스 삭제 완료, 삭제된 노트 ID : {}", note.getId());
+			} catch (Exception e) {
+				log.error("엘라스틱 인덱스 삭제 실패, 실패한 노트 ID : {}",note.getId(), e);
+				// 삭제 실패는 메인 로직에 영향 안 주니까 개별적으로 확인하기
+			}
+		}
 	}
 
 	/**
