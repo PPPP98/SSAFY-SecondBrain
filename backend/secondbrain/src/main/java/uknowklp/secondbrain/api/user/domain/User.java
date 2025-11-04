@@ -36,7 +36,7 @@ public class User {
 	private String picture;
 
 	@Column(nullable = false)
-	private Boolean setAlarm;
+	private boolean setAlarm;
 
 	public User update(String name, String picture) {
 		this.name = name;
