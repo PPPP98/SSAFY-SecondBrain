@@ -18,6 +18,7 @@
 const ENV_HINTS: Partial<Record<keyof ImportMetaEnv, string>> = {
   VITE_API_BASE_URL: 'https://api.example.com',
   VITE_OAUTH2_LOGIN_URL: 'https://api.example.com/oauth2/authorization/google',
+  VITE_FAST_API_BASE_URL: 'https://api.example.com',
 };
 
 /**
@@ -59,6 +60,7 @@ export const env = {
   apiBaseUrl: getEnvVar('VITE_API_BASE_URL'),
   /** OAuth2 Google 로그인 URL */
   oauth2LoginUrl: getEnvVar('VITE_OAUTH2_LOGIN_URL'),
+  fastApiBaseUrl: getEnvVar('VITE_FAST_API_BASE_URL'),
 } as const;
 
 /**

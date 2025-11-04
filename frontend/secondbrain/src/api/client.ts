@@ -138,4 +138,10 @@ const createApiClient = () => {
 // API Client 인스턴스 생성 및 초기화
 createApiClient();
 
+// fast api용 client
+export const fastApiClient = axios.create({
+  baseURL: env.fastApiBaseUrl,
+  timeout: 20000, // AI API는 타임아웃을 더 길게 설정
+});
+
 export default apiClient;
