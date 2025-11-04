@@ -73,8 +73,15 @@ public enum BaseResponseStatus {
 	ELASTICSEARCH_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10601, "검색 서비스 오류가 발생했습니다."),
 	ELASTICSEARCH_CONNECTION_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10602, "검색 서버 연결에 실패했습니다."),
 	ELASTICSEARCH_INDEX_NOT_FOUND(false, HttpStatus.INTERNAL_SERVER_ERROR, -10603, "검색 인덱스를 찾을 수 없습니다."),
-	ELASTICSEARCH_MAPPING_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10604, "검색 데이터 형식 오류가 발생했습니다.");
+	ELASTICSEARCH_MAPPING_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10604, "검색 데이터 형식 오류가 발생했습니다."),
 
+	/**
+	 * -10700 : 리마인더 관련 에러
+	 */
+	REMINDER_DISABLED_BY_USER(false, HttpStatus.BAD_REQUEST, -10700, "전체 리마인더가 비활성화되어 있습니다."),
+	REMINDER_ALREADY_ENABLED(false, HttpStatus.BAD_REQUEST, -10701, "이미 리마인더가 활성화되어 있습니다."),
+	REMINDER_ALREADY_DISABLED(false, HttpStatus.BAD_REQUEST, -10702, "이미 리마인더가 비활성화되어 있습니다."),
+	REMINDER_SCHEDULE_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10703, "리마인더 예약에 실패했습니다.");
 
 	private final boolean isSuccess;
 	private final HttpStatus httpStatus;
