@@ -64,7 +64,7 @@ def process_note_created(
     try:
         logger.debug(f"이벤트 수신")
         # 1. 파싱
-        event_data = json.load(body)
+        event_data = json.loads(body)
         event = NoteCreatedEvent(**event_data)
         logger.debug(f"파싱 완료")
         # 2. 임베딩 생성
@@ -138,13 +138,13 @@ def process_note_updated(
     try:
         logger.debug(f"노트 수정 이벤트 수신")
         # 1. 파싱
-        event_data = json.load(body)
+        event_data = json.loads(body)
         event = NoteUpdatedEvent(**event_data)
         logger.debug(f"파싱 완료")
         # 2. 임베딩 재생성(content 변경사항이 있을 때)
         new_embedding: Optional[list] = None
         if event.content:
-            new_embedding - embedding_service.generate_embedding(event.content)
+            new_embedding, token_count = embedding_service.generate_embedding(event.content)
             if not new_embedding:
                 raise Exception("임베딩 생성 실패")
             logger.debug(f"임베딩 생성 완료")
@@ -208,7 +208,7 @@ def process_note_deleted(
     try:
         logger.debug(f"노트 삭제 이벤트 수신")
         # 1. 파싱
-        event_data = json.load(body)
+        event_data = json.loads(body)
         event = NoteDeletedEvent(**event_data)
         logger.debug(f"파싱 완료")
 
@@ -248,7 +248,7 @@ def message_router(
     - 기타 → 오류 처리
     """
     try:
-        event_data = json.load(body)
+        event_data = json.loads(body)
         event_type = event_data.get("event_type")
 
         if event_type == EventType.NOTE_CREATED.value:
