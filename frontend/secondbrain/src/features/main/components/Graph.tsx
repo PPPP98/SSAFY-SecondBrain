@@ -1,32 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useCallback } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
-import { graphAPI } from '@/features/main/services/graphService';
-import type { GraphVisualizationResponse } from '@/features/main/types/graph';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
+import { useGraphVisualization } from '@/features/main/hooks/useGraphVisualization';
 
 export const Graph = () => {
-  const [graphData, setGraphData] = useState<GraphVisualizationResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: graphData, isLoading, isError } = useGraphVisualization();
 
-  useEffect(() => {
-    const fetchGraphView = async () => {
-      try {
-        setIsLoading(true);
-        const response = await graphAPI.getGraphVisualization();
-        console.log('response', response);
-        setGraphData(response);
-      } catch (error) {
-        console.error('그래프 데이터를 불러오는데 실패했습니다:', error); // toast 알림으로 변경
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void fetchGraphView();
+  const nodeColorCallback = useCallback(() => '#FFFFFF', []);
+  const linkWidthCallback = useCallback((link: { score: number }) => link.score * 2, []);
+  const particleWidthCallback = useCallback((link: { score: number }) => link.score * 1.5, []);
+  const handleNodeClick = useCallback((node: unknown) => {
+    // TODO: 노드 클릭 시 상세 정보 표시 기능 구현
+    console.info('선택된 노드:', node);
   }, []);
+
+  // 성능 최적화: graphData 객체를 메모이제이션
+  const memoizedGraphData = useMemo(() => {
+    if (!graphData) return { nodes: [], links: [] };
+    return {
+      nodes: graphData.nodes,
+      links: graphData.links,
+    };
+  }, [graphData?.nodes, graphData?.links]);
 
   if (isLoading) {
     return <LoadingSpinner message="그래프 로딩 중..." />;
+  }
+
+  if (isError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-white-500 text-lg">그래프 데이터를 불러오는데 실패했습니다.</p>
+      </div>
+    );
   }
 
   if (!graphData || graphData.nodes.length === 0) {
@@ -40,20 +46,15 @@ export const Graph = () => {
   return (
     <div className="h-screen w-full">
       <ForceGraph3D
-        graphData={{
-          nodes: graphData.nodes,
-          links: graphData.links,
-        }}
+        graphData={memoizedGraphData}
         nodeLabel="title"
-        nodeColor={() => '#FFFFFF'}
-        linkWidth={(link) => link.score * 2}
+        nodeColor={nodeColorCallback}
+        linkWidth={linkWidthCallback}
         linkDirectionalParticles={2}
-        linkDirectionalParticleWidth={(link) => link.score * 1.5}
-        backgroundColor="#192030"
+        linkDirectionalParticleWidth={particleWidthCallback}
+        backgroundColor="#10131A"
         nodeRelSize={8}
-        onNodeClick={(node) => {
-          console.log('클릭한 노드:', node);
-        }}
+        onNodeClick={handleNodeClick}
         showNavInfo={false}
       />
     </div>
