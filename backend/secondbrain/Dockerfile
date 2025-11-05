@@ -36,6 +36,9 @@ RUN set -eu; \
 FROM eclipse-temurin:17-jre-jammy AS runtime
 WORKDIR /app
 
+# healthcheck용 curl 설치
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # 비루트 유저
 RUN addgroup --system spring && adduser --system --ingroup spring spring
 USER spring

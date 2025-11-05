@@ -14,6 +14,12 @@ services:
     restart: unless-stopped
     networks:
       - e107_net
+    healthcheck:
+    test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/health || exit 1"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 30s
 
   klp_front:
     build:
@@ -33,6 +39,12 @@ services:
     restart: unless-stopped
     networks:
       - e107_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   klp_ai:
     build:
@@ -49,6 +61,12 @@ services:
       - e107_net
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ai/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
 networks:
   e107_net:
