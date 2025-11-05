@@ -31,7 +31,7 @@ public class UserResponse {
 			.email(user.getEmail())
 			.name(user.getName())
 			.picture(user.getPicture())
-			.setAlarm(user.getSetAlarm())
+			.setAlarm(user.isSetAlarm())
 			.build();
 	}
 }

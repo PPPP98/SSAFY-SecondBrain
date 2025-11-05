@@ -17,10 +17,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.dto.NoteDeleteRequest;
+import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.service.NoteService;
@@ -60,12 +62,15 @@ public class NoteController {
 		@RequestParam(required = false) List<MultipartFile> images) {
 
 		User user = userDetails.getUser();
-		logNoteCreationRequest(user.getId(), title, content, images);
+		int imageCount = images != null ? images.size() : 0;
+		log.info("Creating note for userId: {} - Title: {}, Content length: {}, Image count: {}",
+			user.getId(), title, content.length(), imageCount);
 
 		NoteRequest request = NoteRequest.of(title, content, images);
 		noteService.createNote(user.getId(), request);
 
-		return createSuccessResponse();
+		BaseResponse<Void> response = new BaseResponse<>(BaseResponseStatus.CREATED);
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
 	/**
@@ -75,7 +80,7 @@ public class NoteController {
 	 *
 	 * @param userDetails Spring Security의 인증된 사용자 정보
 	 * @param noteId 조회할 노트 ID (URL 경로에서 추출)
-	 * @return ResponseEntity<BaseResponse<NoteResponse>> 200 OK 응답 + 노트 정보
+	 * @return ResponseEntity<BaseResponse < NoteResponse>> 200 OK 응답 + 노트 정보
 	 */
 	@GetMapping("/{noteId}")
 	public ResponseEntity<BaseResponse<NoteResponse>> getNote(
@@ -104,7 +109,7 @@ public class NoteController {
 	 * @param title 노트 제목
 	 * @param content 노트 내용
 	 * @param images 이미지 파일 목록 (optional)
-	 * @return ResponseEntity<BaseResponse<NoteResponse>> 200 OK 응답 + 수정된 노트 정보
+	 * @return ResponseEntity<BaseResponse < NoteResponse>> 200 OK 응답 + 수정된 노트 정보
 	 */
 	@PutMapping(value = "/{noteId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<BaseResponse<NoteResponse>> updateNote(
@@ -133,7 +138,7 @@ public class NoteController {
 	 *
 	 * @param userDetails Spring Security의 인증된 사용자 정보
 	 * @param request 삭제할 노트 ID 목록을 담은 요청 DTO
-	 * @return ResponseEntity<BaseResponse<Void>> 200 OK 응답
+	 * @return ResponseEntity<BaseResponse < Void>> 200 OK 응답
 	 */
 	@DeleteMapping
 	public ResponseEntity<BaseResponse<Void>> deleteNotes(
@@ -149,21 +154,46 @@ public class NoteController {
 		return ResponseEntity.ok(response);
 	}
 
+	@PostMapping("/{noteId}/reminders")
+	@Operation(summary = "개별 노트 리마인더 활성화", description = "망각 곡선 기반 3회 리마인더 발송")
+	public BaseResponse<Void> enableNoteReminder(
+		@PathVariable Long noteId,
+		@AuthenticationPrincipal CustomUserDetails userDetails
+	) {
+		noteService.enableNoteReminder(noteId, userDetails.getUser().getId());
+		return new BaseResponse<>(BaseResponseStatus.SUCCESS);
+	}
 
-	/**
-	 * 노트 생성 요청 로깅
-	 */
-	private void logNoteCreationRequest(Long userId, String title, String content, List<MultipartFile> images) {
-		int imageCount = images != null ? images.size() : 0;
-		log.info("Creating note for userId: {} - Title: {}, Content length: {}, Image count: {}",
-			userId, title, content.length(), imageCount);
+	@DeleteMapping("/{noteId}/reminders")
+	@Operation(summary = "개별 노트 리마인더 비활성화", description = "해당 노트 리마인더 중단하고 리마인드 횟수 0으로 초기화")
+	public BaseResponse<Void> disableNoteReminder(
+		@PathVariable Long noteId,
+		@AuthenticationPrincipal CustomUserDetails userDetails
+	) {
+		noteService.disableNoteReminder(noteId, userDetails.getUser().getId());
+		return new BaseResponse<>(BaseResponseStatus.SUCCESS);
 	}
 
 	/**
-	 * 201 Created 응답 생성
+	 * 최근 노트 목록 조회 (상위 10개)
+	 * JWT 토큰으로 인증된 사용자의 최근 노트 목록을 조회
+	 * updatedAt 기준 내림차순, 동일 시 noteId 기준 내림차순 정렬
+	 *
+	 * @param userDetails Spring Security의 인증된 사용자 정보
+	 * @return ResponseEntity<BaseResponse < List < NoteRecentResponse>>> 200 OK 응답 + 노트 목록 (null 가능)
 	 */
-	private ResponseEntity<BaseResponse<Void>> createSuccessResponse() {
-		BaseResponse<Void> response = new BaseResponse<>(BaseResponseStatus.CREATED);
-		return ResponseEntity.status(HttpStatus.CREATED).body(response);
+	@GetMapping("/recent")
+	public ResponseEntity<BaseResponse<List<NoteRecentResponse>>> getRecentNotes(
+		@AuthenticationPrincipal CustomUserDetails userDetails) {
+
+		User user = userDetails.getUser();
+		log.info("Getting recent notes for userId: {}", user.getId());
+
+		// Service에서 최근 노트 목록 조회
+		List<NoteRecentResponse> recentNotes = noteService.getRecentNotes(user.getId());
+
+		// 200 OK 응답 생성 및 반환 (data는 null 가능)
+		BaseResponse<List<NoteRecentResponse>> response = new BaseResponse<>(recentNotes);
+		return ResponseEntity.ok(response);
 	}
 }

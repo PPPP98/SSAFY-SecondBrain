@@ -5,11 +5,12 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import uknowklp.secondbrain.api.user.domain.User;
-import uknowklp.secondbrain.api.user.repository.UserRepository;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import uknowklp.secondbrain.api.user.domain.User;
+import uknowklp.secondbrain.api.user.repository.UserRepository;
+import uknowklp.secondbrain.global.exception.BaseException;
+import uknowklp.secondbrain.global.response.BaseResponseStatus;
 
 @Slf4j
 @Service
@@ -53,5 +54,18 @@ public class UserServiceImpl implements UserService {
 			log.info("New user created - Email: {}, Name: {}, Picture: {}", email, name, pictureUrl);
 			return saved;
 		}
+	}
+
+	@Override
+	public User toggleSetAlarm(Long id) {
+		// 사용자 조회
+		User user = userRepository.findById(id).orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
+
+		// toggleSetAlarm 호출
+		user.toggleSetAlarm();
+
+		// Transaction이 자동 저장
+		log.info("Alarm toggled for userId: {} - New state: {}", id, user.isSetAlarm());
+		return user;
 	}
 }

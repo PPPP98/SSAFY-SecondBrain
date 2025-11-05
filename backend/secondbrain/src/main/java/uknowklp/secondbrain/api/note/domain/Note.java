@@ -71,4 +71,40 @@ public class Note {
 		this.title = title;
 		this.content = content;
 	}
+
+	// 리마인더 활성화
+	public void enableReminder(LocalDateTime nextReminderTime) {
+		this.remindCount = 0;
+		this.remindAt = nextReminderTime;
+	}
+
+	// 리마인더 비활성화
+	public void disableReminder() {
+	this.remindAt = null;
+	this.remindCount = 0;
+	}
+
+	// 다음 리마인더 예약
+	public void scheduleNextReminder(LocalDateTime nextReminderTime) {
+		this.remindCount ++;
+		this.remindAt = nextReminderTime;
+	}
+
+	// 리마인더 3회 모두 완료 후처리
+	public void completeReminder() {
+		this.remindAt = null;
+		this.remindCount = 0;
+	}
+
+	// 리마인더 활성화 여부 확인
+	public boolean isReminderEnable() {
+		return this.remindAt != null;
+	}
+
+	// 리마인더 발송 가능 여부 확인
+	public boolean isReminderReady() {
+		return this.user.isSetAlarm()
+			&& this.remindAt != null
+			&& this.remindAt.isBefore(LocalDateTime.now());
+	}
 }

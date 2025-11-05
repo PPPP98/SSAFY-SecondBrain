@@ -59,6 +59,8 @@ public enum BaseResponseStatus {
 	NOTE_INVALID_REQUEST(false, HttpStatus.BAD_REQUEST, -10107, "잘못된 노트 요청입니다."),
 	NOTE_IMAGE_UPLOAD_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10108, "이미지 업로드에 실패했습니다."),
 	NOTE_SAVE_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10109, "노트 저장에 실패했습니다."),
+	INVALID_S3_URL(false, HttpStatus.BAD_REQUEST, -10110, "유효하지 않은 S3 URL입니다."),
+	INVALID_DIRECTORY(false, HttpStatus.BAD_REQUEST, -10111, "유효하지 않은 디렉토리 경로입니다."),
 
 	/**
 	 * -10500 : 서버 에러
@@ -73,8 +75,15 @@ public enum BaseResponseStatus {
 	ELASTICSEARCH_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10601, "검색 서비스 오류가 발생했습니다."),
 	ELASTICSEARCH_CONNECTION_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10602, "검색 서버 연결에 실패했습니다."),
 	ELASTICSEARCH_INDEX_NOT_FOUND(false, HttpStatus.INTERNAL_SERVER_ERROR, -10603, "검색 인덱스를 찾을 수 없습니다."),
-	ELASTICSEARCH_MAPPING_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10604, "검색 데이터 형식 오류가 발생했습니다.");
+	ELASTICSEARCH_MAPPING_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10604, "검색 데이터 형식 오류가 발생했습니다."),
 
+	/**
+	 * -10700 : 리마인더 관련 에러
+	 */
+	REMINDER_DISABLED_BY_USER(false, HttpStatus.BAD_REQUEST, -10700, "전체 리마인더가 비활성화되어 있습니다."),
+	REMINDER_ALREADY_ENABLED(false, HttpStatus.BAD_REQUEST, -10701, "이미 리마인더가 활성화되어 있습니다."),
+	REMINDER_ALREADY_DISABLED(false, HttpStatus.BAD_REQUEST, -10702, "이미 리마인더가 비활성화되어 있습니다."),
+	REMINDER_SCHEDULE_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10703, "리마인더 예약에 실패했습니다.");
 
 	private final boolean isSuccess;
 	private final HttpStatus httpStatus;

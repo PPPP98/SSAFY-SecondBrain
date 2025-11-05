@@ -3,6 +3,7 @@ package uknowklp.secondbrain.api.note.service;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -14,10 +15,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import uknowklp.secondbrain.api.note.domain.Note;
+import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.repository.NoteRepository;
@@ -1073,5 +1077,262 @@ class NoteServiceImplTest {
 		// verify: findAllById는 호출되었지만 deleteAll은 호출되지 않음 (all-or-nothing)
 		verify(noteRepository, times(1)).findAllById(noteIds);
 		verify(noteRepository, never()).deleteAll(anyList());
+	}
+
+	// ========================================
+	// getRecentNotes 메서드 테스트
+	// ========================================
+
+	@Test
+	@DisplayName("최근 노트 목록 조회 성공 - 10개 노트가 있는 경우")
+	void getRecentNotes_Success_With10Notes() {
+		// given: 10개의 노트를 준비
+		Long userId = 1L;
+		List<Note> notes = new ArrayList<>();
+
+		for (int i = 0; i < 10; i++) {
+			Note note = Note.builder()
+				.id((long)(i + 1))
+				.user(testUser)
+				.title("노트 " + (i + 1))
+				.content("내용 " + (i + 1))
+				.remindCount(0)
+				.build();
+			notes.add(note);
+		}
+
+		given(noteRepository.findRecentByUserId(eq(userId), any(Pageable.class))).willReturn(notes);
+
+		// when: 최근 노트 목록 조회
+		List<NoteRecentResponse> result = noteService.getRecentNotes(userId);
+
+		// then: 10개의 노트가 반환됨
+		assertNotNull(result);
+		assertEquals(10, result.size());
+		assertEquals("노트 1", result.get(0).title());
+		assertEquals("노트 10", result.get(9).title());
+
+		// verify: Repository 메서드가 올바른 인자로 호출됨
+		verify(noteRepository, times(1)).findRecentByUserId(eq(userId), any(Pageable.class));
+	}
+
+	@Test
+	@DisplayName("최근 노트 목록 조회 성공 - 5개 노트만 있는 경우")
+	void getRecentNotes_Success_With5Notes() {
+		// given: 5개의 노트만 준비
+		Long userId = 1L;
+		List<Note> notes = new ArrayList<>();
+
+		for (int i = 0; i < 5; i++) {
+			Note note = Note.builder()
+				.id((long)(i + 1))
+				.user(testUser)
+				.title("노트 " + (i + 1))
+				.content("내용 " + (i + 1))
+				.remindCount(0)
+				.build();
+			notes.add(note);
+		}
+
+		given(noteRepository.findRecentByUserId(eq(userId), any(Pageable.class))).willReturn(notes);
+
+		// when: 최근 노트 목록 조회
+		List<NoteRecentResponse> result = noteService.getRecentNotes(userId);
+
+		// then: 5개의 노트가 반환됨
+		assertNotNull(result);
+		assertEquals(5, result.size());
+
+		verify(noteRepository, times(1)).findRecentByUserId(eq(userId), any(Pageable.class));
+	}
+
+	@Test
+	@DisplayName("최근 노트 목록 조회 성공 - 노트가 없는 경우 null 반환")
+	void getRecentNotes_EmptyList_ReturnsNull() {
+		// given: 노트가 없는 경우
+		Long userId = 1L;
+		given(noteRepository.findRecentByUserId(eq(userId), any(Pageable.class))).willReturn(List.of());
+
+		// when: 최근 노트 목록 조회
+		List<NoteRecentResponse> result = noteService.getRecentNotes(userId);
+
+		// then: null이 반환됨 (API 명세 준수)
+		assertNull(result);
+
+		verify(noteRepository, times(1)).findRecentByUserId(eq(userId), any(Pageable.class));
+	}
+
+	@Test
+	@DisplayName("최근 노트 목록 조회 성공 - 단일 노트만 있는 경우")
+	void getRecentNotes_Success_WithSingleNote() {
+		// given: 단일 노트만 준비
+		Long userId = 1L;
+		Note singleNote = Note.builder()
+			.id(1L)
+			.user(testUser)
+			.title("유일한 노트")
+			.content("유일한 내용")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findRecentByUserId(eq(userId), any(Pageable.class))).willReturn(List.of(singleNote));
+
+		// when: 최근 노트 목록 조회
+		List<NoteRecentResponse> result = noteService.getRecentNotes(userId);
+
+		// then: 1개의 노트가 반환됨
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		assertEquals(1L, result.get(0).noteId());
+		assertEquals("유일한 노트", result.get(0).title());
+
+		verify(noteRepository, times(1)).findRecentByUserId(eq(userId), any(Pageable.class));
+	}
+
+	@Test
+	@DisplayName("최근 노트 목록 조회 성공 - PageRequest에 올바른 파라미터 전달")
+	void getRecentNotes_Success_CorrectPageableParameters() {
+		// given: 노트 준비
+		Long userId = 1L;
+		List<Note> notes = List.of(
+			Note.builder()
+				.id(1L)
+				.user(testUser)
+				.title("노트 1")
+				.content("내용 1")
+				.remindCount(0)
+				.build()
+		);
+
+		given(noteRepository.findRecentByUserId(eq(userId), any(Pageable.class))).willReturn(notes);
+
+		// when: 최근 노트 목록 조회
+		List<NoteRecentResponse> result = noteService.getRecentNotes(userId);
+
+		// then: 결과 확인
+		assertNotNull(result);
+		assertEquals(1, result.size());
+
+		// verify: PageRequest.of(0, 10)이 전달되었는지 확인
+		verify(noteRepository, times(1)).findRecentByUserId(
+			eq(userId),
+			eq(PageRequest.of(0, 10))
+		);
+	}
+
+	@Test
+	@DisplayName("최근 노트 목록 조회 성공 - 반환되는 DTO에 noteId와 title만 포함")
+	void getRecentNotes_Success_ResponseContainsOnlyNoteIdAndTitle() {
+		// given: 노트 준비 (content, remindAt 등 다른 필드도 존재)
+		Long userId = 1L;
+		LocalDateTime remindTime = LocalDateTime.now().plusDays(1);
+		Note noteWithAllFields = Note.builder()
+			.id(123L)
+			.user(testUser)
+			.title("제목만 반환될 노트")
+			.content("이 내용은 응답에 포함되지 않아야 함")
+			.remindCount(5)
+			.remindAt(remindTime)
+			.build();
+
+		given(noteRepository.findRecentByUserId(eq(userId), any(Pageable.class)))
+			.willReturn(List.of(noteWithAllFields));
+
+		// when: 최근 노트 목록 조회
+		List<NoteRecentResponse> result = noteService.getRecentNotes(userId);
+
+		// then: noteId와 title만 포함되어 있는지 확인
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		NoteRecentResponse response = result.get(0);
+		assertEquals(123L, response.noteId());
+		assertEquals("제목만 반환될 노트", response.title());
+		// content, remindAt, remindCount는 NoteRecentResponse에 포함되지 않음
+
+		verify(noteRepository, times(1)).findRecentByUserId(eq(userId), any(Pageable.class));
+	}
+
+	@Test
+	@DisplayName("최근 노트 목록 조회 성공 - 여러 사용자가 각각 자신의 노트 목록 조회")
+	void getRecentNotes_Success_MultipleUsersGetTheirOwnNotes() {
+		// given: 두 명의 사용자와 각각의 노트
+		Long userId1 = 1L;
+		Long userId2 = 2L;
+
+		User user2 = User.builder()
+			.id(userId2)
+			.email("user2@example.com")
+			.name("사용자2")
+			.build();
+
+		Note note1 = Note.builder()
+			.id(1L)
+			.user(testUser)
+			.title("사용자1의 노트")
+			.content("내용1")
+			.remindCount(0)
+			.build();
+
+		Note note2 = Note.builder()
+			.id(2L)
+			.user(user2)
+			.title("사용자2의 노트")
+			.content("내용2")
+			.remindCount(0)
+			.build();
+
+		given(noteRepository.findRecentByUserId(eq(userId1), any(Pageable.class)))
+			.willReturn(List.of(note1));
+		given(noteRepository.findRecentByUserId(eq(userId2), any(Pageable.class)))
+			.willReturn(List.of(note2));
+
+		// when: 각 사용자가 자신의 최근 노트 목록 조회
+		List<NoteRecentResponse> result1 = noteService.getRecentNotes(userId1);
+		List<NoteRecentResponse> result2 = noteService.getRecentNotes(userId2);
+
+		// then: 각자의 노트만 반환됨
+		assertNotNull(result1);
+		assertNotNull(result2);
+		assertEquals(1, result1.size());
+		assertEquals(1, result2.size());
+		assertEquals("사용자1의 노트", result1.get(0).title());
+		assertEquals("사용자2의 노트", result2.get(0).title());
+
+		verify(noteRepository, times(1)).findRecentByUserId(eq(userId1), any(Pageable.class));
+		verify(noteRepository, times(1)).findRecentByUserId(eq(userId2), any(Pageable.class));
+	}
+
+	@Test
+	@DisplayName("최근 노트 목록 조회 성공 - 정확히 10개를 초과하는 경우에도 10개만 반환")
+	void getRecentNotes_Success_ExactlyLimitedTo10() {
+		// given: Repository가 정확히 10개만 반환하도록 설정 (Pageable 동작 시뮬레이션)
+		Long userId = 1L;
+		List<Note> exactly10Notes = new ArrayList<>();
+
+		for (int i = 0; i < 10; i++) {
+			Note note = Note.builder()
+				.id((long)(i + 1))
+				.user(testUser)
+				.title("노트 " + (i + 1))
+				.content("내용 " + (i + 1))
+				.remindCount(0)
+				.build();
+			exactly10Notes.add(note);
+		}
+
+		given(noteRepository.findRecentByUserId(eq(userId), any(Pageable.class)))
+			.willReturn(exactly10Notes);
+
+		// when: 최근 노트 목록 조회
+		List<NoteRecentResponse> result = noteService.getRecentNotes(userId);
+
+		// then: 정확히 10개만 반환됨
+		assertNotNull(result);
+		assertEquals(10, result.size());
+
+		verify(noteRepository, times(1)).findRecentByUserId(
+			eq(userId),
+			eq(PageRequest.of(0, 10))
+		);
 	}
 }

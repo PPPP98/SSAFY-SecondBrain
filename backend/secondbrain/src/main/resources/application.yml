@@ -24,6 +24,22 @@ spring:
     username: ${ELASTICSEARCH_USERNAME}
     password: ${ELASTICSEARCH_PASSWORD}
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+    ssl:
+      enabled: ${RABBITMQ_SSL_ENABLED}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 3000
+          max-attempts: 3
+          multiplier: 2
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -43,6 +59,16 @@ spring:
               - email
               - profile
             redirect-uri: "${BASE_URL}/login/oauth2/code/google"
+
+  cloud:
+    aws:
+      credentials:
+        access-key: ${ACCESS_KEY}
+        secret-key: ${SECRET_ACCESS_KEY}
+      region:
+        static: ${REGION}
+      s3:
+        bucket: ${BUCKET_NAME}
 
 server:
   port: 8080
