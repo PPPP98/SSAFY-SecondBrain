@@ -5,7 +5,9 @@ interface BaseLayoutProps {
 }
 
 const BaseLayout = ({ children }: BaseLayoutProps) => {
-  return <div className="bg-[#192030] p-10 text-white">{children}</div>;
+  return (
+    <div className="h-screen w-screen overflow-hidden bg-[#192030] text-white">{children}</div>
+  );
 };
 
 export default BaseLayout;

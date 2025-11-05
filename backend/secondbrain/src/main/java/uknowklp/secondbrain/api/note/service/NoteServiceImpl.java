@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.domain.NoteDocument;
 import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
+import uknowklp.secondbrain.api.note.dto.NoteReminderResponse;
+import uknowklp.secondbrain.api.note.dto.NoteReminderResult;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.repository.NoteRepository;
@@ -401,5 +404,32 @@ public class NoteServiceImpl implements NoteService {
 
 		log.info("Found {} recent notes for user ID: {}", recentNotes.size(), userId);
 		return recentNotes;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public NoteReminderResponse getReminderNotes(Long userId, int page, int size) {
+		log.info("Getting reminder notes for user ID: {} - page: {}, size: {}", userId, page, size);
+
+		// 리마인더가 켜진 노트 조회 (페이징)
+		Page<Note> notePage = noteRepository.findReminderNotesByUserId(userId, PageRequest.of(page, size));
+
+		// Note → NoteReminderResult 변환
+		List<NoteReminderResult> results = notePage.getContent().stream()
+			.map(NoteReminderResult::from)
+			.toList();
+
+		// 응답 DTO 생성
+		NoteReminderResponse response = NoteReminderResponse.builder()
+			.results(results)
+			.totalCount(notePage.getTotalElements())
+			.currentPage(notePage.getNumber())
+			.totalPages(notePage.getTotalPages())
+			.pageSize(notePage.getSize())
+			.build();
+
+		log.info("Found {} reminder notes for user ID: {} (page {}/{})",
+			results.size(), userId, page, notePage.getTotalPages());
+		return response;
 	}
 }
