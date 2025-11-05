@@ -4,6 +4,7 @@ import java.util.List;
 
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
+import uknowklp.secondbrain.api.note.dto.NoteReminderResponse;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 
@@ -52,4 +53,24 @@ public interface NoteService {
 	 * @return 최근 노트 목록 (최대 10개), 데이터 없으면 null
 	 */
 	List<NoteRecentResponse> getRecentNotes(Long userId);
+
+	/**
+	 * 리마인더가 켜진 노트 목록 조회 (페이징 지원)
+	 * updatedAt 기준 내림차순, 동일 시 noteId 기준 내림차순 정렬
+	 *
+	 * @param userId 사용자 ID
+	 * @param page 페이지 번호 (0부터 시작)
+	 * @param size 페이지당 노트 개수
+	 * @return 리마인더 노트 목록 (페이징 정보 포함)
+	 */
+	NoteReminderResponse getReminderNotes(Long userId, int page, int size);
+
+	// 특정 노트의 리마인더 활성화
+	Note enableNoteReminder(Long noteId, Long userId);
+
+	// 특정 노트의 리마인더 비활성화
+	Note disableNoteReminder(Long noteId, Long userId);
+
+	// 리마인더 처리 및 다음 리마인더 스케줄링
+	void processReminder(Long noteId);
 }

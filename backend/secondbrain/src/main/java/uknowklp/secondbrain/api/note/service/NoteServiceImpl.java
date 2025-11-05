@@ -1,9 +1,11 @@
 package uknowklp.secondbrain.api.note.service;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.domain.NoteDocument;
 import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
+import uknowklp.secondbrain.api.note.dto.NoteReminderResponse;
+import uknowklp.secondbrain.api.note.dto.NoteReminderResult;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.repository.NoteRepository;
@@ -31,6 +35,7 @@ public class NoteServiceImpl implements NoteService {
 	private final NoteRepository noteRepository;
 	private final UserService userService;
 	private final NoteSearchService noteSearchService;
+	private final ReminderProducerService reminderProducerService;
 	// TODO: S3 업로드 서비스 추가 예정
 	// private final S3UploadService s3UploadService;
 
@@ -77,7 +82,7 @@ public class NoteServiceImpl implements NoteService {
 
 	@Override
 	public NoteResponse getNoteById(Long noteId, Long userId) {
-		log.info("Getting note ID: {} for user ID: {}", noteId, userId);
+		log.info("Getting note ID: {} for user ID: {}",noteId, userId);
 
 		// 1. 노트 존재 여부 확인
 		Note note = noteRepository.findById(noteId).orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
@@ -269,6 +274,116 @@ public class NoteServiceImpl implements NoteService {
 	}
 
 	@Override
+	public Note enableNoteReminder(Long noteId, Long userId) {
+		// todo: 개발 완료 후 제거할 로그
+		log.info("리마인더 활성화 요청 - 노트 ID: {}, 사용자 ID: {}", noteId, userId);
+
+		// 노트 존재 여부 확인
+		Note note = noteRepository.findById(noteId)
+			.orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
+
+		// 노트 접근 권한 확인
+		if (!note.getUser().getId().equals(userId)) {
+			throw new BaseException(BaseResponseStatus.NOTE_ACCESS_DENIED);
+		}
+
+		// 리마인더 활성화 여부 확인
+		if (note.isReminderEnable()) {
+			throw new BaseException(BaseResponseStatus.REMINDER_ALREADY_ENABLED);
+		}
+
+		// 첫 리마인더 시간 계산
+		// todo: 개발 단계 지나면 1일 후로 수정 예정
+		LocalDateTime firstReminderTime = LocalDateTime.now().plusSeconds(10);
+
+		// 리마인더 활성화
+		note.enableReminder(firstReminderTime);
+		Note saveNote = noteRepository.save(note);
+
+		// RabbitMQ Producer와 연동해서 첫 리마인더 예약
+		reminderProducerService.scheduleReminder(saveNote);
+
+		// todo: 개발 완료 후 제거할 로그
+		log.info("리마인더 활성화 완료, 노트 ID : {}, 첫 발송 예정 시간: {}", saveNote.getId(), saveNote.getRemindAt());
+
+		return saveNote;
+	}
+
+	@Override
+	public Note disableNoteReminder(Long noteId, Long userId) {
+		// todo: 개발 완료 후 제거할 로그
+		log.info("리마인더 비활성화 요청, 노트 ID : {}, 사용자 ID : {}", noteId, userId);
+
+		// 노트 존재 여부 확인
+		Note note = noteRepository.findById(noteId)
+			.orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
+
+		// 노트 접근 권환 확인
+		if (!note.getUser().getId().equals(userId)) {
+			throw new BaseException(BaseResponseStatus.NOTE_ACCESS_DENIED);
+		}
+
+		// 리마인더 비활성화 여부 확인
+		if (!note.isReminderEnable()) {
+			throw new BaseException(BaseResponseStatus.REMINDER_ALREADY_DISABLED);
+		}
+
+		// 리마인더 비활
+		note.disableReminder();
+		Note saveNote = noteRepository.save(note);
+
+		return saveNote;
+	}
+
+	@Override
+	public void processReminder(Long noteId) {
+
+		// 노트 조회
+		Note note = noteRepository.findByIdWithUser(noteId)
+			.orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
+
+		// 발송 가능 여부 확인
+		// User 테이블 set Alarm도 켜져있지만 remindAt이 지났다면
+		if (!note.isReminderReady()) {
+			log.warn("remind 시간이 지났습니다. noteId: {}, remindAt: {}", noteId, note.getRemindAt());
+			return;
+		}
+
+		// 현재 발송 횟수 체크
+		int currentCount = note.getRemindCount();
+
+		// todo: GMS API 호출해서 질문 생성
+		// String question = gmsApiService.generateQuestion(note);
+
+		// todo: 실제 알림 발송
+		// notificationService.sendReminder(note.getUser(), question);
+
+		// todo: 개발 완료 후 삭제할 로그
+		log.info("리마인더 완료 - 노트 ID : {}, 현재 리마인드 횟수 : {}", noteId, currentCount);
+
+		// 망각 곡선 기반 다음 리마인드 시간 계산
+		if (currentCount >= 2) {
+			note.completeReminder();
+			log.info("리마인더 완료, 리마인드 off, 노트 ID : {}", noteId);
+		} else {
+			// 다음 발송 시간 계산
+			// todo: 실제 배포 단계에선 3일, 7일 후로 수정
+			int nextDelayDays = switch (currentCount) {
+				case 0 -> 30;
+				case 1 -> 70;
+				default -> 0;
+			};
+
+			LocalDateTime nextReminderTime = LocalDateTime.now().plusSeconds(nextDelayDays);
+			note.scheduleNextReminder(nextReminderTime);
+
+			// RabbitMQ에 다음 메시지 예약
+			reminderProducerService.scheduleReminder(note);
+		}
+		noteRepository.save(note);
+	}
+
+	@Override
 	@Transactional(readOnly = true)
 	public List<NoteRecentResponse> getRecentNotes(Long userId) {
 		log.info("Getting recent notes for user ID: {}", userId);
@@ -289,5 +404,32 @@ public class NoteServiceImpl implements NoteService {
 
 		log.info("Found {} recent notes for user ID: {}", recentNotes.size(), userId);
 		return recentNotes;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public NoteReminderResponse getReminderNotes(Long userId, int page, int size) {
+		log.info("Getting reminder notes for user ID: {} - page: {}, size: {}", userId, page, size);
+
+		// 리마인더가 켜진 노트 조회 (페이징)
+		Page<Note> notePage = noteRepository.findReminderNotesByUserId(userId, PageRequest.of(page, size));
+
+		// Note → NoteReminderResult 변환
+		List<NoteReminderResult> results = notePage.getContent().stream()
+			.map(NoteReminderResult::from)
+			.toList();
+
+		// 응답 DTO 생성
+		NoteReminderResponse response = NoteReminderResponse.builder()
+			.results(results)
+			.totalCount(notePage.getTotalElements())
+			.currentPage(notePage.getNumber())
+			.totalPages(notePage.getTotalPages())
+			.pageSize(notePage.getSize())
+			.build();
+
+		log.info("Found {} reminder notes for user ID: {} (page {}/{})",
+			results.size(), userId, page, notePage.getTotalPages());
+		return response;
 	}
 }

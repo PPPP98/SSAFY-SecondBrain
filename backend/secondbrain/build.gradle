@@ -8,6 +8,10 @@ group = 'uknowklp'
 version = '0.0.1-SNAPSHOT'
 description = 'Demo project for Spring Boot'
 
+ext {
+	set('springCloudAwsVersion', "3.1.1")
+}
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(17)
@@ -28,6 +32,12 @@ ext {
 	set('springAiVersion', "1.0.3")
 }
 
+dependencyManagement {
+	imports {
+		mavenBom "io.awspring.cloud:spring-cloud-aws-dependencies:${springCloudAwsVersion}"
+	}
+}
+
 dependencies {
 
 	// Database
@@ -36,6 +46,13 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
 	runtimeOnly 'org.postgresql:postgresql'
+
+	// RabbitMQ
+	implementation 'org.springframework.boot:spring-boot-starter-amqp'
+
+	// AWS S3
+	implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3'
+	implementation 'software.amazon.awssdk:s3'
 
 	// Auth
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
