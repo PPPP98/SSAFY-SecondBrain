@@ -59,6 +59,8 @@ public enum BaseResponseStatus {
 	NOTE_INVALID_REQUEST(false, HttpStatus.BAD_REQUEST, -10107, "잘못된 노트 요청입니다."),
 	NOTE_IMAGE_UPLOAD_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10108, "이미지 업로드에 실패했습니다."),
 	NOTE_SAVE_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10109, "노트 저장에 실패했습니다."),
+	INVALID_S3_URL(false, HttpStatus.BAD_REQUEST, -10110, "유효하지 않은 S3 URL입니다."),
+	INVALID_DIRECTORY(false, HttpStatus.BAD_REQUEST, -10111, "유효하지 않은 디렉토리 경로입니다."),
 
 	/**
 	 * -10500 : 서버 에러

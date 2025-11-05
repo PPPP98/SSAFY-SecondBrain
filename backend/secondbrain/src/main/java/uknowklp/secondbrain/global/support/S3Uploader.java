@@ -39,8 +39,14 @@ public class S3Uploader {
 	 * @return S3에 저장된 파일의 전체 URL (ex: "https://bucket.s3.region.amazonaws.com/note-images/uuid.jpg")
 	 */
 	public String upload(String directory, MultipartFile multipartFile) {
+		// 파일 존재 여부 검증
 		if (multipartFile == null || multipartFile.isEmpty()) {
 			throw new BaseException(BaseResponseStatus.EMPTY_FILE);
+		}
+
+		// 디렉토리 경로 검증 (보안: 경로 조작 방지)
+		if (!StringUtils.hasText(directory) || directory.contains("..")) {
+			throw new BaseException(BaseResponseStatus.INVALID_DIRECTORY);
 		}
 
 		String originalFileName = multipartFile.getOriginalFilename();
@@ -63,8 +69,9 @@ public class S3Uploader {
 				.contentLength(multipartFile.getSize())
 				.build();
 
-			// S3에 파일 업로드
-			s3Client.putObject(putObjectRequest, RequestBody.fromBytes(multipartFile.getBytes()));
+			// S3에 파일 업로드 (스트리밍 방식으로 메모리 효율성 개선)
+			s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(
+				multipartFile.getInputStream(), multipartFile.getSize()));
 
 			// 업로드된 파일의 전체 URL을 직접 구성하여 반환
 			return "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + uniqueFileKey;
@@ -110,7 +117,19 @@ public class S3Uploader {
 	 */
 	private String extractKeyFromUrl(String imageUrl) {
 		String baseUrl = "https://" + bucketName + ".s3." + region + ".amazonaws.com/";
+
+		// URL 형식 검증
+		if (!imageUrl.startsWith(baseUrl)) {
+			throw new BaseException(BaseResponseStatus.INVALID_S3_URL);
+		}
+
 		String key = imageUrl.substring(baseUrl.length());
+
+		// 키가 비어있는지 검증
+		if (key.isEmpty()) {
+			throw new BaseException(BaseResponseStatus.INVALID_S3_URL);
+		}
+
 		// URL에 포함된 인코딩 문자 디코딩
 		return URLDecoder.decode(key, StandardCharsets.UTF_8);
 	}
