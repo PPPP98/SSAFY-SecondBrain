@@ -12,8 +12,6 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE_URL: string;
   /** OAuth2 Google 로그인 URL */
   readonly VITE_OAUTH2_LOGIN_URL: string;
-  /** FastAPI 서버 기본 URL */
-  readonly VITE_FAST_API_BASE_URL: string;
 
   // Vite 기본 환경 변수
   readonly MODE: string;

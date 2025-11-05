@@ -7,9 +7,9 @@ import type {
 } from '@/features/main/types/graph';
 
 const GRAPH_ENDPOINTS = {
-  VISUALIZATION: '/ai/api/v1/graph/visualization',
-  NEIGHBORS: '/ai/api/v1/graph/neighbors',
-  STATS: '/ai/api/v1/stats',
+  VISUALIZATION: '/graph/visualization',
+  NEIGHBORS: '/graph/neighbors',
+  STATS: '/stats',
 } as const;
 
 export const graphAPI = {
