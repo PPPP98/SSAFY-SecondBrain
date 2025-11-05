@@ -6,15 +6,13 @@ import { GlassElement } from '@/shared/components/GlassElement/GlassElement';
 
 interface NoteEditorProps {
   defaultValue?: string;
-  placeholder?: string;
 }
 
-function CrepeEditor({ defaultValue, placeholder }: NoteEditorProps) {
+function CrepeEditor({ defaultValue }: NoteEditorProps) {
   useEditor((root) => {
     return new Crepe({
       root,
       defaultValue: defaultValue || '# 제목을 입력하세요\n\n내용을 작성하세요...',
-      placeholder: placeholder || '내용을 입력하세요...',
     });
   });
 
@@ -27,12 +25,12 @@ function CrepeEditor({ defaultValue, placeholder }: NoteEditorProps) {
  * - GlassElement 스타일 래핑
  * - Heading을 통한 Title 처리
  */
-export function NoteEditor({ defaultValue, placeholder }: NoteEditorProps) {
+export function NoteEditor({ defaultValue }: NoteEditorProps) {
   return (
     <GlassElement as="div" className="size-full overflow-auto">
       <div className="h-full p-6">
         <MilkdownProvider>
-          <CrepeEditor defaultValue={defaultValue} placeholder={placeholder} />
+          <CrepeEditor defaultValue={defaultValue} />
         </MilkdownProvider>
       </div>
     </GlassElement>

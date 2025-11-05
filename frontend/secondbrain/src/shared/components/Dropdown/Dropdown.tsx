@@ -31,7 +31,6 @@ export function Dropdown({
     onClose,
     closeOnOutsideClick,
     closeOnEscape,
-    enableFocusTrap: false, // 드롭다운은 focus trap 불필요
   });
 
   // 키보드 네비게이션

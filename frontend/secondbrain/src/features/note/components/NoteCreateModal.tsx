@@ -54,10 +54,7 @@ export function NoteCreateModal({ isOpen, onClose, onSave, onDelete }: NoteCreat
 
         {/* 에디터 영역 */}
         <div className="h-full p-20">
-          <NoteEditor
-            defaultValue="# 제목을 입력하세요\n\n내용을 작성하세요..."
-            placeholder="내용을 입력하세요..."
-          />
+          <NoteEditor defaultValue="# 제목을 입력하세요\n\n내용을 작성하세요..." />
         </div>
       </div>
     </SlideOverModal>
