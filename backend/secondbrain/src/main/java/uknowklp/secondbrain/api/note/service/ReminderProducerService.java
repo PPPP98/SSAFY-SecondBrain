@@ -45,7 +45,7 @@ public class ReminderProducerService {
 			long delay = getDelay(note.getRemindAt());
 
 			// todo: 개발 완료 후 제거
-			log.info("리마인더 전송하는 노트 ID: {}, delay: {}초", note.getId(), delay);
+			log.info("리마인더 전송하는 노트 ID: {}, delay: {}ms ({}초)", note.getId(), delay, delay / 1000);
 
 			rabbitTemplate.convertAndSend(
 				EXCHANGE_NAME,
@@ -66,7 +66,9 @@ public class ReminderProducerService {
 
 	// todo: GMS API 연동
 	private String createQuestion(Note note) {
-		return String.format("'%s' 노트 복습할 시간입니다.", note.getTitle());
+		String question = String.format("'%s' 노트 복습할 시간입니다.", note.getTitle());
+		log.info("생성된 질문: {}", question);
+		return question;
 	}
 
 	private long getDelay(LocalDateTime remindAt) {

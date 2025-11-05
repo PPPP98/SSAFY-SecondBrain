@@ -103,7 +103,7 @@ public class Note {
 
 	// 리마인더 발송 가능 여부 확인
 	public boolean isReminderReady() {
-		return this.user.getSetAlarm()
+		return this.user.isSetAlarm()
 			&& this.remindAt != null
 			&& this.remindAt.isBefore(LocalDateTime.now());
 	}
