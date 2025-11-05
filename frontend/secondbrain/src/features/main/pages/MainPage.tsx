@@ -1,7 +1,6 @@
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
-import { UserProfile } from '@/features/auth/components/UserProfile';
-import { LogoutButton } from '@/features/auth/components/LogoutButton';
 import MainLayout from '@/layouts/MainLayout';
+import { Graph } from '@/features/main/components/Graph';
 
 /**
  * 메인 페이지
@@ -35,12 +34,7 @@ export function MainPage() {
 
   return (
     <MainLayout>
-      <div className="flex min-h-dvh items-center justify-center">
-        <div className="flex flex-col items-center gap-6">
-          <UserProfile user={user} />
-          <LogoutButton variant="secondary" size="md" />
-        </div>
-      </div>
+      <Graph />
     </MainLayout>
   );
 }
