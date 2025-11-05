@@ -52,7 +52,7 @@ export const Graph = () => {
         linkWidth={linkWidthCallback}
         linkDirectionalParticles={2}
         linkDirectionalParticleWidth={particleWidthCallback}
-        backgroundColor="#10131A"
+        backgroundColor="#192030"
         nodeRelSize={8}
         onNodeClick={handleNodeClick}
         showNavInfo={false}
