@@ -15,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.mock.web.MockMultipartFile;
@@ -22,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
+import uknowklp.secondbrain.api.note.dto.NoteReminderResponse;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.repository.NoteRepository;
@@ -1333,6 +1336,349 @@ class NoteServiceImplTest {
 		verify(noteRepository, times(1)).findRecentByUserId(
 			eq(userId),
 			eq(PageRequest.of(0, 10))
+		);
+	}
+
+	// ========================================
+	// getReminderNotes 메서드 테스트
+	// ========================================
+
+	@Test
+	@DisplayName("리마인더 노트 목록 조회 성공 - 첫 페이지 10개")
+	void getReminderNotes_Success_FirstPage() {
+		// given: 리마인더가 켜진 10개의 노트를 준비
+		Long userId = 1L;
+		int page = 0;
+		int size = 10;
+		List<Note> reminderNotes = new ArrayList<>();
+
+		for (int i = 0; i < 10; i++) {
+			Note note = Note.builder()
+				.id((long)(i + 1))
+				.user(testUser)
+				.title("리마인더 노트 " + (i + 1))
+				.content("내용 " + (i + 1))
+				.remindCount(0)
+				.remindAt(LocalDateTime.now().plusDays(i + 1))
+				.build();
+			reminderNotes.add(note);
+		}
+
+		Page<Note> notePage = new PageImpl<>(reminderNotes, PageRequest.of(page, size), 25);
+		given(noteRepository.findReminderNotesByUserId(eq(userId), any(Pageable.class)))
+			.willReturn(notePage);
+
+		// when: 리마인더 노트 목록 조회
+		NoteReminderResponse result = noteService.getReminderNotes(userId, page, size);
+
+		// then: 페이징 정보와 노트 목록이 올바르게 반환됨
+		assertNotNull(result);
+		assertEquals(10, result.results().size());
+		assertEquals(25, result.totalCount());
+		assertEquals(0, result.currentPage());
+		assertEquals(3, result.totalPages());
+		assertEquals(10, result.pageSize());
+
+		// verify: Repository 메서드가 올바른 인자로 호출됨
+		verify(noteRepository, times(1)).findReminderNotesByUserId(
+			eq(userId),
+			eq(PageRequest.of(page, size))
+		);
+	}
+
+	@Test
+	@DisplayName("리마인더 노트 목록 조회 성공 - 두 번째 페이지")
+	void getReminderNotes_Success_SecondPage() {
+		// given: 두 번째 페이지의 노트 준비
+		Long userId = 1L;
+		int page = 1;
+		int size = 10;
+		List<Note> reminderNotes = new ArrayList<>();
+
+		for (int i = 10; i < 20; i++) {
+			Note note = Note.builder()
+				.id((long)(i + 1))
+				.user(testUser)
+				.title("리마인더 노트 " + (i + 1))
+				.content("내용 " + (i + 1))
+				.remindCount(0)
+				.remindAt(LocalDateTime.now().plusDays(i + 1))
+				.build();
+			reminderNotes.add(note);
+		}
+
+		Page<Note> notePage = new PageImpl<>(reminderNotes, PageRequest.of(page, size), 25);
+		given(noteRepository.findReminderNotesByUserId(eq(userId), any(Pageable.class)))
+			.willReturn(notePage);
+
+		// when: 두 번째 페이지 조회
+		NoteReminderResponse result = noteService.getReminderNotes(userId, page, size);
+
+		// then: 두 번째 페이지 데이터가 올바르게 반환됨
+		assertNotNull(result);
+		assertEquals(10, result.results().size());
+		assertEquals(25, result.totalCount());
+		assertEquals(1, result.currentPage());
+		assertEquals(3, result.totalPages());
+		assertEquals(10, result.pageSize());
+
+		verify(noteRepository, times(1)).findReminderNotesByUserId(
+			eq(userId),
+			eq(PageRequest.of(page, size))
+		);
+	}
+
+	@Test
+	@DisplayName("리마인더 노트 목록 조회 성공 - 마지막 페이지 (5개)")
+	void getReminderNotes_Success_LastPage() {
+		// given: 마지막 페이지에 5개만 있는 경우
+		Long userId = 1L;
+		int page = 2;
+		int size = 10;
+		List<Note> reminderNotes = new ArrayList<>();
+
+		for (int i = 20; i < 25; i++) {
+			Note note = Note.builder()
+				.id((long)(i + 1))
+				.user(testUser)
+				.title("리마인더 노트 " + (i + 1))
+				.content("내용 " + (i + 1))
+				.remindCount(0)
+				.remindAt(LocalDateTime.now().plusDays(i + 1))
+				.build();
+			reminderNotes.add(note);
+		}
+
+		Page<Note> notePage = new PageImpl<>(reminderNotes, PageRequest.of(page, size), 25);
+		given(noteRepository.findReminderNotesByUserId(eq(userId), any(Pageable.class)))
+			.willReturn(notePage);
+
+		// when: 마지막 페이지 조회
+		NoteReminderResponse result = noteService.getReminderNotes(userId, page, size);
+
+		// then: 5개만 반환되고 페이징 정보가 올바름
+		assertNotNull(result);
+		assertEquals(5, result.results().size());
+		assertEquals(25, result.totalCount());
+		assertEquals(2, result.currentPage());
+		assertEquals(3, result.totalPages());
+		assertEquals(10, result.pageSize());
+
+		verify(noteRepository, times(1)).findReminderNotesByUserId(
+			eq(userId),
+			eq(PageRequest.of(page, size))
+		);
+	}
+
+	@Test
+	@DisplayName("리마인더 노트 목록 조회 성공 - 리마인더 노트가 없는 경우")
+	void getReminderNotes_Success_EmptyList() {
+		// given: 리마인더 노트가 없는 경우
+		Long userId = 1L;
+		int page = 0;
+		int size = 10;
+
+		Page<Note> emptyPage = new PageImpl<>(List.of(), PageRequest.of(page, size), 0);
+		given(noteRepository.findReminderNotesByUserId(eq(userId), any(Pageable.class)))
+			.willReturn(emptyPage);
+
+		// when: 리마인더 노트 목록 조회
+		NoteReminderResponse result = noteService.getReminderNotes(userId, page, size);
+
+		// then: 빈 리스트와 페이징 정보 반환
+		assertNotNull(result);
+		assertEquals(0, result.results().size());
+		assertEquals(0, result.totalCount());
+		assertEquals(0, result.currentPage());
+		assertEquals(0, result.totalPages());
+		assertEquals(10, result.pageSize());
+
+		verify(noteRepository, times(1)).findReminderNotesByUserId(
+			eq(userId),
+			eq(PageRequest.of(page, size))
+		);
+	}
+
+	@Test
+	@DisplayName("리마인더 노트 목록 조회 성공 - 단일 리마인더 노트")
+	void getReminderNotes_Success_SingleNote() {
+		// given: 단일 리마인더 노트만 준비
+		Long userId = 1L;
+		int page = 0;
+		int size = 10;
+		LocalDateTime remindTime = LocalDateTime.now().plusDays(1);
+
+		Note singleNote = Note.builder()
+			.id(1L)
+			.user(testUser)
+			.title("유일한 리마인더 노트")
+			.content("유일한 내용")
+			.remindCount(0)
+			.remindAt(remindTime)
+			.build();
+
+		Page<Note> notePage = new PageImpl<>(List.of(singleNote), PageRequest.of(page, size), 1);
+		given(noteRepository.findReminderNotesByUserId(eq(userId), any(Pageable.class)))
+			.willReturn(notePage);
+
+		// when: 리마인더 노트 목록 조회
+		NoteReminderResponse result = noteService.getReminderNotes(userId, page, size);
+
+		// then: 1개의 노트가 반환됨
+		assertNotNull(result);
+		assertEquals(1, result.results().size());
+		assertEquals(1L, result.results().get(0).noteId());
+		assertEquals("유일한 리마인더 노트", result.results().get(0).title());
+		assertEquals(1, result.totalCount());
+		assertEquals(0, result.currentPage());
+		assertEquals(1, result.totalPages());
+
+		verify(noteRepository, times(1)).findReminderNotesByUserId(
+			eq(userId),
+			eq(PageRequest.of(page, size))
+		);
+	}
+
+	@Test
+	@DisplayName("리마인더 노트 목록 조회 성공 - 다양한 페이지 사이즈 (20개)")
+	void getReminderNotes_Success_CustomPageSize() {
+		// given: 페이지 사이즈 20으로 조회
+		Long userId = 1L;
+		int page = 0;
+		int size = 20;
+		List<Note> reminderNotes = new ArrayList<>();
+
+		for (int i = 0; i < 20; i++) {
+			Note note = Note.builder()
+				.id((long)(i + 1))
+				.user(testUser)
+				.title("리마인더 노트 " + (i + 1))
+				.content("내용 " + (i + 1))
+				.remindCount(0)
+				.remindAt(LocalDateTime.now().plusDays(i + 1))
+				.build();
+			reminderNotes.add(note);
+		}
+
+		Page<Note> notePage = new PageImpl<>(reminderNotes, PageRequest.of(page, size), 50);
+		given(noteRepository.findReminderNotesByUserId(eq(userId), any(Pageable.class)))
+			.willReturn(notePage);
+
+		// when: 페이지 사이즈 20으로 조회
+		NoteReminderResponse result = noteService.getReminderNotes(userId, page, size);
+
+		// then: 20개가 반환되고 페이징 정보가 올바름
+		assertNotNull(result);
+		assertEquals(20, result.results().size());
+		assertEquals(50, result.totalCount());
+		assertEquals(0, result.currentPage());
+		assertEquals(3, result.totalPages());
+		assertEquals(20, result.pageSize());
+
+		verify(noteRepository, times(1)).findReminderNotesByUserId(
+			eq(userId),
+			eq(PageRequest.of(page, size))
+		);
+	}
+
+	@Test
+	@DisplayName("리마인더 노트 목록 조회 성공 - 반환되는 DTO에 noteId와 title만 포함")
+	void getReminderNotes_Success_ResponseContainsOnlyNoteIdAndTitle() {
+		// given: remindAt, content 등 다른 필드도 있는 노트 준비
+		Long userId = 1L;
+		int page = 0;
+		int size = 10;
+		LocalDateTime remindTime = LocalDateTime.now().plusDays(1);
+
+		Note noteWithAllFields = Note.builder()
+			.id(123L)
+			.user(testUser)
+			.title("제목만 반환될 리마인더 노트")
+			.content("이 내용은 응답에 포함되지 않아야 함")
+			.remindCount(3)
+			.remindAt(remindTime)
+			.build();
+
+		Page<Note> notePage = new PageImpl<>(List.of(noteWithAllFields), PageRequest.of(page, size), 1);
+		given(noteRepository.findReminderNotesByUserId(eq(userId), any(Pageable.class)))
+			.willReturn(notePage);
+
+		// when: 리마인더 노트 목록 조회
+		NoteReminderResponse result = noteService.getReminderNotes(userId, page, size);
+
+		// then: noteId와 title만 포함되어 있는지 확인
+		assertNotNull(result);
+		assertEquals(1, result.results().size());
+		assertEquals(123L, result.results().get(0).noteId());
+		assertEquals("제목만 반환될 리마인더 노트", result.results().get(0).title());
+		// content, remindAt, remindCount는 NoteReminderResult에 포함되지 않음
+
+		verify(noteRepository, times(1)).findReminderNotesByUserId(
+			eq(userId),
+			eq(PageRequest.of(page, size))
+		);
+	}
+
+	@Test
+	@DisplayName("리마인더 노트 목록 조회 성공 - 여러 사용자가 각각 자신의 리마인더 노트 조회")
+	void getReminderNotes_Success_MultipleUsersGetTheirOwnNotes() {
+		// given: 두 명의 사용자와 각각의 리마인더 노트
+		Long userId1 = 1L;
+		Long userId2 = 2L;
+		int page = 0;
+		int size = 10;
+
+		User user2 = User.builder()
+			.id(userId2)
+			.email("user2@example.com")
+			.name("사용자2")
+			.build();
+
+		Note note1 = Note.builder()
+			.id(1L)
+			.user(testUser)
+			.title("사용자1의 리마인더 노트")
+			.content("내용1")
+			.remindCount(0)
+			.remindAt(LocalDateTime.now().plusDays(1))
+			.build();
+
+		Note note2 = Note.builder()
+			.id(2L)
+			.user(user2)
+			.title("사용자2의 리마인더 노트")
+			.content("내용2")
+			.remindCount(0)
+			.remindAt(LocalDateTime.now().plusDays(2))
+			.build();
+
+		Page<Note> page1 = new PageImpl<>(List.of(note1), PageRequest.of(page, size), 1);
+		Page<Note> page2 = new PageImpl<>(List.of(note2), PageRequest.of(page, size), 1);
+
+		given(noteRepository.findReminderNotesByUserId(eq(userId1), any(Pageable.class)))
+			.willReturn(page1);
+		given(noteRepository.findReminderNotesByUserId(eq(userId2), any(Pageable.class)))
+			.willReturn(page2);
+
+		// when: 각 사용자가 자신의 리마인더 노트 목록 조회
+		NoteReminderResponse result1 = noteService.getReminderNotes(userId1, page, size);
+		NoteReminderResponse result2 = noteService.getReminderNotes(userId2, page, size);
+
+		// then: 각자의 리마인더 노트만 반환됨
+		assertNotNull(result1);
+		assertNotNull(result2);
+		assertEquals(1, result1.results().size());
+		assertEquals(1, result2.results().size());
+		assertEquals("사용자1의 리마인더 노트", result1.results().get(0).title());
+		assertEquals("사용자2의 리마인더 노트", result2.results().get(0).title());
+
+		verify(noteRepository, times(1)).findReminderNotesByUserId(
+			eq(userId1),
+			eq(PageRequest.of(page, size))
+		);
+		verify(noteRepository, times(1)).findReminderNotesByUserId(
+			eq(userId2),
+			eq(PageRequest.of(page, size))
 		);
 	}
 }
