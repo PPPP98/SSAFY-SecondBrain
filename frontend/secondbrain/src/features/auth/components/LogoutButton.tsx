@@ -4,23 +4,34 @@ import { useLogout } from '@/features/auth/hooks/useLogout';
  * 로그아웃 버튼 컴포넌트
  * - useLogout 훅을 사용하여 로그아웃 처리
  * - 로딩 상태 표시
+ * - variant='menu-item'으로 드롭다운 메뉴 스타일 지원
  */
 
 interface LogoutButtonProps {
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'menu-item';
   size?: 'sm' | 'md' | 'lg';
+  icon?: React.ReactNode;
+  onLogoutStart?: () => void;
 }
 
-export function LogoutButton({ variant = 'secondary', size = 'md' }: LogoutButtonProps) {
+export function LogoutButton({
+  variant = 'secondary',
+  size = 'md',
+  icon,
+  onLogoutStart,
+}: LogoutButtonProps) {
   const { mutate: logout, isPending } = useLogout();
 
   function handleLogout() {
+    onLogoutStart?.();
     logout();
   }
 
   const variantClasses = {
     primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
     secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500',
+    'menu-item':
+      'w-full text-left bg-transparent text-red-500 hover:bg-white/10 focus:ring-white/20 flex items-center gap-2 transition-colors duration-150 ease-in-out motion-reduce:transition-none',
   };
 
   const sizeClasses = {
@@ -33,9 +44,11 @@ export function LogoutButton({ variant = 'secondary', size = 'md' }: LogoutButto
     <button
       onClick={handleLogout}
       disabled={isPending}
+      role={variant === 'menu-item' ? 'menuitem' : undefined}
       className={`rounded font-medium focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${variantClasses[variant]} ${sizeClasses[size]}`}
     >
-      {isPending ? '로그아웃 중...' : '로그아웃'}
+      {variant === 'menu-item' && icon && <span className="shrink-0">{icon}</span>}
+      <span>{isPending ? '로그아웃 중...' : '로그아웃'}</span>
     </button>
   );
 }
