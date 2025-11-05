@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-
-import { MainPage } from '@/features/auth/pages/MainPage';
+import { MainPage } from '@/features/main/pages/MainPage';
 
 /**
  * 메인 라우트 (/main)
