@@ -52,6 +52,3 @@ RUN rm -f /etc/nginx/conf.d/default.conf && \
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
-
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget -qO- http://localhost/health || exit 1

@@ -47,6 +47,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
 	runtimeOnly 'org.postgresql:postgresql'
 
+	// RabbitMQ
+	implementation 'org.springframework.boot:spring-boot-starter-amqp'
+
 	// AWS S3
 	implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3'
 	implementation 'software.amazon.awssdk:s3'
