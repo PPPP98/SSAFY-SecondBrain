@@ -42,7 +42,7 @@ const GlassElement = <El extends ElementType>({
     'bg-white/15 font-medium text-white shadow-[0px_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-[3.5px]';
 
   // 최종 className 조합 (명확하고 가독성 높은 구조)
-  const baseClassName = `${baseStyles} ${elementSpecific} ${borderRadius} ${glassStyles} ${scaleClasses} ${sizeClasses}`;
+  const baseClassName = `${baseStyles} ${elementSpecific} ${borderRadius} ${glassStyles} ${scaleClasses} ${sizeClasses} ${className}`;
 
   // children 렌더링 로직
   const elementChildren =
@@ -89,7 +89,7 @@ const GlassElement = <El extends ElementType>({
   return (
     <div
       ref={wrapperRef}
-      className={`relative ${as === 'input' ? 'w-fit' : as === 'div' ? 'w-[27rem]' : 'w-fit'} ${className}`}
+      className={`relative ${as === 'input' ? 'w-fit' : as === 'div' ? '' : 'w-fit'}`}
     >
       {/* Glass 본체 (컨텐츠 영역) */}
       {renderElement()}

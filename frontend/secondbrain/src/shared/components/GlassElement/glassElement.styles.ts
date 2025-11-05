@@ -4,7 +4,8 @@ export const STYLE_CONFIG = {
     scale: 'p-0 text-xl',
     size: 'w-14 h-14',
     borderRadius: 'rounded-full',
-    elementSpecific: 'flex cursor-pointer items-center justify-center',
+    elementSpecific:
+      'flex cursor-pointer items-center justify-center focus:outline-none focus:ring-2 focus:ring-white/20',
   },
   input: {
     sm: {
