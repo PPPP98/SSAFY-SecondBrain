@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.dto.NoteDeleteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
+import uknowklp.secondbrain.api.note.dto.NoteReminderResponse;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
 import uknowklp.secondbrain.api.note.service.NoteService;
@@ -194,6 +195,35 @@ public class NoteController {
 
 		// 200 OK 응답 생성 및 반환 (data는 null 가능)
 		BaseResponse<List<NoteRecentResponse>> response = new BaseResponse<>(recentNotes);
+		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * 리마인더가 켜진 노트 목록 조회 (페이징 지원)
+	 * JWT 토큰으로 인증된 사용자의 리마인더가 활성화된 노트 목록을 조회
+	 * updatedAt 기준 내림차순, 동일 시 noteId 기준 내림차순 정렬
+	 * 무한스크롤을 위한 페이지네이션 지원
+	 *
+	 * @param userDetails Spring Security의 인증된 사용자 정보
+	 * @param page 페이지 번호 (0부터 시작, 기본값: 0)
+	 * @param size 페이지당 노트 개수 (기본값: 10)
+	 * @return ResponseEntity<BaseResponse<NoteReminderResponse>> 200 OK 응답 + 노트 목록 (페이징 정보 포함)
+	 */
+	@GetMapping("/reminders")
+	@Operation(summary = "리마인더 활성화 노트 목록 조회", description = "리마인더가 켜진 노트 목록 조회 (무한스크롤 지원)")
+	public ResponseEntity<BaseResponse<NoteReminderResponse>> getReminderNotes(
+		@AuthenticationPrincipal CustomUserDetails userDetails,
+		@RequestParam(defaultValue = "0") int page,
+		@RequestParam(defaultValue = "10") int size) {
+
+		User user = userDetails.getUser();
+		log.info("Getting reminder notes for userId: {} - page: {}, size: {}", user.getId(), page, size);
+
+		// Service에서 리마인더 노트 목록 조회
+		NoteReminderResponse reminderNotes = noteService.getReminderNotes(user.getId(), page, size);
+
+		// 200 OK 응답 생성 및 반환
+		BaseResponse<NoteReminderResponse> response = new BaseResponse<>(reminderNotes);
 		return ResponseEntity.ok(response);
 	}
 }
