@@ -144,4 +144,25 @@ export const fastApiClient = axios.create({
   timeout: 20000, // AI API는 타임아웃을 더 길게 설정
 });
 
+/**
+ * FastAPI Request Interceptor
+ * - X-User-ID 헤더를 자동으로 추가
+ * - 인증 토큰 없이 사용자 ID만 전송
+ */
+fastApiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const userId = useAuthStore.getState().user?.id;
+    if (userId) {
+      config.headers['X-User-ID'] = userId.toString();
+    } else {
+      // 개발 환경에서 사용자가 없을 경우 demo-user 사용
+      config.headers['X-User-ID'] = 'demo-user';
+    }
+    return config;
+  },
+  (error: AxiosError) => {
+    return Promise.reject(error);
+  },
+);
+
 export default apiClient;
