@@ -389,3 +389,93 @@ def get_note_by_title(
             logger.debug(f"✅ 제목 검색: {user_id} - '{title}' - {len(notes)}개")
 
         return notes
+
+# 2025/11/05 update for CRUD worker
+# ===== 노트 수정 =====
+def update_note(
+    user_id: str,
+    note_id: str,
+    title: Optional[str] = None,
+    embedding: Optional[List[float]] = None,
+) -> bool:
+    """
+    노트 수정 (제목 또는 임베딩)
+    
+    Args:
+        user_id: 사용자 ID
+        note_id: 노트 ID
+        title: 새 제목 (None이면 변경 안 함)
+        embedding: 새 임베딩 벡터 (None이면 변경 안 함)
+    
+    Returns:
+        수정 성공 여부
+    """
+    # SET 절 동적 생성
+    set_clauses = ["n.updated_at = datetime()"]
+    params = {
+        "user_id": user_id,
+        "note_id": note_id,
+    }
+    
+    if title is not None:
+        set_clauses.append("n.title = $title")
+        params["title"] = title
+    
+    if embedding is not None:
+        set_clauses.append("n.embedding = $embedding")
+        params["embedding"] = embedding
+    
+    query = f"""
+    MATCH (n:Note {{note_id: $note_id, user_id: $user_id}})
+    SET {', '.join(set_clauses)}
+    RETURN count(n) AS updated
+    """
+    
+    with neo4j_client.get_session() as session:
+        result = session.run(query, params)
+        record = result.single()
+        
+        updated = record["updated"] if record else 0
+        if updated > 0:
+            logger.debug(f"✅ 노트 수정: {user_id} - {note_id}")
+            return True
+        
+        logger.warning(f"⚠️  수정 실패 (노트 없음): {user_id} - {note_id}")
+        return False
+
+
+# ===== 유사도 관계 삭제 =====
+def delete_relationships(
+    user_id: str,
+    note_id: str,
+) -> int:
+    """
+    특정 노트의 모든 SIMILAR_TO 관계 삭제
+    
+    Args:
+        user_id: 사용자 ID
+        note_id: 노트 ID
+    
+    Returns:
+        삭제된 관계 개수
+    """
+    query = """
+    MATCH (n:Note {note_id: $note_id, user_id: $user_id})
+    MATCH (n)-[r:SIMILAR_TO]-()
+    DELETE r
+    RETURN count(r) AS deleted
+    """
+    
+    with neo4j_client.get_session() as session:
+        result = session.run(
+            query,
+            {
+                "user_id": user_id,
+                "note_id": note_id,
+            },
+        )
+        record = result.single()
+        
+        deleted = record["deleted"] if record else 0
+        logger.debug(f"✅ 관계 삭제: {user_id} - {note_id} - {deleted}개")
+        return deleted
