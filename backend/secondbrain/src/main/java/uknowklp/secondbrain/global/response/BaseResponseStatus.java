@@ -54,7 +54,7 @@ public enum BaseResponseStatus {
 	NOTE_TITLE_EMPTY(false, HttpStatus.BAD_REQUEST, -10102, "노트 제목은 필수입니다."),
 	NOTE_TITLE_TOO_LONG(false, HttpStatus.BAD_REQUEST, -10103, "노트 제목은 최대 64자까지 입력 가능합니다."),
 	NOTE_CONTENT_EMPTY(false, HttpStatus.BAD_REQUEST, -10104, "노트 내용은 필수입니다."),
-	NOTE_CONTENT_TOO_LONG(false, HttpStatus.BAD_REQUEST, -10105, "노트 내용은 최대 2048자까지 입력 가능합니다."),
+	// NOTE_CONTENT_TOO_LONG 제거 (TEXT 타입으로 무제한)
 	NOTE_ACCESS_DENIED(false, HttpStatus.FORBIDDEN, -10106, "해당 노트에 접근 권한이 없습니다."),
 	NOTE_INVALID_REQUEST(false, HttpStatus.BAD_REQUEST, -10107, "잘못된 노트 요청입니다."),
 	NOTE_IMAGE_UPLOAD_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10108, "이미지 업로드에 실패했습니다."),
@@ -83,7 +83,16 @@ public enum BaseResponseStatus {
 	REMINDER_DISABLED_BY_USER(false, HttpStatus.BAD_REQUEST, -10700, "전체 리마인더가 비활성화되어 있습니다."),
 	REMINDER_ALREADY_ENABLED(false, HttpStatus.BAD_REQUEST, -10701, "이미 리마인더가 활성화되어 있습니다."),
 	REMINDER_ALREADY_DISABLED(false, HttpStatus.BAD_REQUEST, -10702, "이미 리마인더가 비활성화되어 있습니다."),
-	REMINDER_SCHEDULE_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10703, "리마인더 예약에 실패했습니다.");
+	REMINDER_SCHEDULE_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10703, "리마인더 예약에 실패했습니다."),
+
+	/**
+	 * -10800 ~ -10809 : Draft 관련 에러
+	 */
+	DRAFT_NOT_FOUND(false, HttpStatus.NOT_FOUND, -10800, "Draft를 찾을 수 없습니다."),
+	DRAFT_ACCESS_DENIED(false, HttpStatus.FORBIDDEN, -10801, "Draft 접근 권한이 없습니다."),
+	DRAFT_VERSION_CONFLICT(false, HttpStatus.CONFLICT, -10802, "Draft 버전 충돌 (다른 기기에서 수정됨)"),
+	DRAFT_EMPTY(false, HttpStatus.BAD_REQUEST, -10803, "제목과 내용 중 하나는 필수입니다."),
+	REDIS_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10804, "Redis 저장소 오류");
 
 	private final boolean isSuccess;
 	private final HttpStatus httpStatus;
