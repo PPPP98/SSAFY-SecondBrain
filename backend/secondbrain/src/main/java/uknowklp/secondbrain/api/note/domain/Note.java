@@ -50,8 +50,7 @@ public class Note {
 	@Column(nullable = false, length = 64)
 	private String title;
 
-	@Length(max = 2048)
-	@Column(nullable = false, length = 2048)
+	@Column(nullable = false, columnDefinition = "TEXT")
 	private String content;
 
 	@Column(name = "remind_at")

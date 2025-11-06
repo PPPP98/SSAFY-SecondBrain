@@ -362,53 +362,6 @@ class NoteServiceImplTest {
 		verify(noteRepository, times(1)).save(any(Note.class));
 	}
 
-	@Test
-	@DisplayName("노트 생성 실패 - content 길이 초과 (2048자 초과)")
-	void createNote_ContentLengthExceeded_ShouldThrowException() {
-		// given: content가 2048자를 초과하는 요청
-		Long userId = 1L;
-		String tooLongContent = "a".repeat(2049); // 2049자 content (초과)
-
-		NoteRequest requestWithTooLongContent = NoteRequest.builder()
-			.title("길이 초과 노트")
-			.content(tooLongContent)
-			.images(null)
-			.build();
-
-		// when & then: NOTE_CONTENT_TOO_LONG 예외가 발생하는지 확인
-		BaseException exception = assertThrows(BaseException.class, () ->
-			noteService.createNote(userId, requestWithTooLongContent)
-		);
-		assertEquals(BaseResponseStatus.NOTE_CONTENT_TOO_LONG, exception.getStatus());
-
-		// verify: noteRepository.save는 호출되지 않았는지 확인
-		verify(noteRepository, never()).save(any(Note.class));
-	}
-
-	@Test
-	@DisplayName("노트 생성 성공 - content 길이가 정확히 2048자")
-	void createNote_ContentLengthExactly2048_Success() {
-		// given: content가 정확히 2048자
-		Long userId = 1L;
-		String exactLengthContent = "b".repeat(2048); // 정확히 2048자
-		NoteRequest requestWithExactLength = NoteRequest.builder()
-			.title("정확한 길이 노트")
-			.content(exactLengthContent)
-			.images(null)
-			.build();
-
-		given(userService.findById(userId)).willReturn(Optional.of(testUser));
-		given(noteRepository.save(any(Note.class))).willAnswer(invocation -> invocation.getArgument(0));
-
-		// when: 노트 생성
-		Note createdNote = noteService.createNote(userId, requestWithExactLength);
-
-		// then: 정상적으로 저장됨
-		assertNotNull(createdNote);
-		assertEquals(2048, createdNote.getContent().length());
-		verify(noteRepository, times(1)).save(any(Note.class));
-	}
-
 	// ========================================
 	// getNoteById 메서드 테스트
 	// ========================================
