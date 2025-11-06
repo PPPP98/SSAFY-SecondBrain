@@ -574,7 +574,11 @@ GET /api/notes/15/similar?limit=5
 - `noteId`: String (선택, UUID 형식. null이면 서버에서 생성)
 - `title`: String (선택, 타이핑 중 빈 값 허용)
 - `content`: String (선택, 타이핑 중 빈 값 허용)
-- `version`: Long (선택, 충돌 감지용)
+- `version`: Long (필수, 충돌 감지용)
+  - 새 Draft: version = 1
+  - 기존 Draft 수정: 현재 version 전송 필수
+  - 서버에서 버전 불일치 시 DRAFT_VERSION_CONFLICT 에러 반환
+  - Optimistic Locking을 통한 동시 편집 보호
 
 **검증**: title 또는 content 중 **하나라도 있어야 함**
 
@@ -759,6 +763,8 @@ GET /api/notes/15/similar?limit=5
 | **-10802** | 409 CONFLICT              | Draft 버전 충돌 (다른 기기에서 수정됨) |
 | **-10803** | 400 BAD_REQUEST           | 제목과 내용 중 하나는 필수입니다.      |
 | **-10804** | 500 INTERNAL_SERVER_ERROR | Redis 저장소 오류                      |
+| **-10805** | 400 BAD_REQUEST           | 버전 정보는 필수입니다.                |
+| **-10806** | 400 BAD_REQUEST           | 잘못된 버전 정보입니다.                |
 
 ---
 
