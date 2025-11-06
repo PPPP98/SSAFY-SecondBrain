@@ -189,7 +189,7 @@ pipeline {
             echo "Health check attempt ${i}/${maxAttempts} on color=${env.NEXT_COLOR}"
 
             def backOk = sh(
-              script: "curl -fsS http://klp_back_${env.NEXT_COLOR}:8080/health || echo FAIL",
+              script: "curl -fsS http://127.0.0.1:8080/health || echo FAIL",
               returnStdout: true
             ).trim()
 
