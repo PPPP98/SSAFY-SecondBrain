@@ -16,6 +16,21 @@ class Settings(BaseSettings):
     openai_base_url: Optional[str] = None
     openai_model: str
 
+    # RabbitMQ 설정
+    rabbitmq_host: str
+    rabbitmq_port: int
+    rabbitmq_user: str
+    rabbitmq_password: str
+    rabbitmq_vhost: str
+
+    @property
+    def rabbitmq_url(self) -> str:
+        """RabbitMQ URL 생성"""
+        return (
+            f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}"
+            f"@{self.rabbitmq_host}:{self.rabbitmq_port}/{self.rabbitmq_vhost}"
+        )
+
     # 애플리케이션 설정
     similarity_threshold: float
     max_relationships: int

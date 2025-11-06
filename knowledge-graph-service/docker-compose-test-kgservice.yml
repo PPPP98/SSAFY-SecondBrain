@@ -18,6 +18,22 @@ services:
       - knowledge-graph-network
     restart: unless-stopped
 
+  # ===== 워커 서비스 ===== 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: knowledge-graph-worker
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/.venv
+    networks:
+      - knowledge-graph-network
+    restart: unless-stopped
+    depends_on:
+      - fastapi
 
 networks:
   knowledge-graph-network:

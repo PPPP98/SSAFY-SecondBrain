@@ -8,6 +8,7 @@ pipeline {
     booleanParam(name: 'MANUAL_BACK', defaultValue: false, description: 'Backend only')
     booleanParam(name: 'MANUAL_FRONT', defaultValue: false, description: 'Frontend only')
     booleanParam(name: 'MANUAL_AI', defaultValue: false, description: 'AI Backend only')
+    booleanParam(name: 'MANUAL_WORKER', defaultValue: false, description: 'deploy worker')
   }
 
   environment {
@@ -89,6 +90,22 @@ pipeline {
 
           docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" pull || true
           docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build klp_ai
+        '''
+      }
+    }
+
+    stage('Worker Deploy (compose up)') {
+      when {
+        expression {
+          params.MANUAL_WORKER
+        }
+      }
+      steps {
+        sh '''
+          set -eux
+
+          docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" pull || true
+          docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build note_consumer
         '''
       }
     }
