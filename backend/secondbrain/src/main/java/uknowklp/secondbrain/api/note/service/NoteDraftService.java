@@ -160,37 +160,50 @@ public class NoteDraftService {
 	 * - 브라우저 재시작 후 미저장 Draft 복구
 	 * - 여러 노트를 동시에 작성 중인 경우
 	 *
-	 * 성능 최적화 (v2):
+	 * 성능 최적화 (v3):
 	 * - KEYS 명령어 제거 → O(N) → O(1) 성능 개선
 	 * - 사용자별 SET에서 직접 조회로 Redis 부하 최소화
-	 * - 프로덕션 환경에서 안전한 O(M) 성능 (M = 사용자의 Draft 개수)
+	 * - N+1 문제 해결 → MGET 사용으로 배치 조회
+	 * - 이전: 1 + M번 호출 → 개선: 2번 호출 (SMEMBERS + MGET)
 	 *
 	 * @param userId 사용자 ID
 	 * @return Draft 목록 (lastModified 기준 내림차순)
 	 * @see <a href="https://redis.io/docs/latest/commands/smembers">Redis SMEMBERS</a>
+	 * @see <a href="https://redis.io/docs/latest/commands/mget">Redis MGET Command</a>
 	 */
 	public List<NoteDraftResponse> listUserDrafts(Long userId) {
 		try {
-			// 사용자별 SET에서 noteId 목록 조회 (O(1) + O(M))
+			// 1단계: 사용자별 SET에서 noteId 목록 조회
 			String userDraftsKey = USER_DRAFTS_PREFIX + userId;
-			Set<Object> noteIds = redisTemplate.opsForSet().members(userDraftsKey);
+			Set<Object> noteIdSet = redisTemplate.opsForSet().members(userDraftsKey);
 
-			if (noteIds == null || noteIds.isEmpty()) {
+			if (noteIdSet == null || noteIdSet.isEmpty()) {
 				log.debug("Draft 목록 없음 - UserId: {}", userId);
 				return Collections.emptyList();
 			}
 
-			// noteId로 각 Draft 조회
-			List<NoteDraftResponse> drafts = noteIds.stream()
+			// 2단계: noteId → Redis key 변환
+			List<String> draftKeys = noteIdSet.stream()
 				.map(Object::toString)
-				.map(this::getDraftOrNull)
+				.map(noteId -> DRAFT_PREFIX + noteId)
+				.collect(Collectors.toList());
+
+			// 3단계: MGET으로 한 번에 조회 (N+1 문제 해결)
+			List<NoteDraft> drafts = noteDraftRedisTemplate.opsForValue().multiGet(draftKeys);
+
+			if (drafts == null) {
+				return Collections.emptyList();
+			}
+
+			// 4단계: 정렬 및 변환
+			List<NoteDraftResponse> responses = drafts.stream()
 				.filter(Objects::nonNull)
 				.sorted(Comparator.comparing(NoteDraft::getLastModified).reversed())
 				.map(NoteDraftResponse::from)
 				.collect(Collectors.toList());
 
-			log.info("Draft 목록 조회 완료 - UserId: {}, Count: {}", userId, drafts.size());
-			return drafts;
+			log.info("Draft 목록 조회 완료 - UserId: {}, Count: {}", userId, responses.size());
+			return responses;
 
 		} catch (Exception e) {
 			log.error("Draft 목록 조회 실패 - UserId: {}", userId, e);
@@ -208,6 +221,21 @@ public class NoteDraftService {
 	 * @param userId 사용자 ID
 	 */
 	public void deleteDraft(String noteId, Long userId) {
+		deleteDraft(noteId, userId, false);
+	}
+
+	/**
+	 * Draft 삭제 (Redis) - 트랜잭션 안전 버전
+	 *
+	 * 성능 최적화 (v3):
+	 * - 사용자별 SET에서도 noteId 제거하여 일관성 유지
+	 * - 트랜잭션 내에서 호출 시 예외 전파 옵션 제공
+	 *
+	 * @param noteId         노트 ID
+	 * @param userId         사용자 ID
+	 * @param throwOnFailure true면 실패 시 예외 발생 (트랜잭션 롤백용)
+	 */
+	public void deleteDraft(String noteId, Long userId, boolean throwOnFailure) {
 		try {
 			// 소유권 검증
 			NoteDraft draft = getDraft(noteId, userId);
@@ -225,7 +253,12 @@ public class NoteDraftService {
 
 		} catch (Exception e) {
 			log.error("Draft 삭제 실패 - NoteId: {}, UserId: {}", noteId, userId, e);
-			// Best-effort 삭제 (실패해도 TTL로 자동 삭제됨)
+
+			if (throwOnFailure) {
+				// 트랜잭션 내에서 호출 시 예외 전파 (롤백 유도)
+				throw new BaseException(BaseResponseStatus.REDIS_ERROR);
+			}
+			// 일반 호출 시 Best-effort 삭제 (실패해도 TTL로 자동 삭제됨)
 		}
 	}
 
@@ -245,46 +278,57 @@ public class NoteDraftService {
 	 *
 	 * Batching 전략: 5분마다 백엔드 스케줄러가 호출
 	 *
-	 * 성능 최적화 (v2):
+	 * 성능 최적화 (v3):
 	 * - KEYS 명령어 제거 → SCAN 명령어로 전환
+	 * - N+1 문제 해결 → MGET 사용으로 배치 조회
+	 * - 이전: 1 + N번 호출 → 개선: 2번 호출 (SCAN + MGET)
 	 * - Redis 블로킹 없이 cursor 기반 안전한 스캔
-	 * - 프로덕션 환경에서 안전한 O(N) 성능 (비블로킹)
 	 *
 	 * @param minutes lastModified가 이 시간보다 오래된 Draft
 	 * @return 오래된 Draft 목록
 	 * @see <a href="https://redis.io/docs/latest/commands/scan">Redis SCAN Command</a>
+	 * @see <a href="https://redis.io/docs/latest/commands/mget">Redis MGET Command</a>
 	 */
 	public List<NoteDraft> getStaleDrafts(int minutes) {
-		List<NoteDraft> staleDrafts = new ArrayList<>();
-
 		try {
-			// SCAN 옵션 설정 (패턴 매칭 + 배치 크기)
+			// 1단계: SCAN으로 모든 key 수집
+			List<String> allKeys = new ArrayList<>();
 			ScanOptions options = ScanOptions.scanOptions()
 				.match(DRAFT_PREFIX + "*")
 				.count(100) // 한 번에 스캔할 키 개수
 				.build();
 
-			LocalDateTime threshold = LocalDateTime.now().minusMinutes(minutes);
-
-			// Cursor 기반 스캔 (비블로킹)
 			try (Cursor<String> cursor = noteDraftRedisTemplate.scan(options)) {
 				while (cursor.hasNext()) {
 					try {
-						// 개별 Draft 처리 실패 시에도 스캔 계속 진행
-						String key = cursor.next();
-						NoteDraft draft = getDraftOrNull(key);
-
-						if (draft != null && draft.getLastModified().isBefore(threshold)) {
-							staleDrafts.add(draft);
-						}
+						allKeys.add(cursor.next());
 					} catch (Exception e) {
-						// 개별 Draft 스캔 오류 - 전체 스캔은 계속 진행
 						log.warn("Draft 스캔 중 개별 오류 발생 - 건너뜀", e);
 					}
 				}
 			}
 
-			log.debug("오래된 Draft 조회 - Threshold: {}분, Count: {}", minutes, staleDrafts.size());
+			if (allKeys.isEmpty()) {
+				log.debug("오래된 Draft 조회 - Draft 없음");
+				return Collections.emptyList();
+			}
+
+			// 2단계: MGET으로 한 번에 조회 (N+1 문제 해결)
+			List<NoteDraft> allDrafts = noteDraftRedisTemplate.opsForValue().multiGet(allKeys);
+
+			if (allDrafts == null) {
+				return Collections.emptyList();
+			}
+
+			// 3단계: 시간 기준 필터링
+			LocalDateTime threshold = LocalDateTime.now().minusMinutes(minutes);
+			List<NoteDraft> staleDrafts = allDrafts.stream()
+				.filter(Objects::nonNull)
+				.filter(draft -> draft.getLastModified().isBefore(threshold))
+				.collect(Collectors.toList());
+
+			log.debug("오래된 Draft 조회 - Threshold: {}분, 전체: {}, 필터링 후: {}",
+				minutes, allKeys.size(), staleDrafts.size());
 			return staleDrafts;
 
 		} catch (Exception e) {

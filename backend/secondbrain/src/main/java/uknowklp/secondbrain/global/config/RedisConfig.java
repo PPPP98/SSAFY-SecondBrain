@@ -8,6 +8,14 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import uknowklp.secondbrain.api.note.domain.NoteDraft;
 
 /**
@@ -74,6 +82,11 @@ public class RedisConfig {
 	 * - GenericJackson2JsonRedisSerializer보다 성능 우수
 	 * - ObjectMapper.convertValue() 변환 과정 불필요
 	 *
+	 * LocalDateTime 직렬화 설정 (v3):
+	 * - JavaTimeModule 등록으로 LocalDateTime 안전한 직렬화
+	 * - ISO-8601 포맷 사용 (타임스탬프 배열 방지)
+	 * - 역직렬화 안정성 확보
+	 *
 	 * 사용처:
 	 * - NoteDraftService의 모든 Draft 저장/조회 작업
 	 * - NoteDraftAutoSaveService의 자동 저장 스케줄러
@@ -92,10 +105,30 @@ public class RedisConfig {
 		template.setKeySerializer(stringSerializer);
 		template.setHashKeySerializer(stringSerializer);
 
+		// ObjectMapper 설정 (LocalDateTime 직렬화 지원)
+		ObjectMapper objectMapper = new ObjectMapper();
+
+		// JavaTimeModule 등록 (LocalDateTime, ZonedDateTime 등 지원)
+		objectMapper.registerModule(new JavaTimeModule());
+
+		// 타임스탬프 대신 ISO-8601 포맷 사용
+		// 이전: [2025, 11, 6, 14, 30] → 개선: "2025-11-06T14:30:00"
+		objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+		// 필드 접근 가능하도록 설정
+		objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+
+		// 타입 정보 포함 (다형성 지원)
+		objectMapper.activateDefaultTyping(
+			LaissezFaireSubTypeValidator.instance,
+			ObjectMapper.DefaultTyping.NON_FINAL,
+			JsonTypeInfo.As.PROPERTY
+		);
+
 		// Value Serializer: NoteDraft 타입 특화 Jackson 직렬화
-		// GenericJackson2JsonRedisSerializer보다 빠르고 타입 안전
 		Jackson2JsonRedisSerializer<NoteDraft> jsonSerializer =
-			new Jackson2JsonRedisSerializer<>(NoteDraft.class);
+			new Jackson2JsonRedisSerializer<>(objectMapper, NoteDraft.class);
+
 		template.setValueSerializer(jsonSerializer);
 		template.setHashValueSerializer(jsonSerializer);
 

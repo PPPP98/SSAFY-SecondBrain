@@ -129,7 +129,8 @@ public class NoteDraftAutoSaveService {
 		Note note = noteService.createNote(draft.getUserId(), request);
 
 		// Draft 삭제 (DB 저장 성공 후)
-		draftService.deleteDraft(draft.getNoteId(), draft.getUserId());
+		// throwOnFailure=true: 삭제 실패 시 트랜잭션 롤백 (Note도 롤백)
+		draftService.deleteDraft(draft.getNoteId(), draft.getUserId(), true);
 
 		log.info("Draft 자동 저장 성공 - DraftId: {} → NoteId: {}",
 			draft.getNoteId(), note.getId());
