@@ -6,7 +6,7 @@ import java.util.Map;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.CustomExchange;
-import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
@@ -77,15 +77,15 @@ public class RabbitMQConfig {
 			.build();
 	}
 
-	// 지식 그래프 이벤트용 Direct Exchange
+	// 지식 그래프 이벤트용 Topic Exchange
 	@Bean
-	public DirectExchange knowledgeGraphExchange(){
-		return new DirectExchange("knowledge_graph_events", true, false);
+	public TopicExchange knowledgeGraphExchange(){
+		return new TopicExchange("knowledge_graph_events", true, false);
 	}
 
 	// note created 바인딩
 	@Bean
-	public Binding noteCreatedBinding(Queue knowledgeGraphQueue, DirectExchange knowledgeGraphExchange){
+	public Binding noteCreatedBinding(Queue knowledgeGraphQueue, TopicExchange knowledgeGraphExchange){
 		return BindingBuilder
 			.bind(knowledgeGraphQueue)
 			.to(knowledgeGraphExchange)
@@ -94,7 +94,7 @@ public class RabbitMQConfig {
 
 	// note updated 바인딩
 	@Bean
-	public Binding noteUpdatedBinding(Queue knowledgeGraphQueue, DirectExchange knowledgeGraphExchange){
+	public Binding noteUpdatedBinding(Queue knowledgeGraphQueue, TopicExchange knowledgeGraphExchange){
 		return BindingBuilder
 			.bind(knowledgeGraphQueue)
 			.to(knowledgeGraphExchange)
@@ -103,7 +103,7 @@ public class RabbitMQConfig {
 
 	// note deleted 바인딩
 	@Bean
-	public Binding noteDeletedBinding(Queue knowledgeGraphQueue, DirectExchange knowledgeGraphExchange){
+	public Binding noteDeletedBinding(Queue knowledgeGraphQueue, TopicExchange knowledgeGraphExchange){
 		return BindingBuilder
 			.bind(knowledgeGraphQueue)
 			.to(knowledgeGraphExchange)
