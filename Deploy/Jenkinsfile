@@ -401,7 +401,7 @@ pipeline {
               }
 
               // 현재 색 읽고 NEXT_COLOR 계산
-              def currentColor = sh(
+              def conf = sh(
                 script: '''
                   if docker exec "$NGINX_CONTAINER" test -f "$ACTIVE_COLOR_FILE"; then
                     docker exec "$NGINX_CONTAINER" cat "$ACTIVE_COLOR_FILE"
