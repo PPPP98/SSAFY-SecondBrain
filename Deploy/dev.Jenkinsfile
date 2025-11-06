@@ -64,8 +64,8 @@ pipeline {
           // nginx 컨테이너 내부 active-color.conf에서 현재 색 읽기
           def currentColor = sh(
             script: """
-              if docker exec ${NGINX_CONTAINER} test -f ${ACTIVE_COLOR_FILE}; then
-                docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \\$3}' | tr -d ';'"
+              if docker exec "$NGINX_CONTAINER" test -f "$ACTIVE_COLOR_FILE"; then
+                docker exec "$NGINX_CONTAINER" sh -c "grep -E 'set .*active_color' \"$ACTIVE_COLOR_FILE\" | awk '{print $3}' | tr -d ';'"
               else
                 echo blue
               fi
@@ -206,10 +206,10 @@ pipeline {
       steps {
         script {
           // nginx 컨테이너 내부 active-color.conf 업데이트 + reload
-          sh """
+          sh '''
             set -eux
-            docker exec ${NGINX_CONTAINER} /bin/sh -c 'echo "set \\$active_color ${env.NEXT_COLOR};" > ${ACTIVE_COLOR_FILE} && nginx -s reload'
-          """
+            docker exec "$NGINX_CONTAINER" /bin/sh -c "printf 'set \\$active_color %s;\\n' \"$NEXT_COLOR\" > \"$ACTIVE_COLOR_FILE\" && nginx -s reload"
+          '''
         }
       }
     }
