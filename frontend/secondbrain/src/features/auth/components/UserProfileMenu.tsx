@@ -1,7 +1,7 @@
 import { useAuthStore } from '@/stores/authStore';
 import { GlassElement } from '@/shared/components/GlassElement/GlassElement';
 import { LogoutButton } from '@/features/auth/components/LogoutButton';
-import { ToggleSwitch } from '@/shared/components/ToggleSwitch/ToggleSwitch';
+import { ReminderToggleMenuItem } from '@/features/reminder/components/ReminderToggleMenuItem';
 import { Dropdown } from '@/shared/components/Dropdown/Dropdown';
 import LogoutIcon from '@/shared/components/icon/Logout.svg?react';
 
@@ -19,14 +19,9 @@ interface UserProfileMenuProps {
 }
 
 export function UserProfileMenu({ isOpen, onClose }: UserProfileMenuProps) {
-  const { user, setUser } = useAuthStore();
+  const { user } = useAuthStore();
 
   if (!user) return null;
-
-  const handleNotificationToggle = (checked: boolean) => {
-    setUser({ ...user, setAlarm: checked });
-    // 향후: API 호출 추가
-  };
 
   return (
     <Dropdown isOpen={isOpen} onClose={onClose} position="bottom-right">
@@ -42,17 +37,7 @@ export function UserProfileMenu({ isOpen, onClose }: UserProfileMenuProps) {
           <hr className="border-white/20" />
 
           {/* 전체 알림 설정 */}
-          <button
-            role="menuitem"
-            className="flex w-full items-center justify-between rounded px-4 py-2.5 text-left text-sm text-white transition-colors duration-150 ease-in-out hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 motion-reduce:transition-none"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleNotificationToggle(!user.setAlarm);
-            }}
-          >
-            <span>전체 알림 설정</span>
-            <ToggleSwitch checked={user.setAlarm} onChange={handleNotificationToggle} />
-          </button>
+          <ReminderToggleMenuItem />
 
           {/* 리마인더 관리 */}
           <button
