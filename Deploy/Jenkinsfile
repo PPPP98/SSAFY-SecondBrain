@@ -114,9 +114,9 @@ pipeline {
     string(name: 'DEVELOP_BRANCH', defaultValue: 'develop', description: 'Develop branch name')
     string(name: 'RELEASE_BRANCH', defaultValue: 'master', description: 'Release branch name')
     string(name: 'COMPOSE_FILE',   defaultValue: 'Deploy/docker-compose.yml', description: 'Main compose file')
-    string(name: 'BACK_SERVICE',  defaultValue: 'klp_back',  description: 'Compose service name for backend')
-    string(name: 'FRONT_SERVICE', defaultValue: 'klp_front', description: 'Compose service name for frontend')
-    string(name: 'AI_SERVICE',    defaultValue: 'klp_ai',    description: 'Compose service name for ai')
+    string(name: 'BACK_SERVICE',  defaultValue: 'klp_back',  description: 'Compose service name for backend (base name)')
+    string(name: 'FRONT_SERVICE', defaultValue: 'klp_front', description: 'Compose service name for frontend (base name)')
+    string(name: 'AI_SERVICE',    defaultValue: 'klp_ai',    description: 'Compose service name for ai (base name)')
     string(name: 'BACK_DIR',  defaultValue: 'backend/secondbrain', description: 'Backend root dir')
     string(name: 'FRONT_DIR', defaultValue: 'frontend/secondbrain', description: 'Frontend root dir')
     string(name: 'AI_DIR',    defaultValue: 'knowledge-graph-service', description: 'AI root dir')
@@ -159,6 +159,10 @@ pipeline {
     BACK_DIR        = "${params.BACK_DIR}"
     FRONT_DIR       = "${params.FRONT_DIR}"
     AI_DIR          = "${params.AI_DIR}"
+
+    // Blue/Green 관련
+    ACTIVE_COLOR_FILE = '/etc/nginx/snippets/active-color.conf'  // 현재 active 색 기록 파일
+    NGINX_CONTAINER   = 'nginx'               // 실제 Nginx 컨테이너 이름에 맞게 조정
   }
 
   stages {
@@ -373,7 +377,8 @@ pipeline {
       }
     }
 
-    stage('Deploy (compose up — changed services only)') {
+    // ★ 여기부터 Blue/Green 무중단 배포 로직 ★
+    stage('Deploy (Blue/Green — changed services only)') {
       when {
         expression {
           ((env.GL_MR_ACTION ?: "") == "merge" && (env.GL_MR_STATE ?: "") == "merged")
@@ -383,33 +388,150 @@ pipeline {
         script {
           try {
             timeout(time: 20, unit: 'MINUTES') {
+              def anyChanged = (env.CHANGED_BACK == "1" ||
+                                env.CHANGED_FRONT == "1" ||
+                                env.CHANGED_AI == "1" ||
+                                env.CHANGED_DEPLOY == "1")
+
+              if (!anyChanged) {
+                echo "No relevant changes — nothing to deploy."
+                return
+              }
+
+              // 현재 색 읽고 NEXT_COLOR 계산 (blue)
+              def currentColor = sh(
+                script: """
+                  if docker exec ${NGINX_CONTAINER} test -f ${ACTIVE_COLOR_FILE}; then
+                    docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \\$NF}' | tr -d ';'"
+                  else
+                    echo "blue"
+                  fi
+                """,
+                returnStdout: true
+              ).trim()
+
+              env.CURRENT_COLOR = currentColor
+              env.NEXT_COLOR    = (currentColor == 'blue') ? 'green' : 'blue'
+
+              echo "CURRENT_COLOR = ${env.CURRENT_COLOR}"
+              echo "NEXT_COLOR    = ${env.NEXT_COLOR}"
+
+              // 공통 docker compose pull
               sh '''
                 set -eux
                 docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" pull || true
               '''
-              if (env.CHANGED_BACK == "1" || env.CHANGED_DEPLOY == "1") {
+
+              // Blue/Green용 실제 서비스 이름
+              def nextBackService  = "klp_back_${env.NEXT_COLOR}"
+              def nextFrontService = "klp_front_${env.NEXT_COLOR}"
+              def nextAiService    = "klp_ai_${env.NEXT_COLOR}"
+
+              // 어떤 서비스가 빌드까지 필요한지 계산
+              def changedBack  = (env.CHANGED_BACK  == "1" || env.CHANGED_DEPLOY == "1")
+              def changedFront = (env.CHANGED_FRONT == "1" || env.CHANGED_DEPLOY == "1")
+              def changedAi    = (env.CHANGED_AI    == "1")
+
+              // ---------- Backend ----------
+              if (changedBack) {
+                echo "Deploying (build) backend: ${nextBackService}"
                 sh """
                   set -eux
-                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.BACK_SERVICE}
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${nextBackService}
                 """
-              } else { echo "Skip compose up for ${env.BACK_SERVICE}" }
-
-              if (env.CHANGED_FRONT == "1" || env.CHANGED_DEPLOY == "1") {
+              } else {
+                echo "Backend not changed — ensure ${nextBackService} is up without rebuild"
                 sh """
                   set -eux
-                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.FRONT_SERVICE}
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d ${nextBackService}
                 """
-              } else { echo "Skip compose up for ${env.FRONT_SERVICE}" }
+              }
 
-              if (env.CHANGED_AI == "1") {
+              // ---------- Frontend ----------
+              if (changedFront) {
+                echo "Deploying (build) frontend: ${nextFrontService}"
                 sh """
                   set -eux
-                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${env.AI_SERVICE}
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${nextFrontService}
                 """
-              } else { echo "Skip compose up for ${env.AI_SERVICE}" }
+              } else {
+                echo "Frontend not changed — ensure ${nextFrontService} is up without rebuild"
+                sh """
+                  set -eux
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d ${nextFrontService}
+                """
+              }
 
-              if (env.CHANGED_BACK != "1" && env.CHANGED_FRONT != "1" && env.CHANGED_AI != "1" && env.CHANGED_DEPLOY != "1") {
-                echo "No relevant changes — nothing to deploy."
+              // ---------- AI ----------
+              if (changedAi) {
+                echo "Deploying (build) AI: ${nextAiService}"
+                sh """
+                  set -eux
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${nextAiService}
+                """
+              } else {
+                echo "AI not changed — ensure ${nextAiService} is up without rebuild"
+                sh """
+                  set -eux
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d ${nextAiService}
+                """
+              }
+
+              // NEXT_COLOR 스택 헬스체크
+              def maxAttempts = 10
+              def ok = false
+
+              for (int i = 1; i <= maxAttempts; i++) {
+                echo "Health check attempt ${i}/${maxAttempts} on color=${env.NEXT_COLOR}"
+
+                def backOk = sh(
+                  script: "curl -fsS http://klp_back_${env.NEXT_COLOR}:8080/health || echo FAIL",
+                  returnStdout: true
+                ).trim()
+
+                def aiOk = sh(
+                  script: "curl -fsS http://klp_ai_${env.NEXT_COLOR}:8000/ai/health || echo FAIL",
+                  returnStdout: true
+                ).trim()
+
+                def frontOk = sh(
+                  script: "curl -fsS http://klp_front_${env.NEXT_COLOR}/health || echo FAIL",
+                  returnStdout: true
+                ).trim()
+
+                if (!backOk.contains("FAIL") && !aiOk.contains("FAIL") && !frontOk.contains("FAIL")) {
+                  ok = true
+                  break
+                }
+                sleep 10
+              }
+
+              if (!ok) {
+                error "NEXT_COLOR (${env.NEXT_COLOR}) stack health check failed"
+              }
+
+              // Nginx 트래픽을 NEXT_COLOR로 스위치 + active_color 파일 갱신
+              sh """
+                set -eux
+                docker exec ${NGINX_CONTAINER} /bin/sh -c 'echo "set \\$active_color ${env.NEXT_COLOR};" > /etc/nginx/snippets/active-color.conf && nginx -s reload'
+              """
+
+              sh """
+                set -eux
+                echo "${env.NEXT_COLOR}" > "${ACTIVE_COLOR_FILE}"
+              """
+
+              // 이전 색 스택 stop (완전 down 하고 싶으면 stop 대신 down)
+              if (env.CURRENT_COLOR) {
+                sh """
+                  set -eux
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" stop \
+                    klp_back_${env.CURRENT_COLOR} \
+                    klp_front_${env.CURRENT_COLOR} \
+                    klp_ai_${env.CURRENT_COLOR} || true
+                """
+              } else {
+                echo "No CURRENT_COLOR set (first deploy?) - skip stopping old color"
               }
             }
             mmNotify(status:'success', category:'deploy', template:'merge_success', targetBranch: env.GL_MR_TARGET)
@@ -447,8 +569,8 @@ pipeline {
                 BASE_URL="${GIT_URL_HTTPS}"
                 case "$BASE_URL" in
                   https://*) : ;;
-                  https//*)   BASE_URL="https://${BASE_URL#https//}";;
-                  *)          BASE_URL="https://${BASE_URL#https://}";;
+                  https//*)   BASE_URL="https://${BASE_URL#https//}" ;;
+                  *)          BASE_URL="https://${BASE_URL#https://}" ;;
                 esac
 
                 git tag -a "${VERSION}" -m "Release ${VERSION}"
