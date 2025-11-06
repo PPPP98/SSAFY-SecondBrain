@@ -65,7 +65,7 @@ pipeline {
           def currentColor = sh(
             script: """
               if docker exec ${NGINX_CONTAINER} test -f ${ACTIVE_COLOR_FILE}; then
-                docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \\$NF}' | tr -d ';'"
+                docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \\$3}' | tr -d ';'"
               else
                 echo blue
               fi
@@ -205,24 +205,11 @@ pipeline {
       }
       steps {
         script {
-          // 1) nginx 컨테이너 내부 active-color.conf 업데이트 + reload
+          // nginx 컨테이너 내부 active-color.conf 업데이트 + reload
           sh """
             set -eux
             docker exec ${NGINX_CONTAINER} /bin/sh -c 'echo "set \\$active_color ${env.NEXT_COLOR};" > ${ACTIVE_COLOR_FILE} && nginx -s reload'
           """
-
-          // 2) 이전 색 스택 stop (완전히 내리고 싶으면 stop 대신 down 사용)
-          if (env.CURRENT_COLOR) {
-            sh """
-              set -eux
-              docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" stop \
-                klp_back_${env.CURRENT_COLOR} \
-                klp_front_${env.CURRENT_COLOR} \
-                klp_ai_${env.CURRENT_COLOR} || true
-            """
-          } else {
-            echo "No CURRENT_COLOR set (first deploy?) - skip stopping old color"
-          }
         }
       }
     }

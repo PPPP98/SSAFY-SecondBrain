@@ -163,7 +163,8 @@ pipeline {
     // Blue/Green 관련
     ACTIVE_COLOR_FILE     = '/etc/nginx/snippets/active-color.conf'  // nginx 컨테이너 기준 active color 파일
     NGINX_CONTAINER       = 'nginx'
-    ROLLBACK_TO_PREVIOUS  = 'true'  // true면 이전 색을 유지하고, post-deploy 헬스체크 실패 시 롤백 수행
+    // true면 2차 Post-deploy 헬스체크 + 자동 롤백 스테이지 실행
+    ENABLE_LIVE_ROLLBACK  = 'true'
   }
 
   stages {
@@ -403,7 +404,7 @@ pipeline {
               def currentColor = sh(
                 script: """
                   if docker exec ${NGINX_CONTAINER} test -f ${ACTIVE_COLOR_FILE}; then
-                    docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \$3}' | tr -d ';'"
+                    docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \\$3}' | tr -d ';'"
                   else
                     echo blue
                   fi
@@ -529,20 +530,9 @@ pipeline {
                 docker exec ${NGINX_CONTAINER} /bin/sh -c 'echo "set \\$active_color ${env.NEXT_COLOR};" > ${ACTIVE_COLOR_FILE} && nginx -s reload'
               """
 
-              // 이전 색 스택 stop 여부는 ROLLBACK_TO_PREVIOUS로 제어
+              // 이전 색 스택은 항상 유지 (Blue/Green 이점 + 롤백 대비)
               if (env.CURRENT_COLOR) {
-                if (env.ROLLBACK_TO_PREVIOUS?.toBoolean()) {
-                  echo "ROLLBACK_TO_PREVIOUS=true -> keep previous color ${env.CURRENT_COLOR} running for potential rollback"
-                } else {
-                  echo "ROLLBACK_TO_PREVIOUS=false -> stopping previous color ${env.CURRENT_COLOR}"
-                  sh """
-                    set -eux
-                    docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" stop \
-                      klp_back_${env.CURRENT_COLOR} \
-                      klp_front_${env.CURRENT_COLOR} \
-                      klp_ai_${env.CURRENT_COLOR} || true
-                  """
-                }
+                echo "Keep previous color ${env.CURRENT_COLOR} running for Blue/Green & rollback"
               } else {
                 echo "No CURRENT_COLOR set (first deploy?) - skip stopping old color"
               }
@@ -562,7 +552,7 @@ pipeline {
         expression {
           (env.GL_MR_ACTION ?: "") == "merge" &&
           (env.GL_MR_STATE  ?: "") == "merged" &&
-          env.ROLLBACK_TO_PREVIOUS?.toBoolean()
+          env.ENABLE_LIVE_ROLLBACK?.toBoolean()
         }
       }
       steps {
@@ -571,7 +561,7 @@ pipeline {
           def activeColor = sh(
             script: """
               if docker exec ${NGINX_CONTAINER} test -f ${ACTIVE_COLOR_FILE}; then
-                docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \$3}' | tr -d ';'"
+                docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \\$3}' | tr -d ';'"
               else
                 echo blue
               fi
@@ -635,9 +625,9 @@ pipeline {
           // 롤백 대상 색 스택 ensure up (빌드 없이)
           sh """
             set -eux
-            docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d \
-              klp_back_${rollbackColor} \
-              klp_front_${rollbackColor} \
+            docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d \\
+              klp_back_${rollbackColor} \\
+              klp_front_${rollbackColor} \\
               klp_ai_${rollbackColor}
           """
 
@@ -691,7 +681,7 @@ pipeline {
             docker exec ${NGINX_CONTAINER} /bin/sh -c 'echo "set \\$active_color ${rollbackColor};" > ${ACTIVE_COLOR_FILE} && nginx -s reload'
           """
 
-          // 여기서 NEXT_COLOR를 stop할지는 운영 전략에 따라 결정 (일단은 살려두고 조사 가능)
+          // NEXT_COLOR는 일단 그대로 둬서 사후 분석 가능
           error "Post-deploy live health check failed. Rolled back to color=${rollbackColor}."
         }
       }
