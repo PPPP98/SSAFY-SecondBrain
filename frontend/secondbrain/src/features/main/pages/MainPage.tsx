@@ -1,6 +1,7 @@
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import MainLayout from '@/layouts/MainLayout';
 import { Graph } from '@/features/main/components/Graph';
+import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
 
 /**
  * 메인 페이지
@@ -11,6 +12,7 @@ import { Graph } from '@/features/main/components/Graph';
  */
 export function MainPage() {
   const { data: user, isLoading, isError } = useCurrentUser();
+  const isOpen = useSearchPanelStore((state) => state.isOpen);
 
   if (isLoading) {
     return (
@@ -34,7 +36,19 @@ export function MainPage() {
 
   return (
     <MainLayout>
-      <Graph />
+      <div className="relative size-full">
+        {/* Graph 영역 - 항상 전체 크기 유지 */}
+        <div className="size-full">
+          <Graph />
+        </div>
+
+        {/* 검색 패널 영역 - 오버레이 (왼쪽) */}
+        {isOpen && (
+          <div className="absolute left-0 top-0 z-40 h-full w-96 border-r border-white/20 bg-black/30 p-4 backdrop-blur-sm">
+            <p className="text-white">SearchPanel 영역 (테스트용)</p>
+          </div>
+        )}
+      </div>
     </MainLayout>
   );
 }
