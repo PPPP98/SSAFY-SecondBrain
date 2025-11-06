@@ -161,8 +161,9 @@ pipeline {
     AI_DIR          = "${params.AI_DIR}"
 
     // Blue/Green 관련
-    ACTIVE_COLOR_FILE = '/etc/nginx/snippets/active-color.conf'  // 현재 active 색 기록 파일
-    NGINX_CONTAINER   = 'nginx'               // 실제 Nginx 컨테이너 이름에 맞게 조정
+    ACTIVE_COLOR_FILE     = '/etc/nginx/snippets/active-color.conf'  // nginx 컨테이너 기준 active color 파일
+    NGINX_CONTAINER       = 'nginx'
+    ROLLBACK_TO_PREVIOUS  = 'true'  // true면 이전 색을 유지하고, post-deploy 헬스체크 실패 시 롤백 수행
   }
 
   stages {
@@ -252,9 +253,9 @@ pipeline {
             def isAI = (srcBranch =~ /(^|\/)(ai)(\/|$)/)
             def isINFRA = (srcBranch =~ /(^|\/)(infra)(\/|$)/)
 
-            env.CHANGED_BACK = (isBE || isINFRA) ? "1" : "0"
-            env.CHANGED_FRONT = (isFE || isINFRA) ? "1" : "0"
-            env.CHANGED_AI = (isAI || isINFRA) ? "1" : "0"
+            env.CHANGED_BACK   = (isBE || isINFRA) ? "1" : "0"
+            env.CHANGED_FRONT  = (isFE || isINFRA) ? "1" : "0"
+            env.CHANGED_AI     = (isAI || isINFRA) ? "1" : "0"
             env.CHANGED_DEPLOY = isINFRA ? "1" : "0"
 
             echo "RESULT | BACK:${env.CHANGED_BACK}, FRONT:${env.CHANGED_FRONT}, AI:${env.CHANGED_AI}, INFRA:${env.CHANGED_DEPLOY}"
@@ -377,7 +378,7 @@ pipeline {
       }
     }
 
-    // ★ 여기부터 Blue/Green 무중단 배포 로직 ★
+    // Blue/Green 무중단 배포 및 헬스체크 1차
     stage('Deploy (Blue/Green — changed services only)') {
       when {
         expression {
@@ -398,13 +399,13 @@ pipeline {
                 return
               }
 
-              // 현재 색 읽고 NEXT_COLOR 계산 (blue)
+              // 현재 색 읽고 NEXT_COLOR 계산
               def currentColor = sh(
                 script: """
                   if docker exec ${NGINX_CONTAINER} test -f ${ACTIVE_COLOR_FILE}; then
                     docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \\$NF}' | tr -d ';'"
                   else
-                    echo "blue"
+                    echo blue
                   fi
                 """,
                 returnStdout: true
@@ -432,7 +433,7 @@ pipeline {
               def changedFront = (env.CHANGED_FRONT == "1" || env.CHANGED_DEPLOY == "1")
               def changedAi    = (env.CHANGED_AI    == "1")
 
-              // ---------- Backend ----------
+              // Backend
               if (changedBack) {
                 echo "Deploying (build) backend: ${nextBackService}"
                 sh """
@@ -447,7 +448,7 @@ pipeline {
                 """
               }
 
-              // ---------- Frontend ----------
+              // Frontend
               if (changedFront) {
                 echo "Deploying (build) frontend: ${nextFrontService}"
                 sh """
@@ -462,7 +463,7 @@ pipeline {
                 """
               }
 
-              // ---------- AI ----------
+              // AI
               if (changedAi) {
                 echo "Deploying (build) AI: ${nextAiService}"
                 sh """
@@ -477,59 +478,62 @@ pipeline {
                 """
               }
 
-              // NEXT_COLOR 스택 헬스체크
-              def maxAttempts = 10
+              // NEXT_COLOR 스택 헬스체크 (HTTP 200)
+              def maxAttempts   = 10
+              def sleepSeconds  = 10
               def ok = false
 
               for (int i = 1; i <= maxAttempts; i++) {
                 echo "Health check attempt ${i}/${maxAttempts} on color=${env.NEXT_COLOR}"
 
-                def backOk = sh(
-                  script: "curl -fsS http://klp_back_${env.NEXT_COLOR}:8080/health || echo FAIL",
+                def backStatus = sh(
+                  script: "curl -s -o /dev/null -w '%{http_code}' http://klp_back_${env.NEXT_COLOR}:8080/health || echo 000",
                   returnStdout: true
                 ).trim()
 
-                def aiOk = sh(
-                  script: "curl -fsS http://klp_ai_${env.NEXT_COLOR}:8000/ai/health || echo FAIL",
+                def aiStatus = sh(
+                  script: "curl -s -o /dev/null -w '%{http_code}' http://klp_ai_${env.NEXT_COLOR}:8000/ai/health || echo 000",
                   returnStdout: true
                 ).trim()
 
-                def frontOk = sh(
-                  script: "curl -fsS http://klp_front_${env.NEXT_COLOR}/health || echo FAIL",
+                def frontStatus = sh(
+                  script: "curl -s -o /dev/null -w '%{http_code}' http://klp_front_${env.NEXT_COLOR}/health || echo 000",
                   returnStdout: true
                 ).trim()
 
-                if (!backOk.contains("FAIL") && !aiOk.contains("FAIL") && !frontOk.contains("FAIL")) {
+                echo "backStatus=${backStatus}, aiStatus=${aiStatus}, frontStatus=${frontStatus}"
+
+                if (backStatus == "200" && aiStatus == "200" && frontStatus == "200") {
                   ok = true
                   break
                 }
-                sleep 10
+                sleep sleepSeconds
               }
 
               if (!ok) {
-                error "NEXT_COLOR (${env.NEXT_COLOR}) stack health check failed"
+                error "NEXT_COLOR (${env.NEXT_COLOR}) stack health check failed (container-level)"
               }
 
-              // Nginx 트래픽을 NEXT_COLOR로 스위치 + active_color 파일 갱신
+              // Nginx 트래픽을 NEXT_COLOR로 스위치
               sh """
                 set -eux
-                docker exec ${NGINX_CONTAINER} /bin/sh -c 'echo "set \\$active_color ${env.NEXT_COLOR};" > /etc/nginx/snippets/active-color.conf && nginx -s reload'
+                docker exec ${NGINX_CONTAINER} /bin/sh -c 'echo "set \\$active_color ${env.NEXT_COLOR};" > ${ACTIVE_COLOR_FILE} && nginx -s reload'
               """
 
-              sh """
-                set -eux
-                echo "${env.NEXT_COLOR}" > "${ACTIVE_COLOR_FILE}"
-              """
-
-              // 이전 색 스택 stop (완전 down 하고 싶으면 stop 대신 down)
+              // 이전 색 스택 stop 여부는 ROLLBACK_TO_PREVIOUS로 제어
               if (env.CURRENT_COLOR) {
-                sh """
-                  set -eux
-                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" stop \
-                    klp_back_${env.CURRENT_COLOR} \
-                    klp_front_${env.CURRENT_COLOR} \
-                    klp_ai_${env.CURRENT_COLOR} || true
-                """
+                if (env.ROLLBACK_TO_PREVIOUS?.toBoolean()) {
+                  echo "ROLLBACK_TO_PREVIOUS=true -> keep previous color ${env.CURRENT_COLOR} running for potential rollback"
+                } else {
+                  echo "ROLLBACK_TO_PREVIOUS=false -> stopping previous color ${env.CURRENT_COLOR}"
+                  sh """
+                    set -eux
+                    docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" stop \
+                      klp_back_${env.CURRENT_COLOR} \
+                      klp_front_${env.CURRENT_COLOR} \
+                      klp_ai_${env.CURRENT_COLOR} || true
+                  """
+                }
               } else {
                 echo "No CURRENT_COLOR set (first deploy?) - skip stopping old color"
               }
@@ -539,6 +543,136 @@ pipeline {
             mmNotify(status:'failure', category:'deploy', template:'failure', targetBranch: env.GL_MR_TARGET, extra: "Deploy failed")
             error "Deploy failed: ${e}"
           }
+        }
+      }
+    }
+
+    // 2차 Post-deploy 헬스체크 + 자동 롤백
+    stage('Post-deploy health check & rollback') {
+      when {
+        expression {
+          (env.GL_MR_ACTION ?: "") == "merge" &&
+          (env.GL_MR_STATE  ?: "") == "merged" &&
+          env.ROLLBACK_TO_PREVIOUS?.toBoolean()
+        }
+      }
+      steps {
+        script {
+          // 현재 active_color 재확인 (혹시 수동 변경 대비)
+          def activeColor = sh(
+            script: """
+              if docker exec ${NGINX_CONTAINER} test -f ${ACTIVE_COLOR_FILE}; then
+                docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \\$NF}' | tr -d ';'"
+              else
+                echo blue
+              fi
+            """,
+            returnStdout: true
+          ).trim()
+
+          echo "Post-deploy check: activeColor=${activeColor}, CURRENT_COLOR=${env.CURRENT_COLOR}, NEXT_COLOR=${env.NEXT_COLOR}"
+
+          // NEXT_COLOR로 전환된 상태가 아닐 경우, 여기서는 아무 것도 안 함
+          if (activeColor != env.NEXT_COLOR) {
+            echo "activeColor != NEXT_COLOR, skip post-deploy rollback check"
+            return
+          }
+
+          // 외부 도메인 기준 헬스체크
+          def maxAttempts  = 5
+          def sleepSeconds = 5
+          def ok = false
+
+          for (int i = 1; i <= maxAttempts; i++) {
+            echo "Post-deploy health attempt ${i}/${maxAttempts}"
+
+            def apiStatus = sh(
+              script: "curl -k -s -o /dev/null -w '%{http_code}' https://api.brainsecond.site/health || echo 000",
+              returnStdout: true
+            ).trim()
+
+            def aiStatus = sh(
+              script: "curl -k -s -o /dev/null -w '%{http_code}' https://api.brainsecond.site/ai/health || echo 000",
+              returnStdout: true
+            ).trim()
+
+            def frontStatus = sh(
+              script: "curl -k -s -o /dev/null -w '%{http_code}' https://brainsecond.site/health || echo 000",
+              returnStdout: true
+            ).trim()
+
+            echo "live apiStatus=${apiStatus}, aiStatus=${aiStatus}, frontStatus=${frontStatus}"
+
+            if (apiStatus == "200" && aiStatus == "200" && frontStatus == "200") {
+              ok = true
+              break
+            }
+            sleep sleepSeconds
+          }
+
+          if (ok) {
+            echo "Post-deploy live health check passed. No rollback required."
+            return
+          }
+
+          // 여기까지 왔으면 live health 실패 → 롤백 시도
+          if (!env.CURRENT_COLOR) {
+            error "Post-deploy health failed, but CURRENT_COLOR is unknown. Cannot rollback automatically."
+          }
+
+          def rollbackColor = env.CURRENT_COLOR
+          echo "Post-deploy health failed. Rolling back to previous color=${rollbackColor}"
+
+          // 롤백 대상 색 스택 ensure up (빌드 없이)
+          sh """
+            set -eux
+            docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d \
+              klp_back_${rollbackColor} \
+              klp_front_${rollbackColor} \
+              klp_ai_${rollbackColor}
+          """
+
+          // 간단 컨테이너 헬스체크 (rollback 대상)
+          def maxRollbackAttempts = 10
+          def rollbackOk = false
+
+          for (int i = 1; i <= maxRollbackAttempts; i++) {
+            echo "Rollback target health attempt ${i}/${maxRollbackAttempts} on color=${rollbackColor}"
+
+            def backStatus = sh(
+              script: "curl -s -o /dev/null -w '%{http_code}' http://klp_back_${rollbackColor}:8080/health || echo 000",
+              returnStdout: true
+            ).trim()
+            def aiStatus = sh(
+              script: "curl -s -o /dev/null -w '%{http_code}' http://klp_ai_${rollbackColor}:8000/ai/health || echo 000",
+              returnStdout: true
+            ).trim()
+            def frontStatus = sh(
+              script: "curl -s -o /dev/null -w '%{http_code}' http://klp_front_${rollbackColor}/health || echo 000",
+              returnStdout: true
+            ).trim()
+
+            echo "rollback backStatus=${backStatus}, aiStatus=${aiStatus}, frontStatus=${frontStatus}"
+
+            if (backStatus == "200" && aiStatus == "200" && frontStatus == "200") {
+              rollbackOk = true
+              break
+            }
+            sleep 10
+          }
+
+          if (!rollbackOk) {
+            error "Rollback target color (${rollbackColor}) health check failed. Manual intervention required."
+          }
+
+          // Nginx를 이전 색으로 되돌리기
+          sh """
+            set -eux
+            docker exec ${NGINX_CONTAINER} /bin/sh -c 'echo "set \\$active_color ${rollbackColor};" > ${ACTIVE_COLOR_FILE} && nginx -s reload'
+          """
+
+          // 여기서 NEXT_COLOR를 stop할지는 운영 전략에 따라 결정 (일단은 살려두고 조사 가능)
+          error "Post-deploy live health check failed. Rolled back to color=${rollbackColor}."
         }
       }
     }
