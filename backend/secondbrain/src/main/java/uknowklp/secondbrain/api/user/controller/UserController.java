@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.user.domain.User;
@@ -37,6 +38,7 @@ public class UserController {
 	 * @return ResponseEntity<UserResponse> 사용자 정보 DTO
 	 */
 	@GetMapping("/me")
+	@Operation(summary = "현재 사용자 정보 조회", description = "JWT 토큰으로 인증된 사용자의 정보를 조회합니다")
 	public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
 		log.info("Fetching current user info - Email: {}", userDetails.getUsername());
 
@@ -59,6 +61,7 @@ public class UserController {
 	 * @return ResponseEntity<BaseResponse<Void>> 200 OK 응답
 	 */
 	@PostMapping("/reminders")
+	@Operation(summary = "리마인더 알람 토글", description = "사용자의 전체 리마인더 알람을 On/Off 토글합니다")
 	public ResponseEntity<BaseResponse<Void>> toggleReminder(@AuthenticationPrincipal CustomUserDetails userDetails) {
 		User user = userDetails.getUser();
 		log.info("Toggling reminder alarm for userId: {}", user.getId());

@@ -60,6 +60,7 @@ public class NoteController {
 	 * @return ResponseEntity<BaseResponse> 201 Created 응답
 	 */
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "노트 생성", description = "새로운 노트를 생성합니다 (제목, 내용, 이미지 업로드 지원)")
 	public ResponseEntity<BaseResponse<Void>> createNote(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@RequestParam String title,
@@ -88,6 +89,7 @@ public class NoteController {
 	 * @return ResponseEntity<BaseResponse < NoteResponse>> 200 OK 응답 + 노트 정보
 	 */
 	@GetMapping("/{noteId}")
+	@Operation(summary = "노트 조회", description = "노트 ID로 특정 노트의 상세 정보를 조회합니다")
 	public ResponseEntity<BaseResponse<NoteResponse>> getNote(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@PathVariable Long noteId) {
@@ -117,6 +119,7 @@ public class NoteController {
 	 * @return ResponseEntity<BaseResponse < NoteResponse>> 200 OK 응답 + 수정된 노트 정보
 	 */
 	@PutMapping(value = "/{noteId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "노트 수정", description = "기존 노트의 제목, 내용, 이미지를 수정합니다")
 	public ResponseEntity<BaseResponse<NoteResponse>> updateNote(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@PathVariable Long noteId,
@@ -146,6 +149,7 @@ public class NoteController {
 	 * @return ResponseEntity<BaseResponse < Void>> 200 OK 응답
 	 */
 	@DeleteMapping
+	@Operation(summary = "노트 삭제", description = "노트를 삭제합니다 (단일 및 다중 삭제 지원)")
 	public ResponseEntity<BaseResponse<Void>> deleteNotes(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@Valid @RequestBody NoteDeleteRequest request) {
@@ -188,6 +192,7 @@ public class NoteController {
 	 * @return ResponseEntity<BaseResponse < List < NoteRecentResponse>>> 200 OK 응답 + 노트 목록 (null 가능)
 	 */
 	@GetMapping("/recent")
+	@Operation(summary = "최근 노트 목록 조회", description = "최근 수정된 노트 상위 10개를 조회합니다")
 	public ResponseEntity<BaseResponse<List<NoteRecentResponse>>> getRecentNotes(
 		@AuthenticationPrincipal CustomUserDetails userDetails) {
 
