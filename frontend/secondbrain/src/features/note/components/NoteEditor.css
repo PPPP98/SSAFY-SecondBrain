@@ -1,0 +1,125 @@
+/**
+ * Milkdown 에디터 커스텀 스타일
+ * - Notion 스타일 Title/Content 구분
+ * - Glass UI 효과 적용
+ * - 스크린샷과 동일한 디자인
+ */
+
+/* 에디터 컨테이너 - Glass UI 효과 */
+.note-editor {
+  /* Glass morphism 배경 */
+  background: rgba(71, 85, 105, 0.75); /* #475569 with 75% opacity */
+
+  /* Backdrop blur - glass 효과 핵심 */
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+
+  /* 미세한 테두리 */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  /* Glass shadow */
+  box-shadow: 0px 12px 40px rgba(0, 0, 0, 0.25);
+
+  /* 레이아웃 */
+  border-radius: 1rem; /* 16px - rounded-2xl */
+  padding: 2rem;
+  height: 100%;
+  overflow: auto;
+}
+
+/* 에디터 기본 스타일 */
+.note-editor .milkdown {
+  color: white;
+  height: 100%;
+  background: transparent !important;
+}
+
+/* Milkdown 내부 요소 배경 투명화 (Glass UI 강화) */
+.note-editor .milkdown .editor,
+.note-editor .milkdown > div {
+  background: transparent !important;
+}
+
+/* ProseMirror editor padding 제거 */
+.note-editor .ProseMirror.virtual-cursor-enabled.editor {
+  padding: 4rem !important;
+}
+
+/* Content 영역 - 일반 문단 */
+.note-editor .milkdown p {
+  font-size: 1rem; /* 16px - text-base */
+  line-height: 1.75rem; /* 28px - leading-7 */
+  margin-bottom: 1rem; /* 16px */
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Content 영역 - Heading 2 (스크린샷: "Action items") */
+.note-editor .milkdown h2 {
+  font-size: 1.25rem; /* 20px - text-xl */
+  font-weight: 600; /* semibold */
+  line-height: 1.75rem; /* 28px */
+  margin-top: 2rem; /* 32px */
+  margin-bottom: 1rem; /* 16px */
+  color: #ffffff;
+}
+
+/* Content 영역 - Heading 3 */
+.note-editor .milkdown h3 {
+  font-size: 1.125rem; /* 18px */
+  font-weight: 600;
+  line-height: 1.75rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #ffffff;
+}
+
+/* 리스트 스타일 */
+.note-editor .milkdown ul,
+.note-editor .milkdown ol {
+  padding-left: 1.5rem; /* 24px */
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.note-editor .milkdown li {
+  margin-bottom: 0.5rem; /* 8px */
+  line-height: 1.75rem; /* 28px */
+}
+
+/* 불릿 포인트 */
+.note-editor .milkdown ul li::marker {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 코드 블록 */
+.note-editor .milkdown pre {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+}
+
+.note-editor .milkdown code {
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+}
+
+/* 인라인 코드 */
+.note-editor .milkdown p code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+/* 에디터 포커스 스타일 */
+.note-editor .milkdown:focus-within {
+  outline: none;
+}
+
+/* Placeholder 스타일 */
+.note-editor .milkdown .placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
