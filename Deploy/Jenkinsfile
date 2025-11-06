@@ -41,7 +41,7 @@ def mmNotify(Map m = [:]) {
 ---
 ##### 서비스 점검하러 가기
 :springboot: [Backend Spring Server](https://api.brainsecond.site/swagger-ui/index.html)
-:fastapi: [FastAPI Server](https://brainsecond.site/ai/docs)
+:fastapi: [FastAPI Server](https://api.brainsecond.site/ai/docs)
 :react: [Frontend React Server](https://brainsecond.site)
 
 ##### Tools
