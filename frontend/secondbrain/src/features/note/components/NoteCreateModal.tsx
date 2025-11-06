@@ -1,14 +1,16 @@
+import { useState } from 'react';
 import { SlideOverModal } from '@/shared/components/SlideOverModal/SlideOverModal';
 import { GlassElement } from '@/shared/components/GlassElement/GlassElement';
+import { ToggleSwitch } from '@/shared/components/ToggleSwitch/ToggleSwitch';
 import { NoteEditor } from '@/features/note/components/NoteEditor';
-import BackArrowIcon from '@/shared/components/icon/BackArrow.svg?react';
+import { NoteTitleInput } from '@/features/note/components/NoteTitleInput';
 import DeleteIcon from '@/shared/components/icon/Delete.svg?react';
-import CheckBoxIcon from '@/shared/components/icon/CheckBox.svg?react';
+import ExpandIcon from '@/shared/components/icon/Expand.svg?react';
+import CompressIcon from '@/shared/components/icon/Compress.svg?react';
 
 interface NoteCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave?: (markdown: string) => void;
   onDelete?: () => void;
 }
 
@@ -18,13 +20,14 @@ interface NoteCreateModalProps {
  * - NoteLayout 버튼 구조 참고
  * - Notion Side Peek 스타일
  */
-export function NoteCreateModal({ isOpen, onClose, onSave, onDelete }: NoteCreateModalProps) {
-  function handleSave() {
-    // TODO: 에디터 내용 가져와서 저장
-    if (onSave) {
-      onSave('# 제목\n\n내용');
-    }
-    onClose();
+export function NoteCreateModal({ isOpen, onClose, onDelete }: NoteCreateModalProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
+  const [title, setTitle] = useState('');
+  // const [content, setContent] = useState(''); // TODO: Milkdown에서 content 가져오기 구현 시 사용
+
+  function toggleFullscreen() {
+    setIsFullscreen((prev) => !prev);
   }
 
   function handleDelete() {
@@ -34,27 +37,59 @@ export function NoteCreateModal({ isOpen, onClose, onSave, onDelete }: NoteCreat
     onClose();
   }
 
+  function handleTogglePublic(checked: boolean) {
+    setIsPublic(checked);
+    // TODO: API 호출하여 공개 설정 저장
+  }
+
+  // TODO: 저장 기능 구현 시 사용
+  // function handleSave() {
+  //   const noteData = {
+  //     title,
+  //     content, // Milkdown.getMarkdown()
+  //     isPublic,
+  //   };
+  //   // API 호출
+  // }
+
   return (
-    <SlideOverModal isOpen={isOpen} onClose={onClose} width="50%" direction="right">
-      <div className="relative h-full bg-[#192030]">
-        {/* 상단 좌측: 닫기 버튼 */}
+    <SlideOverModal
+      isOpen={isOpen}
+      onClose={onClose}
+      width={isFullscreen ? '100%' : '50%'}
+      direction="right"
+    >
+      <div className="relative h-full">
+        {/* 상단 좌측: 전체화면 토글 버튼 */}
         <div className="absolute left-10 top-10 z-10">
-          <GlassElement as="button" icon={<BackArrowIcon />} onClick={onClose} />
+          <GlassElement
+            as="button"
+            icon={isFullscreen ? <CompressIcon /> : <ExpandIcon />}
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? '전체화면 해제' : '전체화면 확대'}
+          />
         </div>
 
-        {/* 상단 우측: 삭제 버튼 */}
-        <div className="absolute right-10 top-10 z-10">
-          <GlassElement as="button" icon={<DeleteIcon />} onClick={handleDelete} />
+        {/* 상단 우측: 토글 스위치 + 삭제 버튼 */}
+        <div className="absolute right-10 top-10 z-10 flex items-center gap-3">
+          <ToggleSwitch checked={isPublic} onChange={handleTogglePublic} />
+          <GlassElement
+            as="button"
+            icon={<DeleteIcon />}
+            onClick={handleDelete}
+            aria-label="노트 삭제"
+          />
         </div>
 
-        {/* 하단 우측: 저장 버튼 */}
-        <div className="absolute bottom-10 right-10 z-10">
-          <GlassElement as="button" icon={<CheckBoxIcon />} onClick={handleSave} />
-        </div>
+        {/* Title + 에디터 영역 */}
+        <div className="absolute inset-10 flex flex-col gap-4">
+          {/* Title input */}
+          <NoteTitleInput value={title} onChange={setTitle} placeholder="Untitled" />
 
-        {/* 에디터 영역 */}
-        <div className="h-full p-20">
-          <NoteEditor defaultValue="# 제목을 입력하세요\n\n내용을 작성하세요..." />
+          {/* Content editor */}
+          <div className="flex-1">
+            <NoteEditor />
+          </div>
         </div>
       </div>
     </SlideOverModal>
