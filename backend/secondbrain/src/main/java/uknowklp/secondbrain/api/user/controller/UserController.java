@@ -58,7 +58,7 @@ public class UserController {
 	 * @param userDetails Spring Security의 인증된 사용자 정보
 	 * @return ResponseEntity<BaseResponse<Void>> 200 OK 응답
 	 */
-	@PostMapping("/reminder")
+	@PostMapping("/reminders")
 	public ResponseEntity<BaseResponse<Void>> toggleReminder(@AuthenticationPrincipal CustomUserDetails userDetails) {
 		User user = userDetails.getUser();
 		log.info("Toggling reminder alarm for userId: {}", user.getId());
