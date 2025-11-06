@@ -15,7 +15,6 @@ export function SlideOverModal({
   children,
   width = '50%',
   direction = 'right',
-  closeOnBackdropClick = true,
   closeOnEscape = true,
 }: SlideOverModalProps) {
   // Escape 키 처리
@@ -55,14 +54,7 @@ export function SlideOverModal({
   const position = direction === 'right' ? 'right-0' : 'left-0';
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-end">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 transition-opacity duration-300 motion-reduce:transition-none"
-        onClick={closeOnBackdropClick ? onClose : undefined}
-        aria-hidden="true"
-      />
-
+    <div className="fixed inset-0 z-[60] flex items-center justify-end">
       {/* Modal Content */}
       <div
         className={`relative h-full transition-transform duration-300 ease-out motion-reduce:transition-none ${position} ${isOpen ? slideDirection : initialPosition}`}

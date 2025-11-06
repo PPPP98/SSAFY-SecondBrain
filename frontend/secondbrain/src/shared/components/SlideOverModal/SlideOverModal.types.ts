@@ -8,8 +8,6 @@ export interface SlideOverModalProps {
   width?: string;
   /** 슬라이드 방향 (기본: right) */
   direction?: 'left' | 'right';
-  /** Backdrop 클릭 시 닫기 활성화 여부 */
-  closeOnBackdropClick?: boolean;
   /** Escape 키로 닫기 활성화 여부 */
   closeOnEscape?: boolean;
 }
