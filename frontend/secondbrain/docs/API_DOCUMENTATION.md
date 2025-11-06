@@ -586,9 +586,9 @@ GET /api/notes/15/similar?limit=5
 
 ```json
 {
-  "isSuccess": true,
+  "success": true,
   "code": 201,
-  "message": "요청에 성공하였습니다.",
+  "message": "생성에 성공했습니다.",
   "data": "123e4567-e89b-12d3-a456-426614174000"
 }
 ```
@@ -613,9 +613,9 @@ GET /api/notes/15/similar?limit=5
 
 ```json
 {
-  "isSuccess": true,
-  "code": 1000,
-  "message": "요청에 성공하였습니다.",
+  "success": true,
+  "code": 200,
+  "message": "요청에 성공했습니다.",
   "data": {
     "drafts": [
       {
@@ -660,9 +660,9 @@ GET /api/notes/15/similar?limit=5
 
 ```json
 {
-  "isSuccess": true,
-  "code": 1000,
-  "message": "요청에 성공하였습니다.",
+  "success": true,
+  "code": 200,
+  "message": "요청에 성공했습니다.",
   "data": {
     "noteId": "123e4567-e89b-12d3-a456-426614174000",
     "title": "제목",
@@ -694,9 +694,9 @@ GET /api/notes/15/similar?limit=5
 
 ```json
 {
-  "isSuccess": true,
-  "code": 1000,
-  "message": "요청에 성공하였습니다.",
+  "success": true,
+  "code": 200,
+  "message": "요청에 성공했습니다.",
   "data": null
 }
 ```
@@ -724,15 +724,17 @@ GET /api/notes/15/similar?limit=5
 
 ```json
 {
-  "isSuccess": true,
+  "success": true,
   "code": 201,
-  "message": "요청에 성공하였습니다.",
+  "message": "생성에 성공했습니다.",
   "data": {
-    "id": 42,
+    "noteId": 42,
     "title": "제목",
     "content": "내용",
     "createdAt": "2025-01-06T10:30:00",
-    "updatedAt": "2025-01-06T10:30:00"
+    "updatedAt": "2025-01-06T10:30:00",
+    "remindAt": null,
+    "remindCount": 0
   }
 }
 ```
