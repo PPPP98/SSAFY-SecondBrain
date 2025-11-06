@@ -29,13 +29,15 @@ export function MainPage() {
   }
 
   return (
-    <MainLayout>
-      <div className="relative size-full">
-        <div className="size-full">
+    <div>
+      <MainLayout>
+        <div className="relative size-full">
           <Graph />
         </div>
+      </MainLayout>
+      <div className="absolute left-0 top-0 z-40 flex size-full flex-col">
         {isOpen && <SearchPanel />}
       </div>
-    </MainLayout>
+    </div>
   );
 }
