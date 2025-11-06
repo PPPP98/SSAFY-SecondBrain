@@ -38,9 +38,10 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV TZ=Asia/Seoul
 
-# 애플리케이션 코드 복사
-COPY app/ ./app/
-COPY scripts/ ./scripts/
+# 소스 코드 복사
+COPY . .
+
+EXPOSE 8000
 
 # 워커 실행
 CMD ["python", "worker.py"]
