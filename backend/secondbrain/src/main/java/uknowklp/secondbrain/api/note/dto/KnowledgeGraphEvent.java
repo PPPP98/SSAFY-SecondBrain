@@ -10,7 +10,7 @@ public record KnowledgeGraphEvent(
 	@JsonProperty("content") String content
 ) {
 	// 생성 이벤트 팩토리 메서드
-	public static KnowledgeGraphEvent create(String eventType, Long noteId, Long userId, String title, String content) {
+	public static KnowledgeGraphEvent created(Long noteId, Long userId, String title, String content) {
 		return new KnowledgeGraphEvent("note.created", noteId, userId, title, content);
 	}
 
