@@ -21,7 +21,8 @@ export const NoteTitleInput = forwardRef<HTMLInputElement, NoteTitleInputProps>(
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full border-0 bg-transparent px-16 text-4xl font-bold text-white outline-none ring-0 transition-all duration-200 placeholder:text-white/30 focus:border-0 focus:outline-none focus:ring-0"
+        className="w-full border-0 bg-transparent px-16 font-bold text-white outline-none ring-0 transition-all duration-200 placeholder:text-white/30 focus:border-0 focus:outline-none focus:ring-0"
+        style={{ fontSize: '42px' }}
         aria-label="노트 제목"
       />
     );

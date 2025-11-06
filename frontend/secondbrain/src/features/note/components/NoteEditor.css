@@ -42,6 +42,26 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
+/* Content 영역 - 모든 Heading 요소에 일관된 sans-serif 폰트 적용 */
+.note-editor .milkdown h1,
+.note-editor .milkdown h2,
+.note-editor .milkdown h3,
+.note-editor .milkdown h4,
+.note-editor .milkdown h5,
+.note-editor .milkdown h6 {
+  font-family: 'Noto Sans', Arial, Helvetica, sans-serif !important;
+}
+
+/* Content 영역 - Heading 1 */
+.note-editor .milkdown h1 {
+  font-size: 1.875rem; /* 30px - text-3xl */
+  font-weight: 700; /* bold */
+  line-height: 2.25rem; /* 36px */
+  margin-top: 2.5rem; /* 40px */
+  margin-bottom: 1.25rem; /* 20px */
+  color: #ffffff;
+}
+
 /* Content 영역 - Heading 2 (스크린샷: "Action items") */
 .note-editor .milkdown h2 {
   font-size: 1.25rem; /* 20px - text-xl */
@@ -60,6 +80,36 @@
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
   color: #ffffff;
+}
+
+/* Content 영역 - Heading 4 */
+.note-editor .milkdown h4 {
+  font-size: 1rem; /* 16px */
+  font-weight: 600;
+  line-height: 1.5rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+}
+
+/* Content 영역 - Heading 5 */
+.note-editor .milkdown h5 {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600;
+  line-height: 1.25rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+}
+
+/* Content 영역 - Heading 6 */
+.note-editor .milkdown h6 {
+  font-size: 0.75rem; /* 12px */
+  font-weight: 600;
+  line-height: 1rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 /* 리스트 스타일 */
