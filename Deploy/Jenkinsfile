@@ -487,17 +487,26 @@ pipeline {
                 echo "Health check attempt ${i}/${maxAttempts} on color=${env.NEXT_COLOR}"
 
                 def backStatus = sh(
-                  script: "curl -s -o /dev/null -w '%{http_code}' http://klp_back_${env.NEXT_COLOR}:8080/health || echo 000",
+                  script: """
+                    docker exec ${NGINX_CONTAINER} sh -c \\
+                      "curl -s -o /dev/null -w '%{http_code}' http://klp_back_${env.NEXT_COLOR}:8080/health || echo 000"
+                  """,
                   returnStdout: true
                 ).trim()
 
                 def aiStatus = sh(
-                  script: "curl -s -o /dev/null -w '%{http_code}' http://klp_ai_${env.NEXT_COLOR}:8000/ai/health || echo 000",
+                  script: """
+                    docker exec ${NGINX_CONTAINER} sh -c \\
+                      "curl -s -o /dev/null -w '%{http_code}' http://klp_ai_${env.NEXT_COLOR}:8000/ai/health || echo 000"
+                  """,
                   returnStdout: true
                 ).trim()
 
                 def frontStatus = sh(
-                  script: "curl -s -o /dev/null -w '%{http_code}' http://klp_front_${env.NEXT_COLOR}/health || echo 000",
+                  script: """
+                    docker exec ${NGINX_CONTAINER} sh -c \\
+                      "curl -s -o /dev/null -w '%{http_code}' http://klp_front_${env.NEXT_COLOR}/health || echo 000"
+                  """,
                   returnStdout: true
                 ).trim()
 
@@ -640,15 +649,26 @@ pipeline {
             echo "Rollback target health attempt ${i}/${maxRollbackAttempts} on color=${rollbackColor}"
 
             def backStatus = sh(
-              script: "curl -s -o /dev/null -w '%{http_code}' http://klp_back_${rollbackColor}:8080/health || echo 000",
+              script: """
+                docker exec ${NGINX_CONTAINER} sh -c \\
+                  "curl -s -o /dev/null -w '%{http_code}' http://klp_back_${rollbackColor}:8080/health || echo 000"
+              """,
               returnStdout: true
             ).trim()
+
             def aiStatus = sh(
-              script: "curl -s -o /dev/null -w '%{http_code}' http://klp_ai_${rollbackColor}:8000/ai/health || echo 000",
+              script: """
+                docker exec ${NGINX_CONTAINER} sh -c \\
+                  "curl -s -o /dev/null -w '%{http_code}' http://klp_ai_${rollbackColor}:8000/ai/health || echo 000"
+              """,
               returnStdout: true
             ).trim()
+
             def frontStatus = sh(
-              script: "curl -s -o /dev/null -w '%{http_code}' http://klp_front_${rollbackColor}/health || echo 000",
+              script: """
+                docker exec ${NGINX_CONTAINER} sh -c \\
+                  "curl -s -o /dev/null -w '%{http_code}' http://klp_front_${rollbackColor}/health || echo 000"
+              """,
               returnStdout: true
             ).trim()
 
