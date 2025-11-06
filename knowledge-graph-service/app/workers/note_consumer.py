@@ -32,6 +32,9 @@ from app.schemas.event import (
 
 logger = logging.getLogger(__name__)
 
+MAX_RETRIES = 5
+
+
 
 def process_note_created(
     ch,
@@ -102,8 +105,13 @@ def process_note_created(
     except Exception as e:
         logger.error(f"❌ 노트 생성 처리 실패")
         # retry
-        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-        logger.error(f"⚠️  메시지 재시도 대기 중...")
+        # retry_count = getattr(properties.headers or {}, "x-retry-count", 0)
+
+        # if retry_count < MAX_RETRIES:
+        #     ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+        # else:
+        #     logger.error(f"❌ 최대 재시도 횟수 초과, 메시지 폐기")
+        #     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
 def process_note_updated(
@@ -178,8 +186,13 @@ def process_note_updated(
     except Exception as e:
         logger.error(f"❌ 노트 수정 처리 실패")
         # retry
-        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-        logger.error(f"⚠️  메시지 재시도 대기 중...")
+        # retry_count = getattr(properties.headers or {}, "x-retry-count", 0)
+        # if retry_count < MAX_RETRIES:
+        #     ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+        # else:
+        #     logger.error(f"❌ 최대 재시도 횟수 초과, 메시지 폐기")
+        #     ch.basic_ack(delivery_tag=method.delivery_tag)
+        # logger.error(f"⚠️  메시지 재시도 대기 중...")
 
 
 def process_note_deleted(
@@ -226,8 +239,13 @@ def process_note_deleted(
     except Exception as e:
         logger.error(f"❌ 노트 삭제 처리 실패")
         # retry
-        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-        logger.error(f"⚠️  메시지 재시도 대기 중...")
+        # retry_count = getattr(properties.headers or {}, "x-retry-count", 0)
+        # if retry_count < MAX_RETRIES:
+        #     ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+        # else:
+        #     logger.error(f"❌ 최대 재시도 횟수 초과, 메시지 폐기")
+        #     ch.basic_ack(delivery_tag=method.delivery_tag)
+        # logger.error(f"⚠️  메시지 재시도 대기 중...")
 
 
 def message_router(

@@ -6,7 +6,7 @@ from datetime import datetime
 class NoteCreate(BaseModel):
     """노트 생성 요청"""
 
-    note_id: str = Field(..., description="노트 ID (Spring Boot에서 생성)")
+    note_id: int = Field(..., description="노트 ID (Spring Boot에서 생성)")
     title: str = Field(..., min_length=1, max_length=500, description="노트 제목")
     content: str = Field(..., min_length=1, description="노트 내용(임베딩 생성용)")
 
@@ -14,7 +14,7 @@ class NoteCreate(BaseModel):
         # just for swagger UI
         json_schema_extra={
             "example": {
-                "note_id": "550e8400-e29b-41d4-a716-446655440000",
+                "note_id": 123,
                 "title": "Neo4j 기초",
                 "content": "Neo4j는 그래프 데이터베이스입니다.",
             }
@@ -25,8 +25,8 @@ class NoteCreate(BaseModel):
 class NoteResponse(BaseModel):
     """노트 응답"""
 
-    user_id: str
-    note_id: str
+    user_id: int
+    note_id: int
     title: str
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -37,7 +37,7 @@ class NoteResponse(BaseModel):
 class SimilarNote(BaseModel):
     """유사 노트"""
 
-    note_id: str
+    note_id: int
     title: str
     similarity_score: float = Field(..., ge=0.0, le=1.0)
     created_at: datetime
@@ -52,8 +52,8 @@ class NoteDetailResponse(NoteResponse):
 class EmbeddingResponse(BaseModel):
     """임베딩 생성 응답"""
 
-    user_id: str
-    note_id: str
+    user_id: int
+    note_id: int
     embedding_dimension: int
     linked_notes_count: int
 
@@ -61,7 +61,7 @@ class EmbeddingResponse(BaseModel):
 class GraphStats(BaseModel):
     """그래프 통계"""
 
-    user_id: str
+    user_id: int
     total_notes: int
     total_relationships: int
     avg_connections: float
@@ -70,7 +70,7 @@ class GraphStats(BaseModel):
 class NoteListResponse(BaseModel):
     """노트 목록 응답"""
 
-    user_id: str
+    user_id: int
     notes: List[NoteResponse]
     total: int
     limit: int
