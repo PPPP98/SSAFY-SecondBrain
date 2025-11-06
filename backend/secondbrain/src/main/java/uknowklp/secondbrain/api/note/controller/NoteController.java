@@ -47,19 +47,9 @@ public class NoteController {
 	private final NoteService noteService;
 	private final NoteDraftService noteDraftService;
 
-	/**
-	 * 새로운 노트 생성
-	 * JWT 토큰으로 인증된 사용자의 노트를 생성
-	 * multipart/form-data 형식으로 제목, 내용, 이미지 파일들을 받음
-	 * S3 연결 전까지는 더미 URL로 이미지 마크다운 생성
-	 *
-	 * @param userDetails Spring Security의 인증된 사용자 정보
-	 * @param title 노트 제목
-	 * @param content 노트 내용
-	 * @param images 이미지 파일 목록 (optional)
-	 * @return ResponseEntity<BaseResponse> 201 Created 응답
-	 */
+	// 노트 생성
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "노트 생성", description = "새로운 노트를 생성합니다 (제목, 내용, 이미지 업로드 지원)")
 	public ResponseEntity<BaseResponse<Void>> createNote(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@RequestParam String title,
@@ -78,16 +68,9 @@ public class NoteController {
 		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
-	/**
-	 * 노트 조회
-	 * JWT 토큰으로 인증된 사용자의 노트를 조회
-	 * 본인의 노트만 조회 가능 (다른 사용자의 노트는 접근 거부)
-	 *
-	 * @param userDetails Spring Security의 인증된 사용자 정보
-	 * @param noteId 조회할 노트 ID (URL 경로에서 추출)
-	 * @return ResponseEntity<BaseResponse < NoteResponse>> 200 OK 응답 + 노트 정보
-	 */
+	// 노트 조회
 	@GetMapping("/{noteId}")
+	@Operation(summary = "노트 조회", description = "노트 ID로 특정 노트의 상세 정보를 조회합니다")
 	public ResponseEntity<BaseResponse<NoteResponse>> getNote(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@PathVariable Long noteId) {
@@ -103,20 +86,9 @@ public class NoteController {
 		return ResponseEntity.ok(response);
 	}
 
-	/**
-	 * 노트 수정
-	 * JWT 토큰으로 인증된 사용자의 노트를 수정
-	 * 본인의 노트만 수정 가능 (다른 사용자의 노트는 접근 거부)
-	 * multipart/form-data 형식으로 제목, 내용, 이미지 파일들을 받음
-	 *
-	 * @param userDetails Spring Security의 인증된 사용자 정보
-	 * @param noteId 수정할 노트 ID (URL 경로에서 추출)
-	 * @param title 노트 제목
-	 * @param content 노트 내용
-	 * @param images 이미지 파일 목록 (optional)
-	 * @return ResponseEntity<BaseResponse < NoteResponse>> 200 OK 응답 + 수정된 노트 정보
-	 */
+	// 노트 수정
 	@PutMapping(value = "/{noteId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "노트 수정", description = "기존 노트의 제목, 내용, 이미지를 수정합니다")
 	public ResponseEntity<BaseResponse<NoteResponse>> updateNote(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@PathVariable Long noteId,
@@ -135,17 +107,9 @@ public class NoteController {
 		return ResponseEntity.ok(response);
 	}
 
-	/**
-	 * 노트 삭제 (단일 및 다중 삭제 지원)
-	 * JWT 토큰으로 인증된 사용자의 노트를 삭제
-	 * 본인의 노트만 삭제 가능 (다른 사용자의 노트는 접근 거부)
-	 * 요청 본문에 삭제할 노트 ID 목록을 전달
-	 *
-	 * @param userDetails Spring Security의 인증된 사용자 정보
-	 * @param request 삭제할 노트 ID 목록을 담은 요청 DTO
-	 * @return ResponseEntity<BaseResponse < Void>> 200 OK 응답
-	 */
+	// 노트 삭제 (단일 및 다중 삭제 지원)
 	@DeleteMapping
+	@Operation(summary = "노트 삭제", description = "노트를 삭제합니다 (단일 및 다중 삭제 지원)")
 	public ResponseEntity<BaseResponse<Void>> deleteNotes(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@Valid @RequestBody NoteDeleteRequest request) {
@@ -179,15 +143,9 @@ public class NoteController {
 		return new BaseResponse<>(BaseResponseStatus.SUCCESS);
 	}
 
-	/**
-	 * 최근 노트 목록 조회 (상위 10개)
-	 * JWT 토큰으로 인증된 사용자의 최근 노트 목록을 조회
-	 * updatedAt 기준 내림차순, 동일 시 noteId 기준 내림차순 정렬
-	 *
-	 * @param userDetails Spring Security의 인증된 사용자 정보
-	 * @return ResponseEntity<BaseResponse < List < NoteRecentResponse>>> 200 OK 응답 + 노트 목록 (null 가능)
-	 */
+	// 최근 노트 목록 조회 (상위 10개)
 	@GetMapping("/recent")
+	@Operation(summary = "최근 노트 목록 조회", description = "최근 수정된 노트 상위 10개를 조회합니다")
 	public ResponseEntity<BaseResponse<List<NoteRecentResponse>>> getRecentNotes(
 		@AuthenticationPrincipal CustomUserDetails userDetails) {
 
@@ -202,17 +160,7 @@ public class NoteController {
 		return ResponseEntity.ok(response);
 	}
 
-	/**
-	 * 리마인더가 켜진 노트 목록 조회 (페이징 지원)
-	 * JWT 토큰으로 인증된 사용자의 리마인더가 활성화된 노트 목록을 조회
-	 * updatedAt 기준 내림차순, 동일 시 noteId 기준 내림차순 정렬
-	 * 무한스크롤을 위한 페이지네이션 지원
-	 *
-	 * @param userDetails Spring Security의 인증된 사용자 정보
-	 * @param page 페이지 번호 (0부터 시작, 기본값: 0)
-	 * @param size 페이지당 노트 개수 (기본값: 10)
-	 * @return ResponseEntity<BaseResponse<NoteReminderResponse>> 200 OK 응답 + 노트 목록 (페이징 정보 포함)
-	 */
+	// 리마인더가 켜진 노트 목록 조회 (페이징 지원)
 	@GetMapping("/reminders")
 	@Operation(summary = "리마인더 활성화 노트 목록 조회", description = "리마인더가 켜진 노트 목록 조회 (무한스크롤 지원)")
 	public ResponseEntity<BaseResponse<NoteReminderResponse>> getReminderNotes(

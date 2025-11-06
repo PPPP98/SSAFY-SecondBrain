@@ -188,11 +188,6 @@ public class NoteServiceImpl implements NoteService {
 		}
 	}
 
-	/**
-	 * 노트 요청 데이터 검증
-	 * @param request 노트 생성 요청 DTO
-	 * @throws BaseException 검증 실패 시
-	 */
 	private void validateNoteRequest(NoteRequest request) {
 		// title 검증
 		if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
@@ -212,14 +207,6 @@ public class NoteServiceImpl implements NoteService {
 		// content 길이 제한 제거 (TEXT 타입은 무제한)
 	}
 
-	/**
-	 * 이미지 파일들을 S3에 업로드하고 마크다운 형식으로 content에 삽입
-	 * 현재는 S3 연동 전이므로 placeholder 로직
-	 *
-	 * @param originalContent 원본 content
-	 * @param images 업로드할 이미지 파일 목록
-	 * @return 이미지 마크다운이 포함된 최종 content
-	 */
 	private String processImagesAndContent(String originalContent, List<MultipartFile> images) {
 		if (images == null || images.isEmpty()) {
 			return originalContent;
@@ -255,12 +242,6 @@ public class NoteServiceImpl implements NoteService {
 		return contentBuilder.toString().trim();
 	}
 
-	/**
-	 * 최종 content 길이 검증
-	 * TEXT 타입으로 변경되어 길이 제한 없음
-	 *
-	 * @param content 검증할 content
-	 */
 	private void validateContentLength(String content) {
 		// TEXT 타입으로 변경되어 길이 제한 제거
 		// 향후 필요시 합리적인 제한 추가 가능 (예: 1MB)
