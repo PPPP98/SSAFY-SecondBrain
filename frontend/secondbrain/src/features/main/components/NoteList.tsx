@@ -1,5 +1,5 @@
 import type { UseQueryResult, UseInfiniteQueryResult, InfiniteData } from '@tanstack/react-query';
-import type { RecentNote, SearchNoteData } from '@/features/main/types/search';
+import type { RecentNote, SearchNoteData, Note } from '@/features/main/types/search';
 import { NoteItem } from '@/features/main/components/NoteItem';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
 
@@ -56,8 +56,10 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
       return <p className="text-center text-sm text-yellow-400">검색어를 입력하세요</p>;
     }
 
-    // 데이터 평탄화 (모든 페이지의 results 병합)
-    const allNotes = searchQuery.data.pages.flatMap((page) => page.results);
+    const allNotes = searchQuery.data.pages.flatMap((page) => {
+      const pageResults = page.results as unknown as [unknown, Note[]];
+      return pageResults[1] || [];
+    });
 
     if (allNotes.length === 0) {
       return <p className="text-center text-sm text-white/40">검색 결과가 없습니다</p>;
@@ -65,7 +67,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
 
     return (
       <div className="space-y-2">
-        {allNotes.map((note) => (
+        {allNotes.map((note: Note) => (
           <NoteItem
             key={note.id}
             note={note}
