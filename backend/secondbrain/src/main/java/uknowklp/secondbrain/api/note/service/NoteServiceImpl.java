@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.domain.Note;
 import uknowklp.secondbrain.api.note.domain.NoteDocument;
+import uknowklp.secondbrain.api.note.dto.KnowledgeGraphEvent;
 import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
 import uknowklp.secondbrain.api.note.dto.NoteReminderResponse;
 import uknowklp.secondbrain.api.note.dto.NoteReminderResult;
@@ -36,6 +37,8 @@ public class NoteServiceImpl implements NoteService {
 	private final UserService userService;
 	private final NoteSearchService noteSearchService;
 	private final ReminderProducerService reminderProducerService;
+	private final KnowledgeGraphProducerService knowledgeGraphProducerService;
+
 	// TODO: S3 업로드 서비스 추가 예정
 	// private final S3UploadService s3UploadService;
 
@@ -76,6 +79,14 @@ public class NoteServiceImpl implements NoteService {
 			log.error("Elasticsearch 인덱싱 실패 - 노트 ID: {}", savedNote.getId(), e);
 			// Elasticsearch 인덱싱 실패는 메인 로직에 영향 없음
 		}
+
+		// 지식 그래프 created 이벤트 발행
+		knowledgeGraphProducerService.publishNoteCreated(
+			savedNote.getId(),
+			userId,
+			savedNote.getTitle(),
+			savedNote.getContent()
+		);
 
 		return savedNote;
 	}
@@ -120,8 +131,12 @@ public class NoteServiceImpl implements NoteService {
 		// 이미지 파일 처리 및 마크다운 content 생성
 		String finalContent = processImagesAndContent(request.getContent(), request.getImages());
 
-		// 최종 content 길이 검증
+		// 최종 content 길이 검증 (현재는 길이 제한 없음)
 		validateContentLength(finalContent);
+
+		// 변경 전 값 저장 (지식 그래프 검증용)
+		String oldTitle = note.getTitle();
+		String oldContent = note.getContent();
 
 		// 노트 수정 (updatedAt은 @UpdateTimestamp로 자동 갱신)
 		note.update(request.getTitle(), finalContent);
@@ -138,6 +153,16 @@ public class NoteServiceImpl implements NoteService {
 		} catch (Exception e) {
 			log.error("Elasticsearch 인덱스 업데이트 실패 - 노트 ID: {}", noteId, e);
 		}
+
+		// 지식 그래프 updated 이벤트 발행
+		knowledgeGraphProducerService.publishNoteUpdated(
+			updatedNote.getId(),
+			userId,
+			oldTitle,
+			updatedNote.getTitle(),
+			oldContent,
+			updatedNote.getContent()
+		);
 
 		return NoteResponse.from(updatedNote);
 	}
@@ -185,6 +210,11 @@ public class NoteServiceImpl implements NoteService {
 			log.info("Elasticsearch bulk 삭제 완료 - 삭제된 노트 수: {}", elasticNoteIds.size());
 		} catch (Exception e) {
 			log.error("Elasticsearch bulk 삭제 실패", e);
+		}
+
+		// 지식 그래프 deleted 이벤트 발행
+		for (Note note : notesToDelete) {
+			knowledgeGraphProducerService.publishNoteDeleted(note.getId(), userId);
 		}
 	}
 

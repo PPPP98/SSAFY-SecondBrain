@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.CustomExchange;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
@@ -69,4 +70,43 @@ public class RabbitMQConfig {
 		return template;
 	}
 
+	// 지식 그래프 이벤트 저장하는 큐
+	@Bean
+	public Queue knowledgeGraphQueue(){
+		return QueueBuilder.durable("knowledge_graph.queue")
+			.build();
+	}
+
+	// 지식 그래프 이벤트용 Topic Exchange
+	@Bean
+	public TopicExchange knowledgeGraphExchange(){
+		return new TopicExchange("knowledge_graph_events", true, false);
+	}
+
+	// note created 바인딩
+	@Bean
+	public Binding noteCreatedBinding(Queue knowledgeGraphQueue, TopicExchange knowledgeGraphExchange){
+		return BindingBuilder
+			.bind(knowledgeGraphQueue)
+			.to(knowledgeGraphExchange)
+			.with("note.created");
+	}
+
+	// note updated 바인딩
+	@Bean
+	public Binding noteUpdatedBinding(Queue knowledgeGraphQueue, TopicExchange knowledgeGraphExchange){
+		return BindingBuilder
+			.bind(knowledgeGraphQueue)
+			.to(knowledgeGraphExchange)
+			.with("note.updated");
+	}
+
+	// note deleted 바인딩
+	@Bean
+	public Binding noteDeletedBinding(Queue knowledgeGraphQueue, TopicExchange knowledgeGraphExchange){
+		return BindingBuilder
+			.bind(knowledgeGraphQueue)
+			.to(knowledgeGraphExchange)
+			.with("note.deleted");
+	}
 }
