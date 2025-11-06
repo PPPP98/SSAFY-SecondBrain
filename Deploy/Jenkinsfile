@@ -403,7 +403,7 @@ pipeline {
               def currentColor = sh(
                 script: """
                   if docker exec ${NGINX_CONTAINER} test -f ${ACTIVE_COLOR_FILE}; then
-                    docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \\$NF}' | tr -d ';'"
+                    docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \$3}' | tr -d ';'"
                   else
                     echo blue
                   fi
@@ -571,7 +571,7 @@ pipeline {
           def activeColor = sh(
             script: """
               if docker exec ${NGINX_CONTAINER} test -f ${ACTIVE_COLOR_FILE}; then
-                docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \\$NF}' | tr -d ';'"
+                docker exec ${NGINX_CONTAINER} sh -c "grep -E 'set .*active_color' ${ACTIVE_COLOR_FILE} | awk '{print \$3}' | tr -d ';'"
               else
                 echo blue
               fi
