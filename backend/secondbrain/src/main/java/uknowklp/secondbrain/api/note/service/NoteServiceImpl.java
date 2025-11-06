@@ -188,11 +188,6 @@ public class NoteServiceImpl implements NoteService {
 		}
 	}
 
-	/**
-	 * 노트 요청 데이터 검증
-	 * @param request 노트 생성 요청 DTO
-	 * @throws BaseException 검증 실패 시
-	 */
 	private void validateNoteRequest(NoteRequest request) {
 		// title 검증
 		if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
@@ -204,25 +199,14 @@ public class NoteServiceImpl implements NoteService {
 			throw new BaseException(BaseResponseStatus.NOTE_TITLE_TOO_LONG);
 		}
 
-		// content 검증
+		// content 검증 (TEXT 타입으로 길이 제한 제거)
 		if (request.getContent() == null || request.getContent().trim().isEmpty()) {
 			log.warn("Note content is empty");
 			throw new BaseException(BaseResponseStatus.NOTE_CONTENT_EMPTY);
 		}
-		if (request.getContent().length() > 2048) {
-			log.warn("Note content too long: {} characters", request.getContent().length());
-			throw new BaseException(BaseResponseStatus.NOTE_CONTENT_TOO_LONG);
-		}
+		// content 길이 제한 제거 (TEXT 타입은 무제한)
 	}
 
-	/**
-	 * 이미지 파일들을 S3에 업로드하고 마크다운 형식으로 content에 삽입
-	 * 현재는 S3 연동 전이므로 placeholder 로직
-	 *
-	 * @param originalContent 원본 content
-	 * @param images 업로드할 이미지 파일 목록
-	 * @return 이미지 마크다운이 포함된 최종 content
-	 */
 	private String processImagesAndContent(String originalContent, List<MultipartFile> images) {
 		if (images == null || images.isEmpty()) {
 			return originalContent;
@@ -258,19 +242,9 @@ public class NoteServiceImpl implements NoteService {
 		return contentBuilder.toString().trim();
 	}
 
-	/**
-	 * 최종 content 길이 검증
-	 * 이미지 마크다운 추가 후 DB 제약조건(2048자)을 초과하는지 확인
-	 *
-	 * @param content 검증할 content
-	 * @throws BaseException content가 2048자를 초과하는 경우
-	 */
 	private void validateContentLength(String content) {
-		final int MAX_CONTENT_LENGTH = 2048;
-		if (content != null && content.length() > MAX_CONTENT_LENGTH) {
-			log.warn("Content length exceeds maximum: {} > {}", content.length(), MAX_CONTENT_LENGTH);
-			throw new BaseException(BaseResponseStatus.BAD_REQUEST);
-		}
+		// TEXT 타입으로 변경되어 길이 제한 제거
+		// 향후 필요시 합리적인 제한 추가 가능 (예: 1MB)
 	}
 
 	@Override

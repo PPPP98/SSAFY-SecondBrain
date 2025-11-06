@@ -28,9 +28,8 @@ public class NoteRequest {
 	@Size(max = 64, message = "제목은 최대 64자까지 입력 가능합니다.")
 	private String title;
 
-	@Schema(description = "노트 내용", example = "멀티 테스트 내용", requiredMode = Schema.RequiredMode.REQUIRED)
+	@Schema(description = "노트 내용 (TEXT 타입, 무제한)", example = "멀티 테스트 내용", requiredMode = Schema.RequiredMode.REQUIRED)
 	@NotBlank(message = "내용은 필수입니다.")
-	@Size(max = 2048, message = "내용은 최대 2048자까지 입력 가능합니다.")
 	private String content;
 
 	/**
