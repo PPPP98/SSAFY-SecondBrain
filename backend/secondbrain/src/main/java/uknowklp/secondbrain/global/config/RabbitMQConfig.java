@@ -70,10 +70,10 @@ public class RabbitMQConfig {
 		return template;
 	}
 
-	// 지식 그래프 이벤트 저장하는 큐
+	// 노트 생성 이벤트 큐 (FastAPI Consumer가 사용 중)
 	@Bean
-	public Queue knowledgeGraphQueue(){
-		return QueueBuilder.durable("knowledge_graph.queue")
+	public Queue noteCreationQueue(){
+		return QueueBuilder.durable("note_creation_queue")
 			.build();
 	}
 
@@ -83,30 +83,12 @@ public class RabbitMQConfig {
 		return new TopicExchange("knowledge_graph_events", true, false);
 	}
 
-	// note created 바인딩
+	// note.* 바인딩 (created, updated, deleted 모두 포함)
 	@Bean
-	public Binding noteCreatedBinding(Queue knowledgeGraphQueue, TopicExchange knowledgeGraphExchange){
+	public Binding noteEventsBinding(Queue noteCreationQueue, TopicExchange knowledgeGraphExchange){
 		return BindingBuilder
-			.bind(knowledgeGraphQueue)
+			.bind(noteCreationQueue)
 			.to(knowledgeGraphExchange)
-			.with("note.created");
-	}
-
-	// note updated 바인딩
-	@Bean
-	public Binding noteUpdatedBinding(Queue knowledgeGraphQueue, TopicExchange knowledgeGraphExchange){
-		return BindingBuilder
-			.bind(knowledgeGraphQueue)
-			.to(knowledgeGraphExchange)
-			.with("note.updated");
-	}
-
-	// note deleted 바인딩
-	@Bean
-	public Binding noteDeletedBinding(Queue knowledgeGraphQueue, TopicExchange knowledgeGraphExchange){
-		return BindingBuilder
-			.bind(knowledgeGraphQueue)
-			.to(knowledgeGraphExchange)
-			.with("note.deleted");
+			.with("note.*");
 	}
 }
