@@ -64,11 +64,16 @@ public class NoteDraftService {
 	 * - 사용자별 SET에 noteId 추가하여 O(1) 조회 성능 보장
 	 * - KEYS 명령어 사용 불필요
 	 *
+	 * 성능 최적화 (v3):
+	 * - NoteDraft 객체 직접 반환으로 Redis 재조회 제거
+	 * - Controller에서 getDraft() 불필요 → Redis 네트워크 호출 50% 감소
+	 * - 자동 저장 빈번한 시나리오에서 성능 향상 (100회 저장 시 100회 Redis 호출 제거)
+	 *
 	 * @param userId  사용자 ID
 	 * @param request Draft 요청
-	 * @return 저장된 noteId (새 노트의 경우 UUID 생성)
+	 * @return 저장된 NoteDraft 객체 (version 포함)
 	 */
-	public String saveDraft(Long userId, NoteDraftRequest request) {
+	public NoteDraft saveDraft(Long userId, NoteDraftRequest request) {
 		try {
 			// 최소 검증: title 또는 content 중 하나라도 있어야 함
 			if (!request.isValid()) {
@@ -119,7 +124,8 @@ public class NoteDraftService {
 			log.info("Draft 저장 완료 - NoteId: {}, UserId: {}, Version: {}",
 				noteId, userId, draft.getVersion());
 
-			return noteId;
+			// NoteDraft 객체 직접 반환 (Redis 재조회 불필요)
+			return draft;
 
 		} catch (BaseException e) {
 			throw e;
