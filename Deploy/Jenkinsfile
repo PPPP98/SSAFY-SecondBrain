@@ -188,10 +188,16 @@ pipeline {
           try {
             def action = (env.GL_MR_ACTION ?: "").toLowerCase()
             def state  = (env.GL_MR_STATE  ?: "").toLowerCase()
-            def branchToCheckout
 
+            def src = env.GL_MR_SOURCE ?: env.DEVELOP_BRANCH
+            def tgt = env.GL_MR_TARGET ?: env.DEVELOP_BRANCH
+
+            def branchToCheckout
             if (action == "merge" && state == "merged") {
-              branchToCheckout = env.GL_MR_SOURCE ?: env.DEVELOP_BRANCH
+              branchToCheckout = tgt
+              echo "Merged MR detected. Checkout TARGET branch: ${branchToCheckout}"
+            } else {
+              branchToCheckout = src
               echo "Non-merged MR. Checkout SOURCE branch: ${branchToCheckout}"
             }
 
