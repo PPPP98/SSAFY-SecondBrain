@@ -1,14 +1,14 @@
-from langchain.chat_models import init_chat_model
+from langchain.agents import create_agent
 from app.core.config import get_settings
+from app.agents.note_summarize_agent.prompts import SummarizePrompts
+import os
+
 
 settings = get_settings()
+os.environ["OPENAI_API_KEY"] = settings.openai_api_key
+os.environ["OPENAI_API_BASE"] = settings.openai_base_url
 
-model = init_chat_model(
-    model=settings.summarize_model,
-    temperature=settings.summarize_temperature,
+agent = create_agent(
+    model=settings.openai_model,
+    system_prompt=SummarizePrompts.SYSTEMPROMPT,
 )
-
-
-test = model.invoke("Hello")
-
-print(test)  # 테스트 출력

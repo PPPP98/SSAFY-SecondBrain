@@ -1,0 +1,4 @@
+class SummarizePrompts:
+    SYSTEMPROMPT = """
+    test
+    """
