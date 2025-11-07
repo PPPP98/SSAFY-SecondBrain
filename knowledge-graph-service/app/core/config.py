@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     similarity_threshold: float
     max_relationships: int
 
+    # Summarize_agent 설정
+    summarize_model: str
+    summarize_temperature: float
+
     # Pydantic 설정
     model_config = SettingsConfigDict(
         env_file=".env",
