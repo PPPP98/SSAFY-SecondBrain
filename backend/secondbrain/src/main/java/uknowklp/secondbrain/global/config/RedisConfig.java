@@ -8,13 +8,7 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import uknowklp.secondbrain.api.note.domain.NoteDraft;
 
@@ -74,44 +68,6 @@ public class RedisConfig {
 	}
 
 	/**
-	 * Redis 직렬화용 ObjectMapper 빈 생성
-	 *
-	 * LocalDateTime 직렬화 지원:
-	 * - JavaTimeModule 등록으로 LocalDateTime, ZonedDateTime 등 지원
-	 * - ISO-8601 포맷 사용 (타임스탬프 배열 방지)
-	 * - 이전: [2025, 11, 6, 14, 30] → 개선: "2025-11-06T14:30:00"
-	 *
-	 * 재사용성:
-	 * - NoteDraft RedisTemplate에서 사용
-	 * - 향후 다른 도메인의 RedisTemplate에서도 재사용 가능
-	 *
-	 * @return LocalDateTime 직렬화를 지원하는 ObjectMapper
-	 * @see <a href="https://github.com/FasterXML/jackson-modules-java8">Jackson Java 8 Modules</a>
-	 */
-	@Bean
-	public ObjectMapper redisObjectMapper() {
-		ObjectMapper objectMapper = new ObjectMapper();
-
-		// JavaTimeModule 등록 (LocalDateTime, ZonedDateTime 등 지원)
-		objectMapper.registerModule(new JavaTimeModule());
-
-		// 타임스탬프 대신 ISO-8601 포맷 사용
-		objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
-		// 필드 접근 가능하도록 설정
-		objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-
-		// 타입 정보 포함 (다형성 지원)
-		objectMapper.activateDefaultTyping(
-			LaissezFaireSubTypeValidator.instance,
-			ObjectMapper.DefaultTyping.NON_FINAL,
-			JsonTypeInfo.As.PROPERTY
-		);
-
-		return objectMapper;
-	}
-
-	/**
 	 * NoteDraft 전용 타입 특화 RedisTemplate 빈 생성
 	 *
 	 * 성능 최적화 및 타입 안정성을 위한 전용 템플릿:
@@ -125,17 +81,24 @@ public class RedisConfig {
 	 * - ISO-8601 포맷으로 안전한 직렬화
 	 * - @class 타입 정보 제거 (프론트엔드 호환성)
 	 *
+	 * 리팩토링 (v3):
+	 * - ObjectMapper 주입 방식으로 변경
+	 *   - 이유: JacksonConfig의 공통 Bean 사용
+	 *   - 효과: 코드 중복 제거, 일관성 보장
+	 *
 	 * 사용처:
 	 * - NoteDraftService의 모든 Draft 저장/조회 작업
 	 * - NoteDraftAutoSaveService의 자동 저장 스케줄러
 	 *
 	 * @param connectionFactory Spring Boot가 자동 생성한 RedisConnectionFactory
+	 * @param objectMapper      JacksonConfig에서 생성한 공통 ObjectMapper Bean
 	 * @return NoteDraft 타입 특화 RedisTemplate 인스턴스
 	 * @see <a href="https://docs.spring.io/spring-data/redis/docs/current/reference/html/#redis:serializer">Redis Serializers</a>
 	 */
 	@Bean
 	public RedisTemplate<String, NoteDraft> noteDraftRedisTemplate(
-		RedisConnectionFactory connectionFactory) {
+		RedisConnectionFactory connectionFactory,
+		ObjectMapper objectMapper) { // 공통 ObjectMapper Bean 주입
 
 		RedisTemplate<String, NoteDraft> template = new RedisTemplate<>();
 		template.setConnectionFactory(connectionFactory);
@@ -146,14 +109,10 @@ public class RedisConfig {
 		template.setHashKeySerializer(stringSerializer);
 
 		// Value Serializer: NoteDraft 타입 특화 Jackson 직렬화
+		// 주입받은 ObjectMapper 사용 (코드 중복 제거)
 		// @class 타입 정보 없이 직렬화 (프론트엔드 호환성)
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.registerModule(new JavaTimeModule());
-		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		// activateDefaultTyping 제거 → @class 불필요
-
 		Jackson2JsonRedisSerializer<NoteDraft> jsonSerializer =
-			new Jackson2JsonRedisSerializer<>(mapper, NoteDraft.class);
+			new Jackson2JsonRedisSerializer<>(objectMapper, NoteDraft.class);
 
 		template.setValueSerializer(jsonSerializer);
 		template.setHashValueSerializer(jsonSerializer);

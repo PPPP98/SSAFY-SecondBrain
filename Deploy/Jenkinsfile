@@ -186,24 +186,36 @@ pipeline {
       steps {
         script {
           try {
+            def action = (env.GL_MR_ACTION ?: "").toLowerCase()
+            def state  = (env.GL_MR_STATE  ?: "").toLowerCase()
+
+            def src = env.GL_MR_SOURCE ?: env.DEVELOP_BRANCH
+            def tgt = env.GL_MR_TARGET ?: env.DEVELOP_BRANCH
+
+            def branchToCheckout
+            if (action == "merge" && state == "merged") {
+              branchToCheckout = tgt
+              echo "Merged MR detected. Checkout TARGET branch: ${branchToCheckout}"
+            } else {
+              branchToCheckout = src
+              echo "Non-merged MR. Checkout SOURCE branch: ${branchToCheckout}"
+            }
+
             checkout([$class: 'GitSCM',
-              branches: [[name: "*/${env.GL_MR_SOURCE ?: env.DEVELOP_BRANCH}"]],
-              userRemoteConfigs: [[url: env.GIT_URL_HTTPS, credentialsId: env.GIT_CREDS_HTTPS]]
+              branches: [[name: "*/${branchToCheckout}"]],
+              userRemoteConfigs: [[
+                url: env.GIT_URL_HTTPS,
+                credentialsId: env.GIT_CREDS_HTTPS
+              ]]
             ])
+
             sh '''
               set -eu
-              git fetch --no-tags origin "${GL_MR_TARGET}:${GL_MR_TARGET}" || true
+              git branch --show-current || true
+              git log -1 --oneline || true
             '''
-
-            if ((env.GL_MR_ACTION ?: "") == "merge" && (env.GL_MR_STATE ?: "") == "merged") {
-              sh '''
-                set -eu
-                git checkout "${GL_MR_TARGET}"
-                git pull origin "${GL_MR_TARGET}"
-              '''
-            }
           } catch (e) {
-            mmNotify(status:'failure', category:'checkout', template:'failure', extra: clipText(e.toString()))
+            mmNotify(status:'failure', category:'checkout', template:'failure', extra: "checkout failed")
             error "Checkout failed: ${e}"
           }
         }
@@ -499,12 +511,14 @@ pipeline {
                 sh """
                   set -eux
                   docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${nextAiService}
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build note_consumer
                 """
               } else {
                 echo "AI not changed — ensure ${nextAiService} is up without rebuild"
                 sh """
                   set -eux
                   docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build ${nextAiService}
+                  docker compose --env-file Deploy/.env -f "$COMPOSE_FILE" up -d --build note_consumer
                 """
               }
 

@@ -59,6 +59,11 @@ public class NoteDraftController {
 	 * 프론트엔드 Debouncing 후 호출됨 (500ms)
 	 * 검증: title 또는 content 중 하나라도 있으면 저장
 	 *
+	 * 성능 최적화 (v3):
+	 * - Service에서 NoteDraft 객체 직접 반환받아 Redis 재조회 제거
+	 * - Redis 네트워크 호출 감소 (2회 → 1회)
+	 * - 자동 저장 빈번한 호출 시 누적 성능 향상
+	 *
 	 * @param userDetails 인증된 사용자 정보
 	 * @param request     Draft 요청 (title, content, version)
 	 * @return 저장된 Draft 정보 (version 포함)
@@ -73,10 +78,8 @@ public class NoteDraftController {
 		log.info("Draft 저장 요청 - UserId: {}, NoteId: {}",
 			user.getId(), request.getNoteId());
 
-		String noteId = noteDraftService.saveDraft(user.getId(), request);
-
-		// Draft 조회하여 응답 생성
-		NoteDraft draft = noteDraftService.getDraft(noteId, user.getId());
+		// NoteDraft 객체 직접 반환받음 (Redis 1회 호출)
+		NoteDraft draft = noteDraftService.saveDraft(user.getId(), request);
 		NoteDraftResponse draftResponse = NoteDraftResponse.from(draft);
 
 		BaseResponse<NoteDraftResponse> response = new BaseResponse<>(draftResponse);
