@@ -103,7 +103,7 @@ def process_note_created(
         logger.debug("생성 메시지 처리 완료")
 
     except Exception as e:
-        logger.error(f"❌ 노트 생성 처리 실패")
+        logger.error(f"❌ 노트 생성 처리 실패 - {e}")
         # retry
         # retry_count = getattr(properties.headers or {}, "x-retry-count", 0)
 
@@ -184,7 +184,7 @@ def process_note_updated(
         logger.debug("수정 메시지 처리 완료")
 
     except Exception as e:
-        logger.error(f"❌ 노트 수정 처리 실패")
+        logger.error(f"❌ 노트 수정 처리 실패 - {e}")
         # retry
         # retry_count = getattr(properties.headers or {}, "x-retry-count", 0)
         # if retry_count < MAX_RETRIES:
@@ -237,7 +237,7 @@ def process_note_deleted(
         logger.debug("삭제 메시지 처리 완료")
 
     except Exception as e:
-        logger.error(f"❌ 노트 삭제 처리 실패")
+        logger.error(f"❌ 노트 삭제 처리 실패 - {e}")
         # retry
         # retry_count = getattr(properties.headers or {}, "x-retry-count", 0)
         # if retry_count < MAX_RETRIES:
