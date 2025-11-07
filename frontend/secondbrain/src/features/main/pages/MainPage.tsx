@@ -35,7 +35,7 @@ export function MainPage() {
           <Graph />
         </div>
       </MainLayout>
-      <div className="absolute left-0 top-0 z-40 flex size-full flex-col">
+      <div className="absolute left-10 top-10 z-40 h-[calc(100%-5rem)] w-[27%] bg-transparent">
         {isOpen && <SearchPanel />}
       </div>
     </div>

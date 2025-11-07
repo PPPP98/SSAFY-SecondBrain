@@ -14,7 +14,7 @@ export const STYLE_CONFIG = {
       type: 'checkbox' as const,
     },
     md: {
-      scale: 'p-4 px-6 text-base',
+      scale: 'px-6 text-base',
       size: 'w-[22rem] h-14',
       borderRadius: 'rounded-3xl',
       type: 'text' as const,
@@ -22,9 +22,9 @@ export const STYLE_CONFIG = {
     elementSpecific: 'block appearance-none outline-none focus:outline-none',
   },
   div: {
-    scale: 'p-6 px-8 text-xl',
-    size: 'w-[27rem]',
+    scale: 'p-4 px-8 text-xl',
+    size: 'w-[25rem]',
     borderRadius: 'rounded-3xl',
-    elementSpecific: '',
+    elementSpecific: 'flex flex-row',
   },
 } as const;

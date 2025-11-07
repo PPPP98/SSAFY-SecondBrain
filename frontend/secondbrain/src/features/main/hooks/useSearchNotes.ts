@@ -21,16 +21,13 @@ export function useSearchNotes({ keyword }: UseSearchNotesParams) {
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
-      // 서버 사이드 페이지네이션
-      const { currentPage, totalPages } = lastPage;
-
-      // 다음 페이지가 있는지 확인
-      if (currentPage < totalPages - 1) {
-        return currentPage + 1;
+      if (lastPage.hasNext) {
+        const currentPageParam =
+          (lastPage as SearchNoteData & { pageParam?: number }).pageParam ?? 0;
+        return currentPageParam + 1;
       }
       return undefined;
     },
-    // 검색어가 있을 때만 실행
     enabled: keyword.trim().length > 0,
   });
 }

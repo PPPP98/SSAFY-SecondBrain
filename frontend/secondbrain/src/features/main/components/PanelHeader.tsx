@@ -34,22 +34,29 @@ export function PanelHeader({ allNoteIds }: PanelHeaderProps) {
   };
 
   return (
-    <div className="flex items-center justify-between border-b border-white/20 p-4">
+    <div className="mb-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
         {/* 전체 선택 체크박스 */}
-        <button
+        <GlassElement
+          as="button"
           onClick={handleSelectAll}
-          className={`flex size-5 items-center justify-center rounded border-2 transition-all ${
-            isAllSelected
-              ? 'border-white bg-white'
-              : hasSelection
-                ? 'border-white/60 bg-white/20'
-                : 'border-white/40 bg-transparent hover:border-white/60'
-          }`}
+          className="flex items-center justify-center"
           aria-label="전체 선택"
         >
-          {isAllSelected && <CheckBoxIcon className="size-4 text-black" />}
-        </button>
+          <div
+            className={`flex size-4 items-center justify-center rounded-sm border-2 transition-all ${
+              isAllSelected
+                ? 'border-white bg-white'
+                : 'border-white/80 bg-transparent hover:border-white'
+            }`}
+          >
+            {isAllSelected && (
+              <div className="size-full bg-white">
+                <CheckBoxIcon className="size-full text-black" />
+              </div>
+            )}
+          </div>
+        </GlassElement>
 
         {/* 선택된 항목 수 및 삭제 버튼 */}
         {hasSelection && (
@@ -58,18 +65,15 @@ export function PanelHeader({ allNoteIds }: PanelHeaderProps) {
             icon={<DeleteIcon />}
             onClick={handleDelete}
             // disabled={deleteMutation.isPending} 삭제 훅 연결 후 활성화
-            className="px-3 py-1.5 text-sm font-medium text-white"
+            className="text-white"
           />
         )}
       </div>
 
       {/* 닫기 버튼 */}
-      <button
-        onClick={closePanel}
-        className="flex size-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-      >
-        <DoubleArrow />
-      </button>
+      <GlassElement as="button" onClick={closePanel} className="flex items-center justify-center">
+        <DoubleArrow className="text-white/80" />
+      </GlassElement>
     </div>
   );
 }

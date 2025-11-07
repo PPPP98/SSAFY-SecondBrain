@@ -46,26 +46,22 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
 
   if (type === 'recent' && recentQuery) {
     if (recentQuery.isLoading) {
-      return <p className="text-center text-sm text-white/60">로딩 중...</p>;
-    }
-
-    if (recentQuery.isError) {
-      return <p className="text-center text-sm text-red-400">에러가 발생했습니다</p>;
+      return <p className="m-0 text-center text-sm text-white/60">로딩 중...</p>;
     }
 
     if (!recentQuery.data) {
-      return <p className="text-center text-sm text-white/40">최근 노트가 없습니다</p>;
+      return <p className="m-0 text-center text-sm text-white/40">최근 노트가 없습니다</p>;
     }
 
     // 인덱스 1번에 실제 노트 데이터 배열이 있음
     const noteData = (recentQuery.data as unknown as [unknown, RecentNote[]])[1];
 
     if (!noteData || noteData.length === 0) {
-      return <p className="text-center text-sm text-white/40">최근 노트가 없습니다</p>;
+      return <p className="m-0 text-center text-sm text-white/40">최근 노트가 없습니다</p>;
     }
 
     return (
-      <div className="space-y-2">
+      <div className="w-full space-y-4">
         {noteData.map((note) => (
           <NoteItem
             key={note.noteId}
@@ -80,11 +76,11 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
 
   if (type === 'search' && searchQuery) {
     if (searchQuery.isError) {
-      return <p className="text-center text-sm text-red-400">검색 에러</p>;
+      return <p className="m-0 text-center text-sm text-red-400">검색 에러</p>;
     }
 
     if (!searchQuery.data) {
-      return <p className="text-center text-sm text-yellow-400">검색어를 입력하세요</p>;
+      return null;
     }
 
     const allNotes = searchQuery.data.pages.flatMap((page) => {
@@ -93,12 +89,12 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
     });
 
     if (allNotes.length === 0) {
-      return <p className="text-center text-sm text-white/40">검색 결과가 없습니다</p>;
+      return null;
     }
 
     return (
       <>
-        <div className="space-y-2">
+        <div className="w-full space-y-4">
           {allNotes.map((note: Note) => (
             <NoteItem
               key={note.id}
@@ -114,12 +110,14 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
 
         {/* 다음 페이지 로딩 중 표시 */}
         {searchQuery.isFetchingNextPage && (
-          <p className="py-4 text-center text-sm text-white/60">더 불러오는 중...</p>
+          <p className="m-0 py-4 text-center text-sm text-white/60">더 불러오는 중...</p>
         )}
 
         {/* 마지막 페이지 도달 */}
         {!searchQuery.hasNextPage && allNotes.length > 0 && (
-          <p className="py-4 text-center text-sm text-white/40">모든 검색 결과를 불러왔습니다</p>
+          <p className="m-0 py-4 text-center text-sm text-white/40">
+            모든 검색 결과를 불러왔습니다
+          </p>
         )}
       </>
     );

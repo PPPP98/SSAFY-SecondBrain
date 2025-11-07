@@ -7,7 +7,7 @@ import {
   getBorderRadius,
   getElementSpecificClasses,
   getInputType,
-} from './glassElement.utils';
+} from '@/shared/components/GlassElement/glassElement.utils';
 import { useGlassEffect } from './useGlassEffect';
 
 type ElementType = 'button' | 'input' | 'div';
@@ -17,13 +17,15 @@ export type GlassElementProps<El extends ElementType> = {
   icon?: ReactNode;
   scale?: El extends 'input' ? 'sm' | 'md' : never;
   children?: React.ReactNode;
-} & Omit<ComponentPropsWithoutRef<El>, 'as' | 'icon' | 'scale'>;
+  innerClassName?: string;
+} & Omit<ComponentPropsWithoutRef<El>, 'as' | 'icon' | 'scale' | 'innerClassName'>;
 
 const GlassElement = <El extends ElementType>({
   as,
   icon,
   scale,
   className = '',
+  innerClassName = '',
   children,
   ...props
 }: GlassElementProps<El>) => {
@@ -42,7 +44,7 @@ const GlassElement = <El extends ElementType>({
     'bg-white/15 font-medium text-white shadow-[0px_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-[3.5px]';
 
   // 최종 className 조합 (명확하고 가독성 높은 구조)
-  const baseClassName = `${baseStyles} ${elementSpecific} ${borderRadius} ${glassStyles} ${scaleClasses} ${sizeClasses}`;
+  const baseClassName = `${baseStyles} ${elementSpecific} ${borderRadius} ${glassStyles} ${scaleClasses} ${sizeClasses} ${innerClassName}`;
 
   // children 렌더링 로직
   const elementChildren =
@@ -89,7 +91,7 @@ const GlassElement = <El extends ElementType>({
   return (
     <div
       ref={wrapperRef}
-      className={`relative ${as === 'input' ? 'w-fit' : as === 'div' ? 'w-[27rem]' : 'w-fit'} ${className}`}
+      className={`relative ${as === 'input' ? 'w-fit' : as === 'div' ? 'w-[25rem]' : 'w-fit'} ${className}`}
     >
       {/* Glass 본체 (컨텐츠 영역) */}
       {renderElement()}

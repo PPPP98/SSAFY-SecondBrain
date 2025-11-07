@@ -36,7 +36,7 @@ export function SearchPanel() {
   return (
     <>
       <PanelHeader allNoteIds={allNoteIds} />
-      <div className="flex-1 overflow-y-auto p-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="m-0 flex w-full flex-1 flex-col overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {mode === 'recent' && <NoteList type="recent" recentQuery={recentNotesQuery} />}
         {mode === 'search' && <NoteList type="search" searchQuery={searchNotesQuery} />}
       </div>
