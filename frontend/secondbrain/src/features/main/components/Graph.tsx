@@ -21,7 +21,7 @@ export const Graph = () => {
       nodes: graphData.nodes,
       links: graphData.links,
     };
-  }, [graphData?.nodes, graphData?.links]);
+  }, [graphData]);
 
   if (isLoading) {
     return <LoadingSpinner message="그래프 로딩 중..." />;
@@ -30,7 +30,7 @@ export const Graph = () => {
   if (isError) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-white-500 text-lg">그래프 데이터를 불러오는데 실패했습니다.</p>
+        <p className="text-lg text-gray-500">그래프 데이터를 불러오는데 실패했습니다.</p>
       </div>
     );
   }
