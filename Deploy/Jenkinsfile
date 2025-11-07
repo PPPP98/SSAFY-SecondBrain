@@ -194,6 +194,14 @@ pipeline {
               set -eu
               git fetch --no-tags origin "${GL_MR_TARGET}:${GL_MR_TARGET}" || true
             '''
+
+            if ((env.GL_MR_ACTION ?: "") == "merge" && (env.GL_MR_STATE ?: "") == "merged") {
+              sh '''
+                set -eu
+                git checkout "${GL_MR_TARGET}"
+                git pull origin "${GL_MR_TARGET}"
+              '''
+            }
           } catch (e) {
             mmNotify(status:'failure', category:'checkout', template:'failure', extra: clipText(e.toString()))
             error "Checkout failed: ${e}"
