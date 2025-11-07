@@ -202,14 +202,14 @@ pipeline {
                 credentialsId: env.GIT_CREDS_HTTPS
               ]]
             ])
-            
+
             sh '''
               set -eu
               git branch --show-current || true
               git log -1 --oneline || true
             '''
           } catch (e) {
-            mmNotify(status:'failure', category:'checkout', template:'failure', extra: clipText(e.toString()))
+            mmNotify(status:'failure', category:'checkout', template:'failure', extra: "checkout failed")
             error "Checkout failed: ${e}"
           }
         }
