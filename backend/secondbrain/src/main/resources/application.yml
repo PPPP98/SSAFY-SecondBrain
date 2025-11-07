@@ -32,13 +32,7 @@ spring:
     virtual-host: ${RABBITMQ_VIRTUAL_HOST}
     ssl:
       enabled: ${RABBITMQ_SSL_ENABLED}
-    listener:
-      simple:
-        retry:
-          enabled: true
-          initial-interval: 3000
-          max-attempts: 3
-          multiplier: 2
+
 
   jpa:
     hibernate:
@@ -102,3 +96,11 @@ logging:
   level:
     root: INFO
     uknowklp.secondbrain: DEBUG
+
+# GMS API 설정
+gms:
+  api-key: ${GMS_API_KEY}
+  model: ${GMS_MODEL}
+  base-url: ${GMS_BASE_URL}
+  max-tokens: ${GMS_MAX_TOKENS}
+  temperature: ${GMS_TEMPERATURE}
