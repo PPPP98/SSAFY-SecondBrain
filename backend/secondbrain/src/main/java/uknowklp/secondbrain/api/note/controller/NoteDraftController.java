@@ -61,11 +61,11 @@ public class NoteDraftController {
 	 *
 	 * @param userDetails 인증된 사용자 정보
 	 * @param request     Draft 요청 (title, content, version)
-	 * @return 저장된 noteId
+	 * @return 저장된 Draft 정보 (version 포함)
 	 */
 	@PostMapping
 	@Operation(summary = "Draft 저장", description = "노트 임시 저장 (Auto-save)")
-	public ResponseEntity<BaseResponse<String>> saveDraft(
+	public ResponseEntity<BaseResponse<NoteDraftResponse>> saveDraft(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@Valid @RequestBody NoteDraftRequest request) {
 
@@ -75,7 +75,11 @@ public class NoteDraftController {
 
 		String noteId = noteDraftService.saveDraft(user.getId(), request);
 
-		BaseResponse<String> response = new BaseResponse<>(noteId);
+		// Draft 조회하여 응답 생성
+		NoteDraft draft = noteDraftService.getDraft(noteId, user.getId());
+		NoteDraftResponse draftResponse = NoteDraftResponse.from(draft);
+
+		BaseResponse<NoteDraftResponse> response = new BaseResponse<>(draftResponse);
 		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
