@@ -20,7 +20,7 @@ export type GlassElementProps<El extends ElementType> = {
   innerClassName?: string;
 } & Omit<ComponentPropsWithoutRef<El>, 'as' | 'icon' | 'scale' | 'innerClassName'>;
 
-const GlassElement = <El extends ElementType>({
+export const GlassElement = <El extends ElementType>({
   as,
   icon,
   scale,
@@ -122,5 +122,3 @@ const GlassElement = <El extends ElementType>({
     </div>
   );
 };
-
-export { GlassElement };

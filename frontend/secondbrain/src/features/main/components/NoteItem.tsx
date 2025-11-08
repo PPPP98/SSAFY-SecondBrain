@@ -1,4 +1,4 @@
-import GlassElement from '@/shared/components/GlassElement/GlassElement';
+import { GlassElement } from '@/shared/components/GlassElement/GlassElement';
 import CheckBoxIcon from '@/shared/components/icon/CheckBox.svg?react';
 
 interface NoteItemProps {

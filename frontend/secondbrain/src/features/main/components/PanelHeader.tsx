@@ -1,5 +1,5 @@
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
-import GlassElement from '@/shared/components/GlassElement/GlassElement';
+import { GlassElement } from '@/shared/components/GlassElement/GlassElement';
 import DoubleArrow from '@/shared/components/icon/DoubleArrow.svg?react';
 import CheckBoxIcon from '@/shared/components/icon/CheckBox.svg?react';
 import DeleteIcon from '@/shared/components/icon/Delete.svg?react';
