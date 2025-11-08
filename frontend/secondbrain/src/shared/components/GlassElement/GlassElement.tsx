@@ -59,6 +59,9 @@ const GlassElement = <El extends ElementType>({
       </>
     ) : null;
 
+  // input에 아이콘이 있을 경우 wrapper 처리
+  const hasInputIcon = as === 'input' && icon;
+
   // 타입 안전성을 위해 각 element type별로 분기 처리
   const renderElement = () => {
     const commonProps = { className: baseClassName };
@@ -73,9 +76,11 @@ const GlassElement = <El extends ElementType>({
 
     if (as === 'input') {
       const inputType = getInputType(scale);
+      const inputClassName = hasInputIcon ? `${baseClassName} pl-12` : baseClassName;
       return createElement('input', {
         ...props,
         ...commonProps,
+        className: inputClassName,
         ...(inputType && { type: inputType }),
       } as ComponentPropsWithoutRef<'input'>);
     }
@@ -93,6 +98,13 @@ const GlassElement = <El extends ElementType>({
       ref={wrapperRef}
       className={`relative ${as === 'input' ? 'w-fit' : as === 'div' ? 'w-[25rem]' : 'w-fit'} ${className}`}
     >
+      {/* input 왼쪽 아이콘 */}
+      {hasInputIcon && (
+        <span className="pointer-events-none absolute left-5 top-1/2 z-20 -translate-y-1/2 text-white/60">
+          {icon}
+        </span>
+      )}
+
       {/* Glass 본체 (컨텐츠 영역) */}
       {renderElement()}
 

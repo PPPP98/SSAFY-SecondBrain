@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout';
 import GlassElement from '@/shared/components/GlassElement/GlassElement';
 import UserIcon from '@/shared/components/icon/User.svg?react';
 import PlusIcon from '@/shared/components/icon/Plus.svg?react';
+import SearchIcon from '@/shared/components/icon/Search.svg?react';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
 import { useDebounce } from '@/features/main/hooks/useDebounce';
 
@@ -34,6 +35,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         <GlassElement
           as="input"
           scale="md"
+          icon={<SearchIcon />}
           placeholder="검색"
           value={searchInput}
           onFocus={openRecent}
