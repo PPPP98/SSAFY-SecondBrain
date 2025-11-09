@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.gms.service.GmsQuestionService;
@@ -71,25 +72,31 @@ public class ReminderSchedulerService {
 			.doOnError(e -> log.error("GMS 질문 생성 실패 - noteId: {}", note.getId(), e))
 			.subscribe(); // 비동기 실행
 
-		// 다음 리마인더 시간 계산
-		if (currentCount >= 2) {
-			// 3회 완료
-			note.completeReminder();
-			log.info("리마인더 완료 (3회) - noteId: {}", note.getId());
-		} else {
-			// 다음 발송 시간 설정
-			// todo: 실제 서비스에서는 1일, 3일 ,7일로 설정 예정
-			int nextDelaySeconds = switch (currentCount) {
-				case 0 -> 30;  // 1차 → 2차: 30초 후
-				case 1 -> 70;  // 2차 → 3차: 70초 후
-				default -> 0;
-			};
+		// 다음 리마인더 시간 계산 및 저장
+		try {
+			if (currentCount >= 2) {
+				// 3회 완료
+				note.completeReminder();
+				log.info("리마인더 완료 (3회) - noteId: {}", note.getId());
+			} else {
+				// 다음 발송 시간 설정
+				// todo: 실제 서비스에서는 1일, 3일 ,7일로 설정 예정
+				int nextDelaySeconds = switch (currentCount) {
+					case 0 -> 30;  // 1차 → 2차: 30초 후
+					case 1 -> 70;  // 2차 → 3차: 70초 후
+					default -> 0;
+				};
 
-			LocalDateTime nextTime = LocalDateTime.now().plusSeconds(nextDelaySeconds);
-			note.scheduleNextReminder(nextTime);
-			log.info("다음 리마인더 예약 - noteId: {}, 시간: {}", note.getId(), nextTime);
+				LocalDateTime nextTime = LocalDateTime.now().plusSeconds(nextDelaySeconds);
+				note.scheduleNextReminder(nextTime);
+				log.info("다음 리마인더 예약 - noteId: {}, 시간: {}", note.getId(), nextTime);
+			}
+
+			noteRepository.save(note);
+
+		} catch (OptimisticLockException e) {
+			// 다른 스케줄러 인스턴스가 먼저 처리함 (정상 상황)
+			log.info("동시성 충돌 감지 - noteId: {} (다른 인스턴스가 이미 처리함)", note.getId());
 		}
-
-		noteRepository.save(note);
 	}
 }
