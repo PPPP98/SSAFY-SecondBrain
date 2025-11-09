@@ -3,7 +3,7 @@ from app.core.config import get_settings
 import os
 
 
-class Model:
+class Models:
     """
     ## LLM 모델 정의
     - init : 환경변수 정의
