@@ -21,6 +21,7 @@ public class ReminderSchedulerService {
 
 	private final NoteRepository noteRepository;
 	private final GmsQuestionService gmsQuestionService;
+	private final ReminderNotificationService reminderNotificationService;
 
 	private static final int MAX_REMINDER_COUNT = 3;
 
@@ -66,8 +67,8 @@ public class ReminderSchedulerService {
 
 			log.info("GMS 질문 생성 완료 - noteId: {}, question: \"{}\"", note.getId(), question);
 
-			// TODO: 실제 알림 발송 (FCM, WebSocket 등 구현 후 작성)
-			// notificationService.sendReminder(note.getUser(), question);
+			// WebSocket 알림 전송
+			reminderNotificationService.sendReminder(note, question, currentCount);
 
 			// GMS 성공 후에만 DB 업데이트
 			if (currentCount >= 2) {
