@@ -15,16 +15,19 @@ interface MainLayoutProps {
 const MainLayout = ({ children, onPlusClick }: MainLayoutProps) => {
   const openRecent = useSearchPanelStore((state) => state.openRecent);
   const updateQuery = useSearchPanelStore((state) => state.updateQuery);
+  const mode = useSearchPanelStore((state) => state.mode);
 
   // 로컬 상태로 검색어 관리
   const [searchInput, setSearchInput] = useState('');
   // 300ms 디바운싱 적용
   const debouncedSearchInput = useDebounce(searchInput, 300);
 
-  // 디바운싱된 값이 변경되면 store 업데이트
+  // 디바운싱된 값이 변경되면 store 업데이트 (패널이 열려있을 때만)
   useEffect(() => {
-    updateQuery(debouncedSearchInput);
-  }, [debouncedSearchInput, updateQuery]);
+    if (mode !== 'closed') {
+      updateQuery(debouncedSearchInput);
+    }
+  }, [debouncedSearchInput, updateQuery, mode]);
 
   return (
     <BaseLayout>
