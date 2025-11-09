@@ -17,13 +17,15 @@ export type GlassElementProps<El extends ElementType> = {
   icon?: ReactNode;
   scale?: El extends 'input' ? 'sm' | 'md' : never;
   children?: React.ReactNode;
-} & Omit<ComponentPropsWithoutRef<El>, 'as' | 'icon' | 'scale'>;
+  innerClassName?: string;
+} & Omit<ComponentPropsWithoutRef<El>, 'as' | 'icon' | 'scale' | 'innerClassName'>;
 
-const GlassElement = <El extends ElementType>({
+export const GlassElement = <El extends ElementType>({
   as,
   icon,
   scale,
   className = '',
+  innerClassName = '',
   children,
   ...props
 }: GlassElementProps<El>) => {
@@ -42,7 +44,7 @@ const GlassElement = <El extends ElementType>({
     'bg-white/15 font-medium text-white shadow-[0px_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-[3.5px]';
 
   // 최종 className 조합 (명확하고 가독성 높은 구조)
-  const baseClassName = `${baseStyles} ${elementSpecific} ${borderRadius} ${glassStyles} ${scaleClasses} ${sizeClasses} ${className}`;
+  const baseClassName = `${baseStyles} ${elementSpecific} ${borderRadius} ${glassStyles} ${scaleClasses} ${sizeClasses} ${innerClassName}`;
 
   // children 렌더링 로직
   const elementChildren =
@@ -56,6 +58,9 @@ const GlassElement = <El extends ElementType>({
         {children}
       </>
     ) : null;
+
+  // input에 아이콘이 있을 경우 wrapper 처리
+  const hasInputIcon = as === 'input' && icon;
 
   // 타입 안전성을 위해 각 element type별로 분기 처리
   const renderElement = () => {
@@ -71,9 +76,11 @@ const GlassElement = <El extends ElementType>({
 
     if (as === 'input') {
       const inputType = getInputType(scale);
+      const inputClassName = hasInputIcon ? `${baseClassName} pl-12` : baseClassName;
       return createElement('input', {
         ...props,
         ...commonProps,
+        className: inputClassName,
         ...(inputType && { type: inputType }),
       } as ComponentPropsWithoutRef<'input'>);
     }
@@ -89,8 +96,15 @@ const GlassElement = <El extends ElementType>({
   return (
     <div
       ref={wrapperRef}
-      className={`relative ${as === 'input' ? 'w-fit' : as === 'div' ? '' : 'w-fit'}`}
+      className={`relative ${as === 'input' ? 'w-fit' : as === 'div' ? 'w-[25rem]' : 'w-fit'} ${className}`}
     >
+      {/* input 왼쪽 아이콘 */}
+      {hasInputIcon && (
+        <span className="pointer-events-none absolute left-5 top-1/2 z-20 -translate-y-1/2 text-white/60">
+          {icon}
+        </span>
+      )}
+
       {/* Glass 본체 (컨텐츠 영역) */}
       {renderElement()}
 
@@ -108,5 +122,3 @@ const GlassElement = <El extends ElementType>({
     </div>
   );
 };
-
-export { GlassElement };
