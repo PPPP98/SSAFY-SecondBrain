@@ -54,12 +54,31 @@ services:
         /usr/local/bin/docker-entrypoint.sh
       "
 
+  # RabbitMQ 메시지 브로커
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: secondbrain-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VIRTUAL_HOST}
+    ports:
+      - "${RABBITMQ_PORT}:5672"   # AMQP 프로토콜
+      - "15672:15672"              # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - secondbrain-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
   elasticsearch_data:
+    driver: local
+  rabbitmq_data:
     driver: local
 
 networks:
