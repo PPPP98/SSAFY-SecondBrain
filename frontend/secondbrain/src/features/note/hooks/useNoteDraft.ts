@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { debounce } from 'lodash-es';
 import {
@@ -8,7 +8,7 @@ import {
   saveToDatabase as saveToDatabaseApi,
   draftQueries,
 } from '@/api/client/draftApi';
-import type { NoteDraftRequest } from '@/shared/types/draft.types';
+import type { NoteDraftRequest, NoteDraftResponse } from '@/shared/types/draft.types';
 
 interface UseNoteDraftOptions {
   draftId: string;
@@ -46,68 +46,79 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   const { draftId, onSaveToDatabase } = options;
   const queryClient = useQueryClient();
 
-  // UI 렌더링용 상태 (useState)
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  // TanStack Query로 Draft 관리 (단일 진실 공급원)
+  // placeholderData: 새 Draft의 경우 빈 값으로 시작
+  const { data: draft, isLoading } = useQuery({
+    queryKey: draftQueries.detail(draftId),
+    queryFn: () => getDraft(draftId),
+    placeholderData: {
+      noteId: draftId,
+      title: '',
+      content: '',
+      version: 1,
+      lastModified: new Date().toISOString(),
+    },
+    retry: false,
+    staleTime: Infinity,
+    throwOnError: false, // 404 에러 무시 (새 Draft)
+  });
+
+  // TanStack Query 캐시에서 직접 파생 (이중 상태 관리 제거)
+  const title = draft?.title ?? '';
+  const content = draft?.content ?? '';
+  const version = draft?.version ?? 1;
 
   // 자동 저장용 Refs
-  const versionRef = useRef(1);
   const changeCountRef = useRef(0);
   const lastDbSaveTimeRef = useRef(Date.now());
 
-  // beforeunload를 위한 최신 값 추적 refs
+  // beforeunload를 위한 최신 값 추적 (draft는 비동기이므로 ref 필요)
   const titleRef = useRef(title);
   const contentRef = useRef(content);
 
-  // 기존 Draft 조회 (새 Draft는 404 에러 무시)
-  const { data: existingDraft, isLoading } = useQuery({
-    queryKey: draftQueries.detail(draftId),
-    queryFn: () => getDraft(draftId),
-    retry: false,
-    staleTime: Infinity,
-    throwOnError: false, // 404 에러 무시
-  });
+  // titleRef, contentRef를 draft 변경 시 동기화
+  useEffect(() => {
+    titleRef.current = title;
+    contentRef.current = content;
+  }, [title, content]);
 
-  // React 공식 문서 패턴: "Adjust state on prop change during rendering"
-  // draftId 변경 시 상태 동기화 (렌더링 중)
-  const [prevDraftId, setPrevDraftId] = useState(draftId);
-
-  if (draftId !== prevDraftId) {
-    // 다른 Draft로 전환됨 → 상태 리셋
-    setPrevDraftId(draftId);
-
-    const newTitle = existingDraft?.title ?? '';
-    const newContent = existingDraft?.content ?? '';
-
-    setTitle(newTitle);
-    setContent(newContent);
-
-    // refs도 함께 업데이트
-    titleRef.current = newTitle;
-    contentRef.current = newContent;
-    versionRef.current = existingDraft?.version ?? 1;
-  }
-
-  // Redis 저장 Mutation
+  // Redis 저장 Mutation (Optimistic Update 적용)
   const saveMutation = useMutation({
     mutationFn: (data: NoteDraftRequest) => saveDraft(data),
+    onMutate: async (newDraft) => {
+      // Optimistic update: 즉시 캐시 업데이트
+      await queryClient.cancelQueries({ queryKey: draftQueries.detail(draftId) });
+      const previousDraft = queryClient.getQueryData(draftQueries.detail(draftId));
+
+      queryClient.setQueryData(draftQueries.detail(draftId), {
+        ...newDraft,
+        lastModified: new Date().toISOString(),
+      });
+
+      return { previousDraft };
+    },
     onSuccess: (response) => {
-      versionRef.current = response.version;
-      changeCountRef.current++;
+      // 서버 응답으로 캐시 업데이트
       queryClient.setQueryData(draftQueries.detail(draftId), response);
+      changeCountRef.current++;
 
       // Batching 조건 체크
       void checkAndSaveToDatabase();
     },
-    onError: () => {
+    onError: (_error, _variables, context) => {
+      // Rollback optimistic update
+      if (context?.previousDraft) {
+        queryClient.setQueryData(draftQueries.detail(draftId), context.previousDraft);
+      }
+
       // Fallback: LocalStorage
       localStorage.setItem(
         `draft:${draftId}`,
         JSON.stringify({
           noteId: draftId,
-          title,
-          content,
-          version: versionRef.current,
+          title: titleRef.current,
+          content: contentRef.current,
+          version,
         }),
       );
     },
@@ -187,40 +198,64 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [draftId]); // title, content 제거: 타이핑마다 재실행 방지
+  }, [draftId]);
 
   // 핸들러
-  // React 공식: 자식이 memo()가 아니므로 useCallback 불필요
-  // contentRef 사용으로 cross-dependency 제거
+  // TanStack Query Optimistic Update 패턴
+  // 즉시 캐시 업데이트 → UI 반영 → 서버 저장
   function handleTitleChange(newTitle: string) {
-    setTitle(newTitle);
-    titleRef.current = newTitle;
+    // Optimistic update: 즉시 캐시 업데이트
+    queryClient.setQueryData<NoteDraftResponse>(
+      draftQueries.detail(draftId),
+      (old: NoteDraftResponse | undefined) =>
+        old
+          ? { ...old, title: newTitle }
+          : {
+              noteId: draftId,
+              title: newTitle,
+              content: contentRef.current,
+              version,
+              lastModified: new Date().toISOString(),
+            },
+    );
 
+    // Debounced 서버 저장
     saveDraftToRedis({
       noteId: draftId,
       title: newTitle,
-      content: contentRef.current, // ref로 최신 값 참조
-      version: versionRef.current,
+      content: contentRef.current,
+      version,
     });
   }
 
-  // titleRef 사용으로 cross-dependency 제거
   // ⚠️ Milkdown useEditor의 의존성 제약으로 useCallback 필요
   // NoteEditor의 useEditor([onChange])가 onChange 변경 시 에디터 재초기화
-  // 안정적인 참조가 없으면 타이핑 중 에디터가 계속 재생성되어 editorView 손실
   const handleContentChange = useCallback(
     (newContent: string) => {
-      setContent(newContent);
-      contentRef.current = newContent;
+      // Optimistic update: 즉시 캐시 업데이트
+      queryClient.setQueryData<NoteDraftResponse>(
+        draftQueries.detail(draftId),
+        (old: NoteDraftResponse | undefined) =>
+          old
+            ? { ...old, content: newContent }
+            : {
+                noteId: draftId,
+                title: titleRef.current,
+                content: newContent,
+                version,
+                lastModified: new Date().toISOString(),
+              },
+      );
 
+      // Debounced 서버 저장
       saveDraftToRedis({
         noteId: draftId,
-        title: titleRef.current, // ref로 최신 값 참조
+        title: titleRef.current,
         content: newContent,
-        version: versionRef.current,
+        version,
       });
     },
-    [draftId, saveDraftToRedis],
+    [draftId, version, saveDraftToRedis, queryClient],
   );
 
   const deleteDraft = async () => {
@@ -231,8 +266,8 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   return {
     title,
     content,
-    version: versionRef.current,
-    lastModified: existingDraft?.lastModified ? new Date(existingDraft.lastModified) : null,
+    version,
+    lastModified: draft?.lastModified ? new Date(draft.lastModified) : null,
     isLoading,
     isSaving: saveMutation.isPending,
     handleTitleChange,
