@@ -32,6 +32,7 @@ export function SearchBar() {
       <input
         type="text"
         placeholder="검색"
+        aria-label="검색"
         value={searchInput}
         onFocus={openRecent}
         onChange={(e) => setSearchInput(e.target.value)}
