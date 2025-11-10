@@ -1,4 +1,4 @@
-import { forwardRef, useRef, useEffect } from 'react';
+import { forwardRef, useRef } from 'react';
 
 interface NoteTitleInputProps {
   value: string;
@@ -9,7 +9,7 @@ interface NoteTitleInputProps {
 /**
  * 노트 제목 입력 컴포넌트 (Controlled textarea)
  * - TanStack Query와 완벽 통합 (Controlled component)
- * - textarea 기반으로 자동 높이 조절
+ * - 이벤트 핸들러에서 자동 높이 조절 (useEffect 불필요)
  * - IME composition 완벽 지원 (React가 자동 처리)
  * - NotePage용 큰 제목 스타일 (투명 배경, 흰색 텍스트)
  * - 줄바꿈 지원
@@ -19,19 +19,14 @@ export const NoteTitleInput = forwardRef<HTMLTextAreaElement, NoteTitleInputProp
     const internalRef = useRef<HTMLTextAreaElement>(null);
     const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
 
-    // 자동 높이 조절
-    useEffect(() => {
-      const textarea = textareaRef.current;
-      if (!textarea) return;
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const textarea = e.target;
 
-      // 높이 초기화 후 scrollHeight로 재설정
+      // 자동 높이 조절 (이벤트 시점에 직접 처리)
       textarea.style.height = 'auto';
       textarea.style.height = `${textarea.scrollHeight}px`;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [value]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      onChange(e.target.value);
+      onChange(textarea.value);
     };
 
     return (
