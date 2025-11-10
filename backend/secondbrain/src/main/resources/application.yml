@@ -105,14 +105,14 @@ gms:
   max-tokens: ${GMS_MAX_TOKENS}
   temperature: ${GMS_TEMPERATURE}
 
-  # Naver Clova Voice TTS 설정
-  clova:
-    voice:
-      client-id: ${CLOVA_CLIENT_ID}
-      client-secret: ${CLOVA_CLIENT_SECRET}
-      api-url: https://naveropenapi.apigw.ntruss.com/tts-premium/v1/tts
-      default-speaker: nara
-      default-volume: 0
-      default-speed: 0
-      default-pitch: 0
-      default-format: mp3
+# Naver Clova Voice TTS 설정
+clova:
+  voice:
+    client-id: ${CLOVA_CLIENT_ID}
+    client-secret: ${CLOVA_CLIENT_SECRET}
+    api-url: https://naveropenapi.apigw.ntruss.com/tts-premium/v1/tts
+    default-speaker: nara
+    default-volume: 0
+    default-speed: 0
+    default-pitch: 0
+    default-format: mp3
