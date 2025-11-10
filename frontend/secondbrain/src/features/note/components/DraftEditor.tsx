@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { toast } from 'sonner';
 import { useNoteDraft } from '@/features/note/hooks/useNoteDraft';
 import { SidePeekOverlay } from '@/features/note/components/SidePeekOverlay';
 import { DraftToolbar } from '@/features/note/components/DraftToolbar';
@@ -55,18 +56,23 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
         return;
       } catch (error) {
         console.error('DB 저장 실패:', error);
+        toast.error('노트 저장에 실패했습니다', {
+          description: '작성하신 내용은 임시 저장되었어요. 잠시 후 다시 시도해주세요.',
+        });
         // 에러 시 그냥 닫기 (Draft는 Redis에 유지)
       }
     }
 
     // 빈 Draft → Redis 삭제
     if (!title.trim() && !content.trim()) {
-      deleteDraft().catch(() => {
+      try {
+        await deleteDraft();
+      } catch (error) {
         // Draft가 없어도 정상 (빈 노트는 저장 안 됨)
-      });
+        console.error('Draft 삭제 실패:', error);
+      }
     }
 
-    // Side Peek 닫기
     onClose();
   };
 
