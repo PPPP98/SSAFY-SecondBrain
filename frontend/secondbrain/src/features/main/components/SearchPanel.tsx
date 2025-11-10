@@ -3,7 +3,7 @@ import { PanelHeader } from '@/features/main/components/PanelHeader';
 import { NoteList } from '@/features/main/components/NoteList';
 import { useRecentNotes } from '@/features/main/hooks/useRecentNotes';
 import { useSearchNotes } from '@/features/main/hooks/useSearchNotes';
-import type { RecentNote, Note } from '@/features/main/types/search';
+import type { RecentNote } from '@/features/main/types/search';
 
 export function SearchPanel() {
   const mode = useSearchPanelStore((state) => state.mode);
@@ -16,14 +16,16 @@ export function SearchPanel() {
   // 현재 모드에 따라 전체 노트 ID 추출
   const getAllNoteIds = (): number[] => {
     if (mode === 'recent' && recentNotesQuery.data) {
-      const noteData = (recentNotesQuery.data as unknown as [unknown, RecentNote[]])[1];
-      return Array.isArray(noteData) ? noteData.map((note) => note.noteId) : [];
+      const notes = recentNotesQuery.data;
+      if (Array.isArray(notes)) {
+        return notes.map((note: RecentNote) => note.noteId);
+      }
+      return [];
     }
 
     if (mode === 'search' && searchNotesQuery.data?.pages) {
       const allNotes = searchNotesQuery.data.pages.flatMap((page) => {
-        const pageResults = page.results as unknown as [unknown, Note[]];
-        return pageResults[1] || [];
+        return page.results || [];
       });
       return allNotes.map((note) => note.id);
     }

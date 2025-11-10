@@ -3,6 +3,7 @@ import type { UseQueryResult, UseInfiniteQueryResult, InfiniteData } from '@tans
 import type { RecentNote, SearchNoteData, Note } from '@/features/main/types/search';
 import { NoteItem } from '@/features/main/components/NoteItem';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
+import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 
 interface NoteListProps {
   type: 'recent' | 'search';
@@ -37,7 +38,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
       },
       {
         root: scrollContainer, // SearchPanel의 스크롤 컨테이너를 기준으로
-        rootMargin: '100px', // 100px 전에 미리 로드
+        rootMargin: '0px', // 실제로 화면에 보일 때만 로드
         threshold: 0.1,
       },
     );
@@ -51,15 +52,15 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
 
   if (type === 'recent' && recentQuery) {
     if (recentQuery.isLoading) {
-      return <p className="m-0 text-center text-sm text-white/60">로딩 중...</p>;
+      return <LoadingSpinner />;
     }
 
     if (!recentQuery.data) {
       return <p className="m-0 text-center text-sm text-white/40">최근 노트가 없습니다</p>;
     }
 
-    // 인덱스 1번에 실제 노트 데이터 배열이 있음
-    const noteData = (recentQuery.data as unknown as [unknown, RecentNote[]])[1];
+    // recentQuery.data는 이미 RecentNote[] 배열
+    const noteData = recentQuery.data;
 
     if (!Array.isArray(noteData) || noteData.length === 0) {
       return <p className="m-0 text-center text-sm text-white/40">최근 노트가 없습니다</p>;
@@ -89,8 +90,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
     }
 
     const allNotes = searchQuery.data.pages.flatMap((page) => {
-      const pageResults = page.results as unknown as [unknown, Note[]];
-      return pageResults[1] || [];
+      return page.results || [];
     });
 
     if (allNotes.length === 0) {
@@ -100,18 +100,20 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
     return (
       <>
         <div className="w-full space-y-4">
-          {allNotes.map((note: Note) => (
-            <NoteItem
-              key={note.id}
-              note={note}
-              isSelected={selectedIds.has(note.id)}
-              onToggle={toggleSelection}
-            />
+          {allNotes.map((note: Note, index: number) => (
+            <div key={note.id}>
+              <NoteItem
+                note={note}
+                isSelected={selectedIds.has(note.id)}
+                onToggle={toggleSelection}
+              />
+              {/* 마지막 아이템 또는 마지막에서 3번째 중 작은 인덱스에 배치 */}
+              {index === Math.min(allNotes.length - 1, Math.max(0, allNotes.length - 3)) && (
+                <div ref={observerRef} className="h-1" />
+              )}
+            </div>
           ))}
         </div>
-
-        {/* 무한 스크롤 감시 요소 */}
-        <div ref={observerRef} className="h-4" />
 
         {/* 다음 페이지 로딩 중 표시 */}
         {searchQuery.isFetchingNextPage && (

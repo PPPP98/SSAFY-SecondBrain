@@ -1,6 +1,7 @@
 import { useExchangeToken } from '@/features/auth/hooks/useExchangeToken';
 import { useCallbackHandler } from '@/features/auth/hooks/useCallbackHandler';
 import { Route } from '@/routes/auth/callback';
+import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 
 /**
  * OAuth2 콜백 페이지
@@ -16,11 +17,5 @@ export function CallbackPage() {
   // 커스텀 훅으로 콜백 처리 로직 분리
   useCallbackHandler(search.code, search.error, exchangeToken);
 
-  return (
-    <div className="flex min-h-dvh items-center justify-center">
-      <div className="text-center">
-        <p className="text-lg">로그인 처리 중...</p>
-      </div>
-    </div>
-  );
+  return <LoadingSpinner />;
 }
