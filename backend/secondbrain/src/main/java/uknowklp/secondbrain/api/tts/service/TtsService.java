@@ -46,7 +46,7 @@ public class TtsService {
 			.bodyToMono(byte[].class)
 			.doOnSuccess(bytes -> log.info("TTS 변환 성공, 텍스트 길이: {}자, 음성:{}, 크기:{}bytes",
 				text.length(), voiceSpeaker, bytes.length))
-			.doOnError(e -> log.error("TTS API 호출 실패, e"))
+			.doOnError(e -> log.error("TTS API 호출 실패", e))
 			.onErrorMap(e -> new BaseException(BaseResponseStatus.TTS_API_ERROR));
 	}
 }
