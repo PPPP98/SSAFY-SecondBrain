@@ -107,8 +107,10 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
                 isSelected={selectedIds.has(note.id)}
                 onToggle={toggleSelection}
               />
-              {/* 마지막에서 5번째 아이템에 감시 요소 배치 */}
-              {index === allNotes.length - 5 && <div ref={observerRef} className="h-1" />}
+              {/* 마지막 아이템 또는 마지막에서 3번째 중 작은 인덱스에 배치 */}
+              {index === Math.min(allNotes.length - 1, Math.max(0, allNotes.length - 3)) && (
+                <div ref={observerRef} className="h-1" />
+              )}
             </div>
           ))}
         </div>
