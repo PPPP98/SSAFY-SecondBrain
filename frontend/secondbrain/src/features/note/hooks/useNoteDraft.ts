@@ -68,24 +68,25 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
     throwOnError: false, // 404 에러 무시
   });
 
-  // 초기 로드 시 Draft 복원
-  useEffect(() => {
-    if (existingDraft) {
-      setTitle(existingDraft.title);
-      setContent(existingDraft.content);
-      versionRef.current = existingDraft.version;
+  // ✅ React 공식 문서 패턴: "Adjust state on prop change during rendering"
+  // draftId 변경 시 상태 동기화 (렌더링 중)
+  const [prevDraftId, setPrevDraftId] = useState(draftId);
 
-      // refs도 업데이트
-      titleRef.current = existingDraft.title;
-      contentRef.current = existingDraft.content;
-    }
-  }, [existingDraft]);
+  if (draftId !== prevDraftId) {
+    // 다른 Draft로 전환됨 → 상태 리셋
+    setPrevDraftId(draftId);
 
-  // title, content 변경 시 refs 동기화
-  useEffect(() => {
-    titleRef.current = title;
-    contentRef.current = content;
-  }, [title, content]);
+    const newTitle = existingDraft?.title ?? '';
+    const newContent = existingDraft?.content ?? '';
+
+    setTitle(newTitle);
+    setContent(newContent);
+
+    // refs도 함께 업데이트
+    titleRef.current = newTitle;
+    contentRef.current = newContent;
+    versionRef.current = existingDraft?.version ?? 1;
+  }
 
   // Redis 저장 Mutation
   const saveMutation = useMutation({
@@ -192,6 +193,8 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   const handleTitleChange = useCallback(
     (newTitle: string) => {
       setTitle(newTitle);
+      titleRef.current = newTitle; // ✅ refs 직접 동기화
+
       saveDraftToRedis({
         noteId: draftId,
         title: newTitle,
@@ -205,6 +208,8 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   const handleContentChange = useCallback(
     (newContent: string) => {
       setContent(newContent);
+      contentRef.current = newContent; // ✅ refs 직접 동기화
+
       saveDraftToRedis({
         noteId: draftId,
         title,

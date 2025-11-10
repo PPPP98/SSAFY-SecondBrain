@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { useNoteDraft } from '@/features/note/hooks/useNoteDraft';
@@ -22,17 +21,6 @@ interface DraftEditorProps {
  */
 export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
   const navigate = useNavigate();
-  const [isAnimated, setIsAnimated] = useState(false);
-
-  // 애니메이션 트리거
-  useEffect(() => {
-    if (isOpen) {
-      const timer = setTimeout(() => setIsAnimated(true), 150);
-      return () => clearTimeout(timer);
-    } else {
-      setIsAnimated(false);
-    }
-  }, [isOpen]);
 
   const { title, content, handleTitleChange, handleContentChange, saveToDatabase, deleteDraft } =
     useNoteDraft({
@@ -89,8 +77,11 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
       <div className="custom-scrollbar absolute inset-x-0 bottom-0 top-32 flex flex-col items-center gap-8 overflow-y-auto px-24">
         <div
           className={`flex w-full max-w-4xl flex-col transition-all duration-500 ease-out ${
-            isAnimated ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
           }`}
+          style={{
+            transitionDelay: isOpen ? '150ms' : '0ms',
+          }}
         >
           {/* 제목 입력 */}
           <NoteTitleInput

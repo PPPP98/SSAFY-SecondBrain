@@ -68,16 +68,12 @@ export function useKeyboardNav({
 }: UseKeyboardNavOptions): void {
   const hasNavigatedRef = useRef(false);
 
-  // 메뉴가 열릴 때마다 네비게이션 추적 초기화
-  useEffect(() => {
-    if (isOpen) {
-      hasNavigatedRef.current = false;
-    }
-  }, [isOpen]);
-
   // 키보드 네비게이션
   useEffect(() => {
     if (!enabled || !isOpen) return;
+
+    // ✅ effect 시작 시 자동 초기화
+    hasNavigatedRef.current = false;
 
     const contentElement = contentRef.current;
     if (!contentElement) return;
