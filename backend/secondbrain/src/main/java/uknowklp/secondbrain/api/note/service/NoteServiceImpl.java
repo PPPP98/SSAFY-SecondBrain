@@ -36,7 +36,6 @@ public class NoteServiceImpl implements NoteService {
 	private final NoteRepository noteRepository;
 	private final UserService userService;
 	private final NoteSearchService noteSearchService;
-	private final ReminderProducerService reminderProducerService;
 	private final KnowledgeGraphProducerService knowledgeGraphProducerService;
 
 	// TODO: S3 업로드 서비스 추가 예정
@@ -296,21 +295,17 @@ public class NoteServiceImpl implements NoteService {
 			throw new BaseException(BaseResponseStatus.REMINDER_ALREADY_ENABLED);
 		}
 
-		// 첫 리마인더 시간 계산
-		// todo: 개발 단계 지나면 1일 후로 수정 예정
+		// 첫 리마인더 시간: 10초 후 (개발용, 실서비스에선 첫 알림은 1일 후)
 		LocalDateTime firstReminderTime = LocalDateTime.now().plusSeconds(10);
 
 		// 리마인더 활성화
 		note.enableReminder(firstReminderTime);
-		Note saveNote = noteRepository.save(note);
+		Note savedNote = noteRepository.save(note);
 
-		// RabbitMQ Producer와 연동해서 첫 리마인더 예약
-		reminderProducerService.scheduleReminder(saveNote);
+		// 스케줄러가 자동으로 처리하므로 별도 예약 불필요
+		log.info("리마인더 활성화 완료 - noteId: {}, 첫 발송: {}", savedNote.getId(), savedNote.getRemindAt());
 
-		// todo: 개발 완료 후 제거할 로그
-		log.info("리마인더 활성화 완료, 노트 ID : {}, 첫 발송 예정 시간: {}", saveNote.getId(), saveNote.getRemindAt());
-
-		return saveNote;
+		return savedNote;
 	}
 
 	@Override
@@ -339,53 +334,7 @@ public class NoteServiceImpl implements NoteService {
 		return saveNote;
 	}
 
-	@Override
-	public void processReminder(Long noteId) {
-
-		// 노트 조회
-		Note note = noteRepository.findByIdWithUser(noteId)
-			.orElseThrow(() -> new BaseException(BaseResponseStatus.NOTE_NOT_FOUND));
-
-		// 발송 가능 여부 확인
-		// User 테이블 set Alarm도 켜져있지만 remindAt이 지났다면
-		if (!note.isReminderReady()) {
-			log.warn("remind 시간이 지났습니다. noteId: {}, remindAt: {}", noteId, note.getRemindAt());
-			return;
-		}
-
-		// 현재 발송 횟수 체크
-		int currentCount = note.getRemindCount();
-
-		// todo: GMS API 호출해서 질문 생성
-		// String question = gmsApiService.generateQuestion(note);
-
-		// todo: 실제 알림 발송
-		// notificationService.sendReminder(note.getUser(), question);
-
-		// todo: 개발 완료 후 삭제할 로그
-		log.info("리마인더 완료 - 노트 ID : {}, 현재 리마인드 횟수 : {}", noteId, currentCount);
-
-		// 망각 곡선 기반 다음 리마인드 시간 계산
-		if (currentCount >= 2) {
-			note.completeReminder();
-			log.info("리마인더 완료, 리마인드 off, 노트 ID : {}", noteId);
-		} else {
-			// 다음 발송 시간 계산
-			// todo: 실제 배포 단계에선 3일, 7일 후로 수정
-			int nextDelayDays = switch (currentCount) {
-				case 0 -> 30;
-				case 1 -> 70;
-				default -> 0;
-			};
-
-			LocalDateTime nextReminderTime = LocalDateTime.now().plusSeconds(nextDelayDays);
-			note.scheduleNextReminder(nextReminderTime);
-
-			// RabbitMQ에 다음 메시지 예약
-			reminderProducerService.scheduleReminder(note);
-		}
-		noteRepository.save(note);
-	}
+	// processReminder는 ReminderSchedulerService에서 처리하므로 제거
 
 	@Override
 	@Transactional(readOnly = true)

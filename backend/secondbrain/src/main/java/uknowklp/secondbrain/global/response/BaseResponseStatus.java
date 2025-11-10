@@ -46,6 +46,8 @@ public enum BaseResponseStatus {
 	// TOKEN_HIJACKING_DETECTED(false, HttpStatus.FORBIDDEN, -10419, "보안 위반이 감지되었습니다. 다시 로그인해주세요."),
 	INVALID_AUTHORIZATION_CODE(false, HttpStatus.UNAUTHORIZED, -10420, "유효하지 않거나 만료된 인증 코드입니다."),
 	CODE_NOT_PROVIDED(false, HttpStatus.BAD_REQUEST, -10421, "인증 코드가 제공되지 않았습니다."),
+	UNAUTHORIZED(false, HttpStatus.UNAUTHORIZED, -10422, "인증되지 않은 요청입니다."),
+	FORBIDDEN(false, HttpStatus.FORBIDDEN, -10423, "접근 권한이 없습니다."),
 
 	/**
 	 * -10100 ~ -10199 : 노트(Note) 관련 에러

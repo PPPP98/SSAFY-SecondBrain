@@ -15,6 +15,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -33,6 +34,12 @@ public class Note {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "note_id")
 	private Long id;
+
+	// 낙관적 락을 위한 버전 필드 (동시성 제어용)
+	// 스케줄러 인스턴스 간 중복 처리 방지
+	@Version
+	@Builder.Default
+	private Long version = 0L;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id", nullable = false)

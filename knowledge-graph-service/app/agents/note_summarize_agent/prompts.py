@@ -1,4 +1,14 @@
-class SummarizePrompts:
-    SYSTEMPROMPT = """
-    test
-    """
+class Prompts:
+    SYSTEMPROMPT = """다음은 여러 웹페이지와 텍스트를 모은 자료입니다.
+    이들을 하나의 통합 노트로 정리해줘.
+
+    요구사항:
+    - 핵심 정보는 모두 포함
+    - 중복 내용은 제거
+    - 논리적 흐름으로 구성
+    - 간결하고 명확하게 작성
+
+    자료:
+    {content}
+
+    통합 노트:"""

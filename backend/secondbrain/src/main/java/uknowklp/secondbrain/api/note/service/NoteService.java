@@ -32,7 +32,4 @@ public interface NoteService {
 
 	// 특정 노트의 리마인더 비활성화
 	Note disableNoteReminder(Long noteId, Long userId);
-
-	// 리마인더 처리 및 다음 리마인더 스케줄링
-	void processReminder(Long noteId);
 }
