@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useModal } from '@/shared/hooks/useModal';
 import type { DropdownProps } from '@/shared/components/Dropdown/Dropdown.types';
 
@@ -33,6 +33,16 @@ export function Dropdown({
     closeOnEscape,
   });
 
+  // 첫 방향키 입력 추적
+  const hasNavigatedRef = useRef(false);
+
+  // 메뉴가 열릴 때마다 추적 초기화
+  useEffect(() => {
+    if (isOpen) {
+      hasNavigatedRef.current = false;
+    }
+  }, [isOpen]);
+
   // 키보드 네비게이션
   useEffect(() => {
     if (!isOpen || !enableKeyboardNav) return;
@@ -40,13 +50,12 @@ export function Dropdown({
     const contentElement = contentRef.current;
     if (!contentElement) return;
 
-    // 메뉴 열릴 때 첫 번째 menuitem에 포커스
     const menuItems = contentElement.querySelectorAll<HTMLElement>('[role="menuitem"]');
-    if (menuItems.length > 0) {
-      menuItems[0].focus();
-    }
 
     function handleKeyDown(event: KeyboardEvent) {
+      // 메뉴가 열려있을 때만 처리
+      if (!isOpen) return;
+
       const activeElement = document.activeElement as HTMLElement;
       const currentIndex = Array.from(menuItems).indexOf(activeElement);
 
@@ -54,22 +63,35 @@ export function Dropdown({
         case 'ArrowDown':
           event.preventDefault();
           if (menuItems.length > 0) {
-            const nextIndex = currentIndex < menuItems.length - 1 ? currentIndex + 1 : 0;
-            menuItems[nextIndex].focus();
+            // 첫 방향키 입력이면 첫 번째 항목에 포커스
+            if (!hasNavigatedRef.current) {
+              hasNavigatedRef.current = true;
+              menuItems[0].focus();
+            } else {
+              const nextIndex = currentIndex < menuItems.length - 1 ? currentIndex + 1 : 0;
+              menuItems[nextIndex].focus();
+            }
           }
           break;
 
         case 'ArrowUp':
           event.preventDefault();
           if (menuItems.length > 0) {
-            const prevIndex = currentIndex > 0 ? currentIndex - 1 : menuItems.length - 1;
-            menuItems[prevIndex].focus();
+            // 첫 방향키 입력이면 마지막 항목에 포커스
+            if (!hasNavigatedRef.current) {
+              hasNavigatedRef.current = true;
+              menuItems[menuItems.length - 1].focus();
+            } else {
+              const prevIndex = currentIndex > 0 ? currentIndex - 1 : menuItems.length - 1;
+              menuItems[prevIndex].focus();
+            }
           }
           break;
 
         case 'Home':
           event.preventDefault();
           if (menuItems.length > 0) {
+            hasNavigatedRef.current = true;
             menuItems[0].focus();
           }
           break;
@@ -77,6 +99,7 @@ export function Dropdown({
         case 'End':
           event.preventDefault();
           if (menuItems.length > 0) {
+            hasNavigatedRef.current = true;
             menuItems[menuItems.length - 1].focus();
           }
           break;
@@ -84,6 +107,7 @@ export function Dropdown({
         case 'Tab':
           event.preventDefault();
           if (menuItems.length > 0) {
+            hasNavigatedRef.current = true;
             const nextIndex = event.shiftKey
               ? currentIndex > 0
                 ? currentIndex - 1
@@ -97,10 +121,11 @@ export function Dropdown({
       }
     }
 
-    contentElement.addEventListener('keydown', handleKeyDown);
+    // document에 이벤트 리스너 등록하여 전역적으로 키보드 이벤트 감지
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      contentElement.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, enableKeyboardNav, contentRef]);
 
