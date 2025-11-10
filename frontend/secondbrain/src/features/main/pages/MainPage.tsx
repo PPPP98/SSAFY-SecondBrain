@@ -31,10 +31,10 @@ export function MainPage() {
     void navigate({ search: {} });
   };
 
-  if (!isLoading) {
+  if (isLoading) {
     return (
       <MainLayout onPlusClick={handleCreateDraft}>
-        <LoadingSpinner />;
+        <LoadingSpinner />
       </MainLayout>
     );
   }
