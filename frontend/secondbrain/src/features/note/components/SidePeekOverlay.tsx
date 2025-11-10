@@ -1,4 +1,5 @@
-import { type ReactNode, useState, useRef, useEffect, useCallback } from 'react';
+import { type ReactNode, useRef, useEffect, useCallback } from 'react';
+import { useResponsiveWidth } from '@/shared/hooks/useResponsiveWidth';
 
 interface SidePeekOverlayProps {
   isOpen: boolean;
@@ -14,8 +15,16 @@ interface SidePeekOverlayProps {
  * - 크기 조절 가능 (왼쪽 border 드래그)
  */
 export function SidePeekOverlay({ isOpen, onClose, children }: SidePeekOverlayProps) {
-  // 패널 너비 (percentage)
-  const [width, setWidth] = useState<number>(50);
+  // 반응형 너비: TailwindCSS 브레이크포인트 기반 자동 조정
+  const { width, setWidth } = useResponsiveWidth({
+    breakpoints: {
+      1536: 40, // 2xl
+      1280: 50, // xl
+      1024: 66.67, // lg
+      768: 75, // md
+      0: 100, // mobile
+    },
+  });
 
   // 드래그 상태
   const isResizing = useRef(false);
@@ -32,18 +41,21 @@ export function SidePeekOverlay({ isOpen, onClose, children }: SidePeekOverlayPr
   };
 
   // 드래그 중 크기 조절
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isResizing.current) return;
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing.current) return;
 
-    const deltaX = startX.current - e.clientX; // 왼쪽으로 드래그하면 +
-    const windowWidth = window.innerWidth;
-    const newWidthPx = (startWidth.current / 100) * windowWidth + deltaX;
-    const newWidthPercent = (newWidthPx / windowWidth) * 100;
+      const deltaX = startX.current - e.clientX; // 왼쪽으로 드래그하면 +
+      const windowWidth = window.innerWidth;
+      const newWidthPx = (startWidth.current / 100) * windowWidth + deltaX;
+      const newWidthPercent = (newWidthPx / windowWidth) * 100;
 
-    // 최소 30%, 최대 95%
-    const clampedWidth = Math.min(Math.max(newWidthPercent, 30), 95);
-    setWidth(clampedWidth);
-  }, []);
+      // 최소 30%, 최대 95%
+      const clampedWidth = Math.min(Math.max(newWidthPercent, 30), 95);
+      setWidth(clampedWidth);
+    },
+    [setWidth],
+  );
 
   // 드래그 종료
   const handleMouseUp = useCallback(() => {
@@ -51,38 +63,17 @@ export function SidePeekOverlay({ isOpen, onClose, children }: SidePeekOverlayPr
     document.body.style.userSelect = '';
   }, []);
 
-  // Document event listeners
+  // Document event listeners: 드래그 동작을 위한 전역 이벤트 리스너
   useEffect(() => {
-    if (isResizing.current) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+    // handleMouseMove 내부에서 isResizing.current를 체크하므로 항상 등록
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
 
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [handleMouseMove, handleMouseUp]);
-
-  // 화면 크기에 따른 초기 너비 설정
-  useEffect(() => {
-    const updateInitialWidth = () => {
-      const windowWidth = window.innerWidth;
-      if (windowWidth >= 1536)
-        setWidth(40); // 2xl
-      else if (windowWidth >= 1280)
-        setWidth(50); // xl
-      else if (windowWidth >= 1024)
-        setWidth(66.67); // lg
-      else if (windowWidth >= 768)
-        setWidth(75); // md
-      else setWidth(100); // mobile
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
-
-    updateInitialWidth();
-    window.addEventListener('resize', updateInitialWidth);
-    return () => window.removeEventListener('resize', updateInitialWidth);
-  }, []);
+  }, [handleMouseMove, handleMouseUp]);
 
   return (
     <>
