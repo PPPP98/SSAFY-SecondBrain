@@ -23,10 +23,7 @@ export function useSearchNotes({ keyword }: UseSearchNotesParams) {
     getNextPageParam: (lastPage) => {
       // currentPage가 totalPages - 1보다 작으면 다음 페이지가 있음
       const hasNextPage = lastPage.currentPage < lastPage.totalPages - 1;
-      if (hasNextPage) {
-        return lastPage.currentPage + 1;
-      }
-      return undefined;
+      return hasNextPage ? lastPage.currentPage + 1 : undefined;
     },
     enabled: keyword.trim().length > 0,
   });

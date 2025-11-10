@@ -24,7 +24,7 @@ export const Graph = () => {
   }, [graphData]);
 
   if (isLoading) {
-    return <LoadingSpinner message="그래프 로딩 중..." />;
+    return <LoadingSpinner />;
   }
 
   if (isError) {

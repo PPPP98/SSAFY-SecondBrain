@@ -6,6 +6,7 @@ import { Graph } from '@/features/main/components/Graph';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
 import { SearchPanel } from '@/features/main/components/SearchPanel';
 import { DraftEditor } from '@/features/note/components/DraftEditor';
+import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 
 /**
  * 메인 페이지
@@ -33,9 +34,7 @@ export function MainPage() {
   if (isLoading) {
     return (
       <MainLayout onPlusClick={handleCreateDraft}>
-        <div className="flex min-h-dvh items-center justify-center">
-          <p>로딩 중...</p>
-        </div>
+        <LoadingSpinner />
       </MainLayout>
     );
   }
