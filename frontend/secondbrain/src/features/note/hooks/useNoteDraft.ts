@@ -68,7 +68,7 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
     throwOnError: false, // 404 에러 무시
   });
 
-  // ✅ React 공식 문서 패턴: "Adjust state on prop change during rendering"
+  // React 공식 문서 패턴: "Adjust state on prop change during rendering"
   // draftId 변경 시 상태 동기화 (렌더링 중)
   const [prevDraftId, setPrevDraftId] = useState(draftId);
 
@@ -149,8 +149,9 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   };
 
   // Debounced Redis 저장 (500ms)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const saveDraftToRedis = useCallback(
+  // React 공식 패턴: debounce 함수는 useRef로 저장
+  // saveMutation.mutate는 TanStack Query가 안정적인 참조 보장
+  const saveDraftToRedis = useRef(
     debounce((draft: NoteDraftRequest) => {
       // 최소 검증: title 또는 content 중 하나라도 있어야 함
       if (!draft.title?.trim() && !draft.content?.trim()) {
@@ -159,8 +160,7 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
 
       saveMutation.mutate(draft);
     }, 500),
-    [],
-  );
+  ).current;
 
   // beforeunload: 페이지 이탈 시 자동 저장
   useEffect(() => {
@@ -190,34 +190,37 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   }, [draftId]); // title, content 제거: 타이핑마다 재실행 방지
 
   // 핸들러
-  const handleTitleChange = useCallback(
-    (newTitle: string) => {
-      setTitle(newTitle);
-      titleRef.current = newTitle; // ✅ refs 직접 동기화
+  // React 공식: 자식이 memo()가 아니므로 useCallback 불필요
+  // contentRef 사용으로 cross-dependency 제거
+  function handleTitleChange(newTitle: string) {
+    setTitle(newTitle);
+    titleRef.current = newTitle;
 
-      saveDraftToRedis({
-        noteId: draftId,
-        title: newTitle,
-        content,
-        version: versionRef.current,
-      });
-    },
-    [draftId, content, saveDraftToRedis],
-  );
+    saveDraftToRedis({
+      noteId: draftId,
+      title: newTitle,
+      content: contentRef.current, // ref로 최신 값 참조
+      version: versionRef.current,
+    });
+  }
 
+  // titleRef 사용으로 cross-dependency 제거
+  // ⚠️ Milkdown useEditor의 의존성 제약으로 useCallback 필요
+  // NoteEditor의 useEditor([onChange])가 onChange 변경 시 에디터 재초기화
+  // 안정적인 참조가 없으면 타이핑 중 에디터가 계속 재생성되어 editorView 손실
   const handleContentChange = useCallback(
     (newContent: string) => {
       setContent(newContent);
-      contentRef.current = newContent; // ✅ refs 직접 동기화
+      contentRef.current = newContent;
 
       saveDraftToRedis({
         noteId: draftId,
-        title,
+        title: titleRef.current, // ref로 최신 값 참조
         content: newContent,
         version: versionRef.current,
       });
     },
-    [draftId, title, saveDraftToRedis],
+    [draftId, saveDraftToRedis],
   );
 
   const deleteDraft = async () => {

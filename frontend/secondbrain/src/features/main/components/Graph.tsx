@@ -1,27 +1,22 @@
-import { useMemo, useCallback } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { useGraphVisualization } from '@/features/main/hooks/useGraphVisualization';
 
+// 컴포넌트 외부에 상수와 함수 정의
+// React 공식: 단순 상수/계산은 메모이제이션 불필요
+const NODE_COLOR = '#FFFFFF';
+const calculateLinkWidth = (link: { score: number }) => link.score * 2;
+const calculateParticleWidth = (link: { score: number }) => link.score * 1.5;
+const logNodeClick = (node: unknown) => {
+  // TODO: 노드 클릭 시 상세 정보 표시 기능 구현
+  console.info('선택된 노드:', node);
+};
+
 export const Graph = () => {
   const { data: graphData, isLoading, isError } = useGraphVisualization();
 
-  const nodeColorCallback = useCallback(() => '#FFFFFF', []);
-  const linkWidthCallback = useCallback((link: { score: number }) => link.score * 2, []);
-  const particleWidthCallback = useCallback((link: { score: number }) => link.score * 1.5, []);
-  const handleNodeClick = useCallback((node: unknown) => {
-    // TODO: 노드 클릭 시 상세 정보 표시 기능 구현
-    console.info('선택된 노드:', node);
-  }, []);
-
-  // 성능 최적화: graphData 객체를 메모이제이션
-  const memoizedGraphData = useMemo(() => {
-    if (!graphData) return { nodes: [], links: [] };
-    return {
-      nodes: graphData.nodes,
-      links: graphData.links,
-    };
-  }, [graphData]);
+  // React 공식: 단순 null 체크는 useMemo 불필요
+  const displayData = graphData || { nodes: [], links: [] };
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -46,15 +41,15 @@ export const Graph = () => {
   return (
     <div className="h-screen w-full">
       <ForceGraph3D
-        graphData={memoizedGraphData}
+        graphData={displayData}
         nodeLabel="title"
-        nodeColor={nodeColorCallback}
-        linkWidth={linkWidthCallback}
+        nodeColor={NODE_COLOR}
+        linkWidth={calculateLinkWidth}
         linkDirectionalParticles={2}
-        linkDirectionalParticleWidth={particleWidthCallback}
+        linkDirectionalParticleWidth={calculateParticleWidth}
         backgroundColor="#192030"
         nodeRelSize={8}
-        onNodeClick={handleNodeClick}
+        onNodeClick={logNodeClick}
         showNavInfo={false}
       />
     </div>
