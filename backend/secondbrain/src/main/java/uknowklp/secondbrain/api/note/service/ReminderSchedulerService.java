@@ -17,16 +17,17 @@ import uknowklp.secondbrain.api.note.repository.NoteRepository;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ReminderSchedulerService {
 
 	private final NoteRepository noteRepository;
 	private final GmsQuestionService gmsQuestionService;
+	private final ReminderNotificationService reminderNotificationService;
 
 	private static final int MAX_REMINDER_COUNT = 3;
 
 	// 10초마다 실행 (이전 실행 완료 후 10초 대기)
 	@Scheduled(fixedDelay = 10000)
-	@Transactional
 	public void checkAndSendReminders() {
 		LocalDateTime now = LocalDateTime.now();
 
@@ -39,7 +40,7 @@ public class ReminderSchedulerService {
 
 		log.info("리마인더 발송 대상 {}개 발견", pendingNotes.size());
 
-		// 각 노트 처리
+		// 각 노트 처리 (각각 독립적인 트랜잭션)
 		for (Note note : pendingNotes) {
 			try {
 				processReminder(note);
@@ -66,8 +67,8 @@ public class ReminderSchedulerService {
 
 			log.info("GMS 질문 생성 완료 - noteId: {}, question: \"{}\"", note.getId(), question);
 
-			// TODO: 실제 알림 발송 (FCM, WebSocket 등 구현 후 작성)
-			// notificationService.sendReminder(note.getUser(), question);
+			// WebSocket 알림 전송
+			reminderNotificationService.sendReminder(note, question, currentCount);
 
 			// GMS 성공 후에만 DB 업데이트
 			if (currentCount >= 2) {

@@ -60,13 +60,16 @@ public class SecurityConfig {
 				.requestMatchers("/oauth2/**", "/login/**").permitAll()
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // CORS Preflight
 
+				// WebSocket 엔드포인트 (인증 불필요 - STOMP에서 JWT 검증)
+				.requestMatchers("/ws/**").permitAll()
+
 				// Swagger UI (인증 불필요)
 				.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
 				// 인증 API (인증 불필요)
 				.requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
-				
+
 				// AI API (인증 불필요 - 개발 환경)
 				// TODO: 프로덕션 배포 시 인증 추가
 				.requestMatchers("/ai/api/v1/**").permitAll()
