@@ -11,13 +11,18 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.SessionCallback;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import uknowklp.secondbrain.api.note.constant.DraftProcessingStatus;
 import uknowklp.secondbrain.api.note.domain.NoteDraft;
 import uknowklp.secondbrain.api.note.dto.NoteDraftRequest;
 import uknowklp.secondbrain.api.note.dto.NoteDraftResponse;
@@ -47,13 +52,17 @@ public class NoteDraftService {
 
 	private final RedisTemplate<String, NoteDraft> noteDraftRedisTemplate;
 	private final RedisTemplate<String, Object> redisTemplate; // SET 관리용
+	private final StringRedisTemplate stringRedisTemplate; // 처리 상태 추적용
 
 	// Redis Key Patterns
 	private static final String DRAFT_PREFIX = "draft:note:";
 	private static final String USER_DRAFTS_PREFIX = "user:drafts:";
+	private static final String PROCESSED_PREFIX = "processed:draft:";
 
 	// TTL: 24시간
 	private static final Duration DRAFT_TTL = Duration.ofHours(24);
+	// 처리 완료 기록 TTL: 24시간 (Draft와 동일하게 설정하여 완벽한 중복 방지)
+	private static final Duration PROCESSED_TTL = Duration.ofHours(24);
 
 	/**
 	 * Draft 저장 (Redis)
@@ -392,5 +401,130 @@ public class NoteDraftService {
 	private NoteDraft updateExistingDraft(NoteDraft existing, NoteDraftRequest request) {
 		existing.updateContent(request.getTitle(), request.getContent());
 		return existing;
+	}
+
+	// ===== Draft 처리 상태 관리 (멱등성 보장) =====
+
+	/**
+	 * Draft 처리 상태 확인
+	 *
+	 * @param draftId Draft UUID (String)
+	 * @return 처리 상태 (null=미처리, "PROCESSING"=처리중, "{dbNoteId}"=완료)
+	 */
+	public String getProcessingStatus(String draftId) {
+		String key = PROCESSED_PREFIX + draftId;
+		return stringRedisTemplate.opsForValue().get(key);
+	}
+
+	/**
+	 * Draft 처리 시작 표시 (원자적)
+	 *
+	 * Spring Data Redis Transaction 패턴 사용:
+	 * - WATCH로 낙관적 락 구현
+	 * - MULTI/EXEC로 원자성 보장
+	 *
+	 * @param draftId Draft UUID (String)
+	 * @return 성공 여부 (false면 이미 처리 중)
+	 * @throws BaseException Redis 오류 시
+	 */
+	public boolean markAsProcessing(String draftId) {
+		String processedKey = PROCESSED_PREFIX + draftId;
+
+		try {
+			Boolean success = stringRedisTemplate.execute(
+				new SessionCallback<Boolean>() {
+					@Override
+					public Boolean execute(RedisOperations operations)
+						throws DataAccessException {
+
+						// WATCH: 낙관적 락 설정
+						operations.watch(processedKey);
+
+						// 이미 처리 중이거나 완료된 Draft인지 확인
+						String currentStatus = (String) operations.opsForValue()
+							.get(processedKey);
+
+						if (currentStatus != null) {
+							operations.unwatch();
+							log.warn("Draft 이미 처리 중 - DraftId: {}, Status: {}",
+								draftId, currentStatus);
+							return false;
+						}
+
+						// MULTI: 트랜잭션 시작
+						operations.multi();
+
+						// SET processed:draft:{uuid} "PROCESSING"
+						operations.opsForValue().set(
+							processedKey,
+							DraftProcessingStatus.PROCESSING,
+							PROCESSED_TTL
+						);
+
+						// EXEC: 원자적 실행
+						List<Object> results = operations.exec();
+
+						// Transaction 실패 (WATCH된 키가 변경됨)
+						if (results == null || results.isEmpty()) {
+							log.warn("Draft 처리 상태 기록 실패 (경쟁 조건) - DraftId: {}",
+								draftId);
+							return false;
+						}
+
+						log.info("Draft 처리 시작 표시 - DraftId: {}", draftId);
+						return true;
+					}
+				}
+			);
+
+			return Boolean.TRUE.equals(success);
+
+		} catch (Exception e) {
+			log.error("Draft 처리 상태 기록 실패 - DraftId: {}", draftId, e);
+			throw new BaseException(BaseResponseStatus.REDIS_ERROR);
+		}
+	}
+
+	/**
+	 * Draft 처리 완료 기록
+	 *
+	 * @param draftId  Draft UUID (String)
+	 * @param dbNoteId DB에 저장된 Note ID (Long)
+	 */
+	public void markAsCompleted(String draftId, Long dbNoteId) {
+		String key = PROCESSED_PREFIX + draftId;
+
+		try {
+			stringRedisTemplate.opsForValue().set(
+				key,
+				String.valueOf(dbNoteId),
+				PROCESSED_TTL
+			);
+
+			log.info("Draft 처리 완료 기록 - DraftId: {}, DB NoteId: {}",
+				draftId, dbNoteId);
+
+		} catch (Exception e) {
+			// 처리 완료 기록 실패해도 치명적이지 않음
+			// Draft는 이미 DB에 저장됨
+			log.error("Draft 처리 완료 기록 실패 - DraftId: {}", draftId, e);
+		}
+	}
+
+	/**
+	 * Draft 처리 상태 초기화 (롤백용)
+	 *
+	 * @param draftId Draft UUID (String)
+	 */
+	public void rollbackProcessingStatus(String draftId) {
+		String key = PROCESSED_PREFIX + draftId;
+
+		try {
+			stringRedisTemplate.delete(key);
+			log.info("Draft 처리 상태 롤백 - DraftId: {}", draftId);
+
+		} catch (Exception e) {
+			log.error("Draft 처리 상태 롤백 실패 - DraftId: {}", draftId, e);
+		}
 	}
 }

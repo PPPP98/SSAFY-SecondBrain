@@ -1,11 +1,11 @@
-import { useState, useRef, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { BaseLayout } from '@/layouts/BaseLayout';
 import { GlassElement } from '@/shared/components/GlassElement/GlassElement';
 import { UserProfileButton } from '@/features/auth/components/UserProfileButton';
+import { SearchBar } from '@/features/main/components/SearchBar';
 import PlusIcon from '@/shared/components/icon/Plus.svg?react';
-import SearchIcon from '@/shared/components/icon/Search.svg?react';
+import MenuIcon from '@/shared/components/icon/menu.svg?react';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
-import { useDebounce } from '@/features/main/hooks/useDebounce';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -14,22 +14,17 @@ interface MainLayoutProps {
 
 const MainLayout = ({ children, onPlusClick }: MainLayoutProps) => {
   const openRecent = useSearchPanelStore((state) => state.openRecent);
-  const updateQuery = useSearchPanelStore((state) => state.updateQuery);
-  const mode = useSearchPanelStore((state) => state.mode);
+  const closePanel = useSearchPanelStore((state) => state.closePanel);
+  const isOpen = useSearchPanelStore((state) => state.isOpen);
 
-  // 로컬 상태로 검색어 관리
-  const [searchInput, setSearchInput] = useState('');
-  // 300ms 디바운싱 적용
-  const debouncedSearchInput = useDebounce(searchInput, 300);
-
-  // 이전 디바운싱 값 추적
-  const prevDebouncedInputRef = useRef(debouncedSearchInput);
-
-  // 디바운싱된 값이 변경되면 store 업데이트 (렌더링 중 처리)
-  if (mode !== 'closed' && prevDebouncedInputRef.current !== debouncedSearchInput) {
-    prevDebouncedInputRef.current = debouncedSearchInput;
-    updateQuery(debouncedSearchInput);
-  }
+  // 햄버거 메뉴 클릭 핸들러: 패널 토글
+  const handleMenuClick = () => {
+    if (isOpen) {
+      closePanel();
+    } else {
+      openRecent();
+    }
+  };
 
   return (
     <BaseLayout>
@@ -37,16 +32,20 @@ const MainLayout = ({ children, onPlusClick }: MainLayoutProps) => {
       <div className="relative size-full">{children}</div>
 
       {/* UI 레이어: 개별 요소만 z-index로 위에 배치 */}
+      {/* 햄버거 메뉴 버튼 - 패널이 닫혀있을 때만 표시 */}
+      <button
+        onClick={handleMenuClick}
+        className={`absolute left-10 top-10 z-50 text-white/80 transition-opacity duration-200 ease-out hover:text-white motion-reduce:transition-none ${
+          isOpen ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100'
+        }`}
+        aria-label={isOpen ? '검색 패널 닫기' : '검색 패널 열기'}
+      >
+        <MenuIcon className="size-6" />
+      </button>
+
+      {/* 검색창 */}
       <div className="absolute left-1/2 top-10 z-50 -translate-x-1/2">
-        <GlassElement
-          as="input"
-          scale="md"
-          icon={<SearchIcon />}
-          placeholder="검색"
-          value={searchInput}
-          onFocus={openRecent}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
+        <SearchBar />
       </div>
 
       <div className="absolute right-10 top-10 z-50">
