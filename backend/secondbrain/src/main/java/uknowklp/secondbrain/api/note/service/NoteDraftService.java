@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import uknowklp.secondbrain.api.note.constant.DraftProcessingStatus;
 import uknowklp.secondbrain.api.note.domain.NoteDraft;
 import uknowklp.secondbrain.api.note.dto.NoteDraftRequest;
 import uknowklp.secondbrain.api.note.dto.NoteDraftResponse;
@@ -456,7 +457,7 @@ public class NoteDraftService {
 						// SET processed:draft:{uuid} "PROCESSING"
 						operations.opsForValue().set(
 							processedKey,
-							"PROCESSING",
+							DraftProcessingStatus.PROCESSING,
 							PROCESSED_TTL
 						);
 

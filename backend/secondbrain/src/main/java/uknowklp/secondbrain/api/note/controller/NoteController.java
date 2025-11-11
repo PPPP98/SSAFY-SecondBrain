@@ -26,6 +26,7 @@ import uknowklp.secondbrain.api.note.dto.NoteRecentResponse;
 import uknowklp.secondbrain.api.note.dto.NoteReminderResponse;
 import uknowklp.secondbrain.api.note.dto.NoteRequest;
 import uknowklp.secondbrain.api.note.dto.NoteResponse;
+import uknowklp.secondbrain.api.note.constant.DraftProcessingStatus;
 import uknowklp.secondbrain.api.note.service.NoteDraftService;
 import uknowklp.secondbrain.api.note.service.NoteService;
 import uknowklp.secondbrain.api.user.domain.User;
@@ -204,7 +205,7 @@ public class NoteController {
 		String processingStatus = noteDraftService.getProcessingStatus(draftId);
 
 		if (processingStatus != null) {
-			if (processingStatus.equals("PROCESSING")) {
+			if (DraftProcessingStatus.isProcessing(processingStatus)) {
 				// 현재 처리 중
 				log.warn("Draft 이미 처리 중 - DraftId: {}", draftId);
 				return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -212,13 +213,22 @@ public class NoteController {
 
 			} else {
 				// 이미 완료됨 (DB Note ID를 문자열로 저장했음)
-				Long dbNoteId = Long.parseLong(processingStatus);
-				log.info("Draft 이미 처리 완료 - DraftId: {}, DB NoteId: {}",
-					draftId, dbNoteId);
+				try {
+					Long dbNoteId = DraftProcessingStatus.parseDbNoteId(processingStatus);
+					log.info("Draft 이미 처리 완료 - DraftId: {}, DB NoteId: {}",
+						draftId, dbNoteId);
 
-				// 기존 Note 반환
-				NoteResponse response = noteService.getNoteById(dbNoteId, user.getId());
-				return ResponseEntity.ok(new BaseResponse<>(response));
+					// 기존 Note 반환
+					NoteResponse response = noteService.getNoteById(dbNoteId, user.getId());
+					return ResponseEntity.ok(new BaseResponse<>(response));
+
+				} catch (NumberFormatException e) {
+					// Redis 데이터 손상 (예상치 못한 값)
+					log.error("Redis 데이터 손상 - DraftId: {}, 손상된 Status: {}", draftId, processingStatus, e);
+					// 손상된 키 삭제 후 재처리 허용
+					noteDraftService.rollbackProcessingStatus(draftId);
+					// 아래 정상 처리 로직으로 진행
+				}
 			}
 		}
 
