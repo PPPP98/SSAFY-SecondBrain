@@ -97,6 +97,9 @@ public enum BaseResponseStatus {
 	REDIS_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10804, "Redis 저장소 오류"),
 	DRAFT_VERSION_REQUIRED(false, HttpStatus.BAD_REQUEST, -10805, "버전 정보는 필수입니다."),
 	DRAFT_INVALID_VERSION(false, HttpStatus.BAD_REQUEST, -10806, "잘못된 버전 정보입니다."),
+	DRAFT_ALREADY_PROCESSING(false, HttpStatus.CONFLICT, -10807, "Draft가 이미 처리 중입니다. 잠시 후 다시 시도해주세요."),
+	DRAFT_ALREADY_COMPLETED(true, HttpStatus.OK, -10808, "Draft가 이미 DB에 저장되었습니다."),
+	NOTE_CREATE_FAILED(false, HttpStatus.INTERNAL_SERVER_ERROR, -10809, "노트 생성에 실패했습니다."),
 
 	/**
 	 * -10900 ~ -10909 : TTS 관련 에러
