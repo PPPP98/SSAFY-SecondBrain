@@ -240,7 +240,6 @@ class NoteServiceImplTest {
 		NoteRequest requestWithoutImages = NoteRequest.builder()
 			.title("이미지 없는 노트")
 			.content("텍스트만 있는 노트입니다.")
-			.images(null)
 			.build();
 
 		given(userService.findById(userId)).willReturn(Optional.of(testUser));
@@ -271,7 +270,6 @@ class NoteServiceImplTest {
 		NoteRequest requestWithImage = NoteRequest.builder()
 			.title("이미지 포함 노트")
 			.content("이미지가 포함된 노트입니다.")
-			.images(images)
 			.build();
 
 		given(userService.findById(userId)).willReturn(Optional.of(testUser));
@@ -319,7 +317,6 @@ class NoteServiceImplTest {
 		NoteRequest requestWithImages = NoteRequest.builder()
 			.title("다중 이미지 노트")
 			.content("여러 이미지가 포함된 노트입니다.")
-			.images(images)
 			.build();
 
 		given(userService.findById(userId)).willReturn(Optional.of(testUser));
@@ -348,7 +345,6 @@ class NoteServiceImplTest {
 		NoteRequest requestWithEmptyList = NoteRequest.builder()
 			.title("빈 이미지 리스트 노트")
 			.content("이미지 리스트가 비어있습니다.")
-			.images(new ArrayList<>())
 			.build();
 
 		given(userService.findById(userId)).willReturn(Optional.of(testUser));
@@ -679,7 +675,6 @@ class NoteServiceImplTest {
 		NoteRequest updateRequest = NoteRequest.builder()
 			.title("이미지 수정")
 			.content("이미지가 추가된 내용")
-			.images(images)
 			.build();
 
 		Note existingNote = Note.builder()

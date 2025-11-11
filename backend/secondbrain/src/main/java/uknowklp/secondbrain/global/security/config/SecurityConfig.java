@@ -70,6 +70,10 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
 
+				// TTS API (인증 불필요 - 개발 환경)
+				// TODO: 프로덕션 배포 시 인증 추가
+				.requestMatchers("/api/tts/**").permitAll()
+
 				// AI API (인증 불필요 - 개발 환경)
 				// TODO: 프로덕션 배포 시 인증 추가
 				.requestMatchers("/ai/api/v1/**").permitAll()

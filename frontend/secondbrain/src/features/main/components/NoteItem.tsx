@@ -1,4 +1,3 @@
-import { GlassElement } from '@/shared/components/GlassElement/GlassElement';
 import CheckBoxIcon from '@/shared/components/icon/CheckBox.svg?react';
 
 interface NoteItemProps {
@@ -21,25 +20,21 @@ export function NoteItem({ note, isSelected, onToggle }: NoteItemProps) {
   };
 
   return (
-    <GlassElement as="div" className="w-full gap-6 transition-all" innerClassName="!pl-5">
-      <div className="flex items-center">
-        <button
-          onClick={handleCheckboxClick}
-          className={`mr-2 flex size-4 shrink-0 items-center justify-center rounded-sm border-2 transition-all ${
-            isSelected
-              ? 'border-white bg-white'
-              : 'border-white/80 bg-transparent hover:border-white'
-          }`}
-          aria-label="노트 선택"
-        >
-          {isSelected && (
-            <div className="size-full bg-white">
-              <CheckBoxIcon className="size-full text-black" />
-            </div>
-          )}
-        </button>
-        <h3 className="flex-1 truncate text-base font-normal text-white/90">{note.title}</h3>
-      </div>
-    </GlassElement>
+    <div className="flex items-center py-5">
+      <button
+        onClick={handleCheckboxClick}
+        className={`mr-3 flex size-4 shrink-0 items-center justify-center rounded-sm border-2 transition-all ${
+          isSelected ? 'border-white bg-white' : 'border-white/80 bg-transparent hover:border-white'
+        }`}
+        aria-label="노트 선택"
+      >
+        {isSelected && (
+          <div className="size-full bg-white">
+            <CheckBoxIcon className="size-full text-black" />
+          </div>
+        )}
+      </button>
+      <h3 className="flex-1 truncate text-base font-normal text-white/90">{note.title}</h3>
+    </div>
   );
 }
