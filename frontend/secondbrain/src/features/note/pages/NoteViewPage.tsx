@@ -6,6 +6,8 @@ import { SidePeekOverlay } from '@/features/note/components/SidePeekOverlay';
 import { DraftToolbar } from '@/features/note/components/DraftToolbar';
 import { NoteTitleInput } from '@/features/note/components/NoteTitleInput';
 import { NoteEditor } from '@/features/note/components/NoteEditor';
+import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
+import { useNoteQuery } from '@/features/note/hooks/useNoteQuery';
 import '@/shared/styles/custom-scrollbar.css';
 
 /**
@@ -18,6 +20,9 @@ export function NoteViewPage() {
   const navigate = useNavigate();
   const { noteId } = useParams({ from: '/notes/$noteId' });
   const [viewMode, setViewMode] = useState<'full-screen' | 'side-peek'>('full-screen');
+
+  // 노트 데이터 가져오기
+  const { data: noteData, isLoading, isError } = useNoteQuery(noteId);
 
   const handleClose = () => {
     void navigate({ to: '/main' });
@@ -59,20 +64,32 @@ export function NoteViewPage() {
 
         {/* 중앙 컨텐츠: Title + Editor (전체 스크롤) */}
         <div className="custom-scrollbar absolute inset-x-0 bottom-0 top-32 flex flex-col items-center gap-8 overflow-y-auto px-24">
-          <div
-            className="flex w-full max-w-4xl translate-y-0 flex-col opacity-100 transition-all duration-500 ease-out"
-            style={{
-              transitionDelay: '150ms',
-            }}
-          >
-            {/* 제목 입력 */}
-            <NoteTitleInput value="" onChange={() => {}} placeholder="제목을 입력해주세요..." />
-
-            {/* 마크다운 에디터 */}
-            <div className="pb-20">
-              <NoteEditor defaultValue="" />
+          {isLoading ? (
+            <LoadingSpinner />
+          ) : isError || !noteData ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-gray-500">노트를 불러올 수 없습니다.</p>
             </div>
-          </div>
+          ) : (
+            <div
+              className="flex w-full max-w-4xl translate-y-0 flex-col opacity-100 transition-all duration-500 ease-out"
+              style={{
+                transitionDelay: '150ms',
+              }}
+            >
+              {/* 제목 입력 */}
+              <NoteTitleInput
+                value={noteData.title}
+                onChange={() => {}}
+                placeholder="제목을 입력해주세요..."
+              />
+
+              {/* 마크다운 에디터 */}
+              <div className="pb-20">
+                <NoteEditor defaultValue={noteData.content} />
+              </div>
+            </div>
+          )}
         </div>
       </SidePeekOverlay>
     </MainLayout>
