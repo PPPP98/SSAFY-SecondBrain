@@ -19,29 +19,39 @@ interface DraftEditorProps {
  * - 자동 저장 (useNoteDraft)
  * - Toolbar: 뒤로가기, 모드 전환, 삭제
  * - 전체화면/부분화면 모드 지원
+ * - draftId가 변경되면 key로 컴포넌트 리셋 (React 권장 패턴)
  */
 export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
-  // 뷰 모드 상태 (기본값: 전체화면)
-  const [viewMode, setViewMode] = useState<'full-screen' | 'side-peek'>('full-screen');
-  const [lastDraftId, setLastDraftId] = useState(draftId);
+  return <DraftEditorInternal key={draftId} draftId={draftId} isOpen={isOpen} onClose={onClose} />;
+}
 
-  // draftId 변경 시 viewMode 초기화 (렌더링 중 처리, useEffect 불필요)
-  if (draftId !== lastDraftId) {
-    setLastDraftId(draftId);
-    setViewMode('full-screen');
-  }
+/**
+ * Draft 에디터 내부 구현
+ * - key prop에 의해 draftId 변경 시 자동 리셋
+ * - useEffect 없이 효율적인 상태 관리
+ */
+function DraftEditorInternal({ draftId, isOpen, onClose }: DraftEditorProps) {
+  // 뷰 모드 상태 (draftId 변경 시 key로 자동 리셋됨)
+  const [viewMode, setViewMode] = useState<'full-screen' | 'side-peek'>('full-screen');
 
   const handleToggleMode = () => {
     setViewMode((prev) => (prev === 'full-screen' ? 'side-peek' : 'full-screen'));
   };
-  const { title, content, handleTitleChange, handleContentChange, saveToDatabase, deleteDraft } =
-    useNoteDraft({
-      draftId,
-      onSaveToDatabase: () => {
-        // DB 저장 성공 → 오버레이만 닫기 (main 페이지로 돌아감)
-        onClose();
-      },
-    });
+  const {
+    title,
+    content,
+    isLoading,
+    handleTitleChange,
+    handleContentChange,
+    saveToDatabase,
+    deleteDraft,
+  } = useNoteDraft({
+    draftId,
+    onSaveToDatabase: () => {
+      // DB 저장 성공 → 오버레이만 닫기 (main 페이지로 돌아감)
+      onClose();
+    },
+  });
 
   const handleClose = async () => {
     // 유효한 Draft → DB 저장
@@ -112,7 +122,7 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
 
           {/* 마크다운 에디터 */}
           <div className="pb-20">
-            <NoteEditor defaultValue={content} onChange={handleContentChange} />
+            {!isLoading && <NoteEditor defaultValue={content} onChange={handleContentChange} />}
           </div>
         </div>
       </div>

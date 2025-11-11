@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useState, useEffect, useRef } from 'react';
 
 interface SidePeekOverlayProps {
   isOpen: boolean;
@@ -19,6 +19,25 @@ interface SidePeekOverlayProps {
 export function SidePeekOverlay({ isOpen, onClose, children, mode }: SidePeekOverlayProps) {
   // 드래그로 설정한 커스텀 너비 (null이면 CSS 반응형 사용)
   const [customWidth, setCustomWidth] = useState<number | null>(null);
+
+  // 이벤트 리스너 참조 (cleanup용)
+  const handleMoveRef = useRef<((e: MouseEvent) => void) | null>(null);
+  const handleUpRef = useRef<((e: MouseEvent) => void) | null>(null);
+
+  // 컴포넌트 언마운트 시 이벤트 리스너 정리
+  useEffect(() => {
+    return () => {
+      if (handleMoveRef.current) {
+        document.removeEventListener('mousemove', handleMoveRef.current);
+        handleMoveRef.current = null;
+      }
+      if (handleUpRef.current) {
+        document.removeEventListener('mouseup', handleUpRef.current);
+        handleUpRef.current = null;
+      }
+      document.body.style.userSelect = '';
+    };
+  }, []);
 
   return (
     <>
@@ -49,13 +68,13 @@ export function SidePeekOverlay({ isOpen, onClose, children, mode }: SidePeekOve
             onMouseDown={(e) => {
               e.preventDefault();
 
-              // 클로저 변수로 드래그 상태 추적 (ref 불필요)
+              // 클로저 변수로 드래그 상태 추적
               const startX = e.clientX;
               const panelElement = e.currentTarget.parentElement!;
               const startWidthPx = panelElement.offsetWidth;
               const windowWidth = window.innerWidth;
 
-              // 드래그 중 크기 조절 (인라인 함수, useCallback 불필요)
+              // 드래그 중 크기 조절
               const handleMove = (moveEvent: MouseEvent) => {
                 const deltaX = startX - moveEvent.clientX; // 왼쪽으로 드래그하면 +
                 const newWidthPx = startWidthPx + deltaX;
@@ -71,10 +90,14 @@ export function SidePeekOverlay({ isOpen, onClose, children, mode }: SidePeekOve
                 document.removeEventListener('mousemove', handleMove);
                 document.removeEventListener('mouseup', handleUp);
                 document.body.style.userSelect = '';
+                handleMoveRef.current = null;
+                handleUpRef.current = null;
               };
 
-              // 이벤트 리스너 등록 (useEffect 불필요)
+              // 이벤트 리스너 등록 및 ref 저장
               document.body.style.userSelect = 'none';
+              handleMoveRef.current = handleMove;
+              handleUpRef.current = handleUp;
               document.addEventListener('mousemove', handleMove);
               document.addEventListener('mouseup', handleUp);
             }}
@@ -82,12 +105,33 @@ export function SidePeekOverlay({ isOpen, onClose, children, mode }: SidePeekOve
               // 더블클릭으로 커스텀 너비 리셋 (CSS 반응형으로 복귀)
               setCustomWidth(null);
             }}
+            onKeyDown={(e) => {
+              // 키보드 접근성: ArrowLeft/Right로 크기 조절
+              if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                setCustomWidth((prev) => {
+                  const current = prev ?? 50; // 기본값 50%
+                  return Math.max(current - 5, 30); // 최소 30%
+                });
+              } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                setCustomWidth((prev) => {
+                  const current = prev ?? 50; // 기본값 50%
+                  return Math.min(current + 5, 95); // 최대 95%
+                });
+              } else if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                // Enter/Space로 커스텀 너비 리셋
+                setCustomWidth(null);
+              }
+            }}
             role="separator"
-            aria-label="패널 크기 조절 (더블클릭으로 초기화)"
+            aria-label="패널 크기 조절 (화살표 키로 조절, Enter/Space로 초기화)"
             aria-orientation="vertical"
             aria-valuemin={30}
             aria-valuemax={95}
             aria-valuenow={customWidth ? Math.round(customWidth) : undefined}
+            tabIndex={0}
           />
         )}
 
