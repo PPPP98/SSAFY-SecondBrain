@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import browser from 'webextension-polyfill';
-import { OverlayRoot } from '@/extension/content-scripts/overlay/OverlayRoot';
+import { OverlayRoot } from '@/content-scripts/overlay/OverlayRoot';
 
 /**
  * Content Script 엔트리포인트

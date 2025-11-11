@@ -1,4 +1,4 @@
-import { ExtensionOverlay } from '@/extension/content-scripts/overlay/ExtensionOverlay';
+import { ExtensionOverlay } from '@/content-scripts/overlay/ExtensionOverlay';
 
 /**
  * Shadow DOM 내부에 렌더링되는 React 루트 컴포넌트

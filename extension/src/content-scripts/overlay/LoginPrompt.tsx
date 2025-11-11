@@ -1,4 +1,4 @@
-import { GoogleLoginButton } from '@/features/auth/components/GoogleLoginButton';
+import { GoogleLoginButton } from '@/content-scripts/overlay/GoogleLoginButton';
 
 /**
  * 로그인 전 표시되는 프롬프트 컴포넌트
@@ -62,7 +62,7 @@ export function LoginPrompt() {
 
       {/* Google 로그인 버튼 - Shadow DOM 환경에서 작동하도록 설정 */}
       <div style={buttonWrapperStyle}>
-        <GoogleLoginButton text="signin" isExtension={true} useInlineStyles={true} />
+        <GoogleLoginButton text="signin" />
       </div>
     </div>
   );
