@@ -7,6 +7,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -23,7 +27,10 @@ public class TtsController {
 
 	private final TtsService ttsService;
 
-	// text -> mp3로 변환
+	@Operation(summary = "텍스트를 음성으로 변환", description = "Naver Clova Voice를 사용해서 텍스트를 MP3 음성 파일로 변환합니다.")
+	@ApiResponse(responseCode = "200", description = "MP3 파일",
+		content = @Content(mediaType = "application/octet-stream",
+			schema = @Schema(type = "string", format = "binary")))
 	@PostMapping(produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
 	public Mono<ResponseEntity<byte[]>> convert(@Valid @RequestBody TtsRequest request) {
 		// 서비스 호출해서 MP3 바이너리 데이터 받기
