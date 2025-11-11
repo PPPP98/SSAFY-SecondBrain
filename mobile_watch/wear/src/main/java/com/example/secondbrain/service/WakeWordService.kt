@@ -30,31 +30,19 @@ class WakeWordService : Service() {
         private const val NOTIFICATION_ID = 1001
     }
 
-    private lateinit var wakeWordDetector: WakeWordDetector
+    // 버튼 기반 방식으로 변경되어 백그라운드 감지 비활성화
+    // private lateinit var wakeWordDetector: WakeWordDetector
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "워치 서비스 생성됨")
 
-        // 웨이크워드 감지기 초기화
-        wakeWordDetector = WakeWordDetector(this)
+        // 버튼 기반 방식으로 변경되어 이 서비스는 현재 사용하지 않음
+        // 필요시 향후 백그라운드 기능 추가 가능
 
-        // 웨이크워드 감지 상태 관찰
-        serviceScope.launch {
-            wakeWordDetector.wakeWordDetected.collect { detected ->
-                if (detected) {
-                    Log.d(TAG, "웨이크워드 감지됨! 앱 실행")
-                    onWakeWordDetected()
-                }
-            }
-        }
-
-        // Foreground 서비스로 시작
+        // Foreground 서비스로 시작 (서비스 유지를 위해)
         startForeground()
-
-        // 웨이크워드 감지 시작
-        wakeWordDetector.startListening()
     }
 
     private fun startForeground() {
@@ -140,7 +128,7 @@ class WakeWordService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "서비스 종료됨")
-        wakeWordDetector.stopListening()
+        // wakeWordDetector.stopListening()
         serviceScope.cancel()
     }
 
