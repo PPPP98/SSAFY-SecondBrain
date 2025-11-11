@@ -1,27 +1,29 @@
-import { useMemo, useCallback } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { useGraphVisualization } from '@/features/main/hooks/useGraphVisualization';
+import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
+import type { GraphNode } from '@/features/main/types/graph';
+
+// 컴포넌트 외부에 순수 함수 정의
+// React 공식: 단순 계산 함수는 메모이제이션 불필요
+const getNodeColor = (node: GraphNode, highlightedNodeIds: Set<number>) => {
+  if (highlightedNodeIds.size === 0) return '#FFFFFF';
+  const nodeIdNumber = Number(node.id);
+  return highlightedNodeIds.has(nodeIdNumber) ? '#00FFFF' : '#666666';
+};
+
+const getNodeVal = (node: GraphNode, highlightedNodeIds: Set<number>) => {
+  if (highlightedNodeIds.size === 0) return 8;
+  const nodeIdNumber = Number(node.id);
+  return highlightedNodeIds.has(nodeIdNumber) ? 15 : 8;
+};
+
+const calculateLinkWidth = (link: { score: number }) => link.score * 2;
+const calculateParticleWidth = (link: { score: number }) => link.score * 1.5;
 
 export const Graph = () => {
   const { data: graphData, isLoading, isError } = useGraphVisualization();
-
-  const nodeColorCallback = useCallback(() => '#FFFFFF', []);
-  const linkWidthCallback = useCallback((link: { score: number }) => link.score * 2, []);
-  const particleWidthCallback = useCallback((link: { score: number }) => link.score * 1.5, []);
-  const handleNodeClick = useCallback((node: unknown) => {
-    // TODO: 노드 클릭 시 상세 정보 표시 기능 구현
-    console.info('선택된 노드:', node);
-  }, []);
-
-  // 성능 최적화: graphData 객체를 메모이제이션
-  const memoizedGraphData = useMemo(() => {
-    if (!graphData) return { nodes: [], links: [] };
-    return {
-      nodes: graphData.nodes,
-      links: graphData.links,
-    };
-  }, [graphData]);
+  const highlightedNodeIds = useSearchPanelStore((state) => state.highlightedNodeIds);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -46,15 +48,16 @@ export const Graph = () => {
   return (
     <div className="h-screen w-full">
       <ForceGraph3D
-        graphData={memoizedGraphData}
+        graphData={graphData}
         nodeLabel="title"
-        nodeColor={nodeColorCallback}
-        linkWidth={linkWidthCallback}
+        nodeColor={(node) => getNodeColor(node as GraphNode, highlightedNodeIds)}
+        nodeVal={(node) => getNodeVal(node as GraphNode, highlightedNodeIds)}
+        linkWidth={calculateLinkWidth}
         linkDirectionalParticles={2}
-        linkDirectionalParticleWidth={particleWidthCallback}
+        linkDirectionalParticleWidth={calculateParticleWidth}
         backgroundColor="#192030"
         nodeRelSize={8}
-        onNodeClick={handleNodeClick}
+        onNodeClick={(node) => console.info('선택된 노드:', node)}
         showNavInfo={false}
       />
     </div>

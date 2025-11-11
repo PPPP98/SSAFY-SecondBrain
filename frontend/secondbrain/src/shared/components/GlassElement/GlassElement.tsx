@@ -9,6 +9,7 @@ import {
   getInputType,
 } from '@/shared/components/GlassElement/glassElement.utils';
 import { useGlassEffect } from '@/shared/components/GlassElement/useGlassEffect';
+import { cn } from '@/lib/cn';
 
 type ElementType = 'button' | 'input' | 'div';
 
@@ -44,7 +45,8 @@ export const GlassElement = <El extends ElementType>({
     'bg-white/15 font-medium text-white shadow-[0px_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-[3.5px]';
 
   // 최종 className 조합 (명확하고 가독성 높은 구조)
-  const baseClassName = `${baseStyles} ${elementSpecific} ${borderRadius} ${glassStyles} ${scaleClasses} ${sizeClasses} ${innerClassName}`;
+  // div 타입일 때는 sizeClasses를 제외하고 w-full 적용하여 wrapper의 width를 따르도록 함
+  const baseClassName = `${baseStyles} ${elementSpecific} ${borderRadius} ${glassStyles} ${scaleClasses} ${as !== 'div' ? sizeClasses : 'w-full'} ${innerClassName}`;
 
   // children 렌더링 로직
   const elementChildren =
@@ -93,11 +95,16 @@ export const GlassElement = <El extends ElementType>({
     );
   };
 
+  // wrapper div의 className을 cn()으로 병합하여 Tailwind 클래스 충돌 방지
+  const wrapperClassName = cn(
+    'relative',
+    // className에 width 관련 클래스가 없을 때만 기본값 적용
+    !className?.match(/\b(w-|min-w-|max-w-|size-)/) && (as === 'div' ? 'w-[25rem]' : 'w-fit'),
+    className,
+  );
+
   return (
-    <div
-      ref={wrapperRef}
-      className={`relative ${as === 'input' ? 'w-fit' : as === 'div' ? 'w-[25rem]' : 'w-fit'} ${className}`}
-    >
+    <div ref={wrapperRef} className={wrapperClassName}>
       {/* input 왼쪽 아이콘 */}
       {hasInputIcon && (
         <span className="pointer-events-none absolute left-5 top-1/2 z-20 -translate-y-1/2 text-white/60">

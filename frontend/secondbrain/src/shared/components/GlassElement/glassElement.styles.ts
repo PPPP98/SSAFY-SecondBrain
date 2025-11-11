@@ -1,8 +1,8 @@
 // 스타일 설정 객체 - 엘리먼트 타입별 스타일 중앙 관리
 export const STYLE_CONFIG = {
   button: {
-    scale: 'p-0 text-xl',
-    size: 'w-14 h-14',
+    scale: 'p-0 text-lg',
+    size: 'w-12 h-12',
     borderRadius: 'rounded-full',
     elementSpecific:
       'flex cursor-pointer items-center justify-center focus:outline-none focus:ring-2 focus:ring-white/20',

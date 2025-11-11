@@ -12,6 +12,9 @@ interface SearchPanelState {
   selectedIds: Set<number> /** 선택된 노트 ID 집합 */;
   isSelectAllMode: boolean /** 전체 선택 모드 여부 */;
 
+  // ===== 그래프 강조 상태 =====
+  highlightedNodeIds: Set<number> /** 검색 결과로 강조할 노드 ID 집합 */;
+
   // ===== 패널 제어 액션 =====
   openRecent: () => void /** 패널 열기 - 최근 노트 표시 */;
   startSearch: (query: string) => void /** 검색 시작 - 검색 결과 표시 */;
@@ -23,6 +26,10 @@ interface SearchPanelState {
   selectAll: (ids: number[]) => void /** 전체 선택 */;
   deselectAll: () => void /** 전체 선택 해제 */;
   clearSelection: () => void /** 선택 상태 초기화 */;
+
+  // ===== 그래프 강조 액션 =====
+  setHighlightedNodes: (ids: number[]) => void /** 강조할 노드 ID 설정 */;
+  clearHighlightedNodes: () => void /** 강조 상태 초기화 */;
 
   hasSelection: () => boolean /** 선택된 항목이 있는지 확인 */;
 
@@ -36,6 +43,7 @@ export const useSearchPanelStore = create<SearchPanelState>((set, get) => ({
   isOpen: false,
   selectedIds: new Set<number>(),
   isSelectAllMode: false,
+  highlightedNodeIds: new Set<number>(),
 
   // ===== 패널 제어 액션 구현 =====
   openRecent: () =>
@@ -59,6 +67,7 @@ export const useSearchPanelStore = create<SearchPanelState>((set, get) => ({
       isOpen: false,
       selectedIds: new Set<number>(),
       isSelectAllMode: false,
+      highlightedNodeIds: new Set<number>(),
     }),
 
   updateQuery: (query: string) => {
@@ -102,6 +111,17 @@ export const useSearchPanelStore = create<SearchPanelState>((set, get) => ({
       isSelectAllMode: false,
     }),
 
+  // ===== 그래프 강조 액션 구현 =====
+  setHighlightedNodes: (ids: number[]) =>
+    set({
+      highlightedNodeIds: new Set(ids),
+    }),
+
+  clearHighlightedNodes: () =>
+    set({
+      highlightedNodeIds: new Set<number>(),
+    }),
+
   // ===== 계산된 값 구현 =====
   hasSelection: () => get().selectedIds.size > 0,
 
@@ -112,5 +132,6 @@ export const useSearchPanelStore = create<SearchPanelState>((set, get) => ({
       isOpen: false,
       selectedIds: new Set<number>(),
       isSelectAllMode: false,
+      highlightedNodeIds: new Set<number>(),
     }),
 }));

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { debounce } from 'lodash-es';
 import {
@@ -8,6 +8,7 @@ import {
   saveToDatabase as saveToDatabaseApi,
   draftQueries,
 } from '@/api/client/draftApi';
+import { deleteNotes as deleteNotesApi } from '@/api/client/noteApi';
 import type { NoteDraftRequest } from '@/shared/types/draft.types';
 
 interface UseNoteDraftOptions {
@@ -23,6 +24,7 @@ interface UseNoteDraftReturn {
   lastModified: Date | null;
   isLoading: boolean;
   isSaving: boolean;
+  dbNoteId: number | null;
 
   // 핸들러
   handleTitleChange: (value: string) => void;
@@ -46,54 +48,68 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
   const { draftId, onSaveToDatabase } = options;
   const queryClient = useQueryClient();
 
-  // UI 렌더링용 상태 (useState)
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  // DB에 저장된 Note ID 추적
+  const [dbNoteId, setDbNoteId] = useState<number | null>(null);
 
-  // 자동 저장용 Refs
-  const versionRef = useRef(1);
-  const changeCountRef = useRef(0);
-  const lastDbSaveTimeRef = useRef(Date.now());
+  // 로컬 상태 (타이핑 성능 최적화)
+  const [localTitle, setLocalTitle] = useState('');
+  const [localContent, setLocalContent] = useState('');
+  const [localVersion, setLocalVersion] = useState(1);
 
-  // 기존 Draft 조회 (새 Draft는 404 에러 무시)
-  const { data: existingDraft, isLoading } = useQuery({
+  // TanStack Query로 초기 데이터 로드
+  const { data: draft, isLoading } = useQuery({
     queryKey: draftQueries.detail(draftId),
     queryFn: () => getDraft(draftId),
     retry: false,
     staleTime: Infinity,
-    throwOnError: false, // 404 에러 무시
+    throwOnError: false, // 404 에러 무시 (새 Draft)
   });
 
-  // 초기 로드 시 Draft 복원
+  // 초기 로딩 완료 시 로컬 상태 초기화 (한 번만)
+  const [isInitialized, setIsInitialized] = useState(false);
   useEffect(() => {
-    if (existingDraft) {
-      setTitle(existingDraft.title);
-      setContent(existingDraft.content);
-      versionRef.current = existingDraft.version;
+    if (!isLoading && draft && !isInitialized) {
+      setLocalTitle(draft.title || '');
+      setLocalContent(draft.content || '');
+      setLocalVersion(draft.version || 1);
+      setIsInitialized(true);
     }
-  }, [existingDraft]);
+  }, [isLoading, draft, isInitialized]);
 
-  // Redis 저장 Mutation
+  // 자동 저장용 Refs
+  const changeCountRef = useRef(0);
+  const lastDbSaveTimeRef = useRef(Date.now());
+  const isSavingToDbRef = useRef(false); // DB 저장 중 플래그
+
+  // beforeunload를 위한 최신 값 추적
+  const titleRef = useRef(localTitle);
+  const contentRef = useRef(localContent);
+
+  // titleRef, contentRef를 로컬 상태 변경 시 동기화
+  useEffect(() => {
+    titleRef.current = localTitle;
+    contentRef.current = localContent;
+  }, [localTitle, localContent]);
+
+  // Redis 저장 Mutation (Optimistic Update 제거로 성능 개선)
   const saveMutation = useMutation({
     mutationFn: (data: NoteDraftRequest) => saveDraft(data),
     onSuccess: (response) => {
-      versionRef.current = response.version;
+      // 서버 응답의 version으로 로컬 상태 동기화 (409 에러 방지)
+      setLocalVersion(response.version);
       changeCountRef.current++;
-      queryClient.setQueryData(draftQueries.detail(draftId), response);
-
       // Batching 조건 체크
       void checkAndSaveToDatabase();
     },
-    onError: (error) => {
-      console.error('Redis 저장 실패:', error);
+    onError: () => {
       // Fallback: LocalStorage
       localStorage.setItem(
         `draft:${draftId}`,
         JSON.stringify({
           noteId: draftId,
-          title,
-          content,
-          version: versionRef.current,
+          title: titleRef.current,
+          content: contentRef.current,
+          version: localVersion,
         }),
       );
     },
@@ -111,108 +127,166 @@ export function useNoteDraft(options: UseNoteDraftOptions): UseNoteDraftReturn {
     }
   };
 
-  // DB 저장
+  // DB 저장 (멱등성 보장 + 방어 로직)
   const saveToDatabase = async () => {
-    // 최종 검증 (DB는 빈 값 불가)
-    if (!title.trim() || !content.trim()) {
-      console.log('⚠️ DB 저장 불가 - 빈 내용');
+    // 프론트엔드 중복 방지
+    if (isSavingToDbRef.current) {
+      console.warn('[Draft] 이미 DB 저장 중입니다');
       return;
     }
 
+    // 최종 검증 (DB는 빈 값 불가)
+    if (!localTitle.trim() || !localContent.trim()) {
+      console.warn('[Draft] 제목 또는 내용이 비어있어 저장하지 않습니다');
+      return;
+    }
+
+    isSavingToDbRef.current = true;
+
     try {
       const noteId = await saveToDatabaseApi(draftId);
-      console.log('✅ DB 저장 완료:', noteId);
+
+      // DB Note ID 저장
+      setDbNoteId(noteId);
 
       // 카운터 초기화
       changeCountRef.current = 0;
       lastDbSaveTimeRef.current = Date.now();
 
-      // Draft 삭제
-      await deleteDraftApi(draftId);
+      // Draft 삭제 (실패 무시)
+      try {
+        await deleteDraftApi(draftId);
+      } catch (error) {
+        console.warn('[Draft] Redis 삭제 실패 (백엔드에서 처리됨)', error);
+      }
+
+      // 캐시 정리
       queryClient.removeQueries({ queryKey: draftQueries.detail(draftId) });
 
       // 콜백 호출
       if (onSaveToDatabase) {
         onSaveToDatabase(noteId);
       }
-    } catch (error) {
-      console.error('❌ DB 저장 실패:', error);
-      throw error;
+    } catch (error: unknown) {
+      // 409 Conflict 처리 (이미 처리 중)
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 409) {
+        console.info('[Draft] 이미 다른 요청에서 처리 중입니다');
+
+        // 잠시 대기 후 Note 목록 새로고침
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        void queryClient.invalidateQueries({ queryKey: ['notes'] });
+      } else {
+        console.error('[Draft] DB 저장 실패', error);
+        throw error;
+      }
+    } finally {
+      isSavingToDbRef.current = false;
     }
   };
 
   // Debounced Redis 저장 (500ms)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const saveDraftToRedis = useCallback(
+  // React 공식 패턴: debounce 함수는 useRef로 저장
+  // saveMutation.mutate는 TanStack Query가 안정적인 참조 보장
+  const saveDraftToRedis = useRef(
     debounce((draft: NoteDraftRequest) => {
       // 최소 검증: title 또는 content 중 하나라도 있어야 함
       if (!draft.title?.trim() && !draft.content?.trim()) {
-        console.log('⚠️ 빈 내용은 저장하지 않음');
         return;
       }
 
       saveMutation.mutate(draft);
     }, 500),
-    [],
-  );
+  ).current;
 
-  // beforeunload: 페이지 이탈 시 자동 저장
+  // beforeunload: 페이지 이탈 시 자동 저장 (useEffect 제거)
+  // useRef로 핸들러 저장하여 최신 값 참조 보장
+  const handleBeforeUnloadRef = useRef<() => void>();
+
+  handleBeforeUnloadRef.current = () => {
+    // DB 저장 중이면 sendBeacon 차단
+    if (isSavingToDbRef.current) {
+      console.info('[Draft] 이미 저장 중이므로 beforeunload 무시');
+      return;
+    }
+
+    // ref로 최신 값 참조 (클로저 회피)
+    if (titleRef.current.trim() && contentRef.current.trim()) {
+      // Navigator.sendBeacon 사용 (비동기, 보장됨)
+      navigator.sendBeacon(
+        `/api/notes/from-draft/${draftId}`,
+        new Blob(
+          [
+            JSON.stringify({
+              title: titleRef.current,
+              content: contentRef.current,
+            }),
+          ],
+          {
+            type: 'application/json',
+          },
+        ),
+      );
+    }
+  };
+
+  // 이벤트 리스너 등록 (한 번만 실행)
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (title.trim() && content.trim()) {
-        // Navigator.sendBeacon 사용 (비동기, 보장됨)
-        navigator.sendBeacon(
-          `/api/notes/from-draft/${draftId}`,
-          new Blob([JSON.stringify({ title, content })], {
-            type: 'application/json',
-          }),
-        );
-      }
+      handleBeforeUnloadRef.current?.();
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [draftId, title, content]);
+  }, []); // 빈 의존성 배열: 마운트 시 한 번만 등록
 
-  // 핸들러
-  const handleTitleChange = useCallback(
-    (newTitle: string) => {
-      setTitle(newTitle);
-      saveDraftToRedis({
-        noteId: draftId,
-        title: newTitle,
-        content,
-        version: versionRef.current,
-      });
-    },
-    [draftId, content, saveDraftToRedis],
-  );
+  // 핸들러 (로컬 상태 업데이트 + Debounced 서버 저장)
+  // Optimistic Update 제거로 타이핑 성능 개선
+  function handleTitleChange(newTitle: string) {
+    // 로컬 상태만 즉시 업데이트 (빠름!)
+    setLocalTitle(newTitle);
 
-  const handleContentChange = useCallback(
-    (newContent: string) => {
-      setContent(newContent);
-      saveDraftToRedis({
-        noteId: draftId,
-        title,
-        content: newContent,
-        version: versionRef.current,
-      });
-    },
-    [draftId, title, saveDraftToRedis],
-  );
+    // Debounced 서버 저장 (500ms)
+    saveDraftToRedis({
+      noteId: draftId,
+      title: newTitle,
+      content: contentRef.current,
+      version: localVersion,
+    });
+  }
+
+  function handleContentChange(newContent: string) {
+    // 로컬 상태만 즉시 업데이트 (빠름!)
+    setLocalContent(newContent);
+
+    // Debounced 서버 저장 (500ms)
+    saveDraftToRedis({
+      noteId: draftId,
+      title: titleRef.current,
+      content: newContent,
+      version: localVersion,
+    });
+  }
 
   const deleteDraft = async () => {
+    // Redis Draft 삭제
     await deleteDraftApi(draftId);
     queryClient.removeQueries({ queryKey: draftQueries.detail(draftId) });
+
+    // DB Note도 삭제 (존재하는 경우)
+    if (dbNoteId) {
+      await deleteNotesApi([dbNoteId]);
+    }
   };
 
   return {
-    title,
-    content,
-    version: versionRef.current,
-    lastModified: existingDraft?.lastModified ? new Date(existingDraft.lastModified) : null,
+    title: localTitle,
+    content: localContent,
+    version: localVersion,
+    lastModified: draft?.lastModified ? new Date(draft.lastModified) : null,
     isLoading,
     isSaving: saveMutation.isPending,
+    dbNoteId,
     handleTitleChange,
     handleContentChange,
     saveToDatabase,

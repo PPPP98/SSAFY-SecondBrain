@@ -76,3 +76,15 @@ export async function updateNote(id: number, data: NoteUpdateRequest): Promise<N
 export async function deleteNote(id: number): Promise<void> {
   await apiClient.delete(`${API_BASE_URL}/${id}`);
 }
+
+/**
+ * 노트 다중 삭제 (DELETE /api/notes)
+ *
+ * @param noteIds - 삭제할 노트 ID 배열
+ * @throws Error - 노트 없음 (404) 또는 권한 없음 (403)
+ */
+export async function deleteNotes(noteIds: number[]): Promise<void> {
+  await apiClient.delete(API_BASE_URL, {
+    data: { noteIds },
+  });
+}

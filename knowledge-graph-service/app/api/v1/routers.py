@@ -1,6 +1,6 @@
 """API v1 라우터 통합"""
 from fastapi import APIRouter
-from app.api.v1.endpoints import notes, search, stats, graph
+from app.api.v1.endpoints import notes, search, stats, graph, agents
 
 # 통합 라우터
 router = APIRouter(prefix="/api/v1")
@@ -10,6 +10,7 @@ router.include_router(notes.router)      # /api/v1/notes/*
 router.include_router(search.router)     # /api/v1/search/*
 router.include_router(stats.router)      # /api/v1/stats/*
 router.include_router(graph.router)      # /api/v1/graph/*
+router.include_router(agents.router)     # /api/v1/agents/*
 
 # ===== 생성되는 엔드포인트 =====
 # POST   /api/v1/notes              - 노트 생성

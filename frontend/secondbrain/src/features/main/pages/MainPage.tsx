@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { Route } from '@/routes/main';
@@ -19,6 +20,12 @@ export function MainPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const search = Route.useSearch();
   const isOpen = useSearchPanelStore((state) => state.isOpen);
+
+  // 마지막 유효한 draftId 저장 (애니메이션을 위해 DOM 유지)
+  const lastDraftIdRef = useRef<string>('');
+  if (search.draft) {
+    lastDraftIdRef.current = search.draft;
+  }
 
   // PlusIcon 클릭: Draft 생성
   const handleCreateDraft = () => {
@@ -55,20 +62,24 @@ export function MainPage() {
         {/* 배경: Graph */}
         <Graph />
 
-        {/* Side Peek: Draft */}
-        {search.draft && (
-          <DraftEditor
-            draftId={search.draft}
-            isOpen={!!search.draft}
-            onClose={handleCloseSidePeek}
-          />
-        )}
+        {/* Side Peek: Draft - 애니메이션을 위해 항상 렌더링 */}
+        <DraftEditor
+          draftId={lastDraftIdRef.current || 'temp'}
+          isOpen={!!search.draft}
+          onClose={handleCloseSidePeek}
+        />
 
         {/* Side Peek: Note (Phase 3) */}
         {/* {search.noteId && <SidePeekNote noteId={search.noteId} />} */}
       </MainLayout>
-      <div className="absolute left-10 top-10 z-40 h-[calc(100%-5rem)] w-[27%] bg-transparent">
-        {isOpen && <SearchPanel />}
+      <div
+        className={`absolute left-10 top-10 z-40 h-[calc(100%-5rem)] w-[27%] bg-transparent transition-all duration-200 ease-out motion-reduce:transition-none ${
+          isOpen
+            ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
+            : 'pointer-events-none -translate-y-2 scale-95 opacity-0'
+        }`}
+      >
+        <SearchPanel />
       </div>
     </div>
   );

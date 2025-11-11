@@ -1,4 +1,5 @@
-import { useNavigate } from '@tanstack/react-router';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { useNoteDraft } from '@/features/note/hooks/useNoteDraft';
 import { SidePeekOverlay } from '@/features/note/components/SidePeekOverlay';
 import { DraftToolbar } from '@/features/note/components/DraftToolbar';
@@ -16,45 +17,70 @@ interface DraftEditorProps {
  * Draft 에디터 (Side Peek)
  * - NoteTitleInput + NoteEditor 재사용
  * - 자동 저장 (useNoteDraft)
- * - Toolbar: 뒤로가기, 확대, 삭제
+ * - Toolbar: 뒤로가기, 모드 전환, 삭제
+ * - 전체화면/부분화면 모드 지원
+ * - draftId가 변경되면 key로 컴포넌트 리셋 (React 권장 패턴)
  */
 export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
-  const navigate = useNavigate();
+  return <DraftEditorInternal key={draftId} draftId={draftId} isOpen={isOpen} onClose={onClose} />;
+}
 
-  const { title, content, handleTitleChange, handleContentChange, saveToDatabase, deleteDraft } =
-    useNoteDraft({
-      draftId,
-      onSaveToDatabase: (noteId) => {
-        // DB 저장 후 /note로 이동
-        void navigate({ to: '/note', search: { id: noteId } });
-      },
-    });
+/**
+ * Draft 에디터 내부 구현
+ * - key prop에 의해 draftId 변경 시 자동 리셋
+ * - useEffect 없이 효율적인 상태 관리
+ */
+function DraftEditorInternal({ draftId, isOpen, onClose }: DraftEditorProps) {
+  // 뷰 모드 상태 (draftId 변경 시 key로 자동 리셋됨)
+  const [viewMode, setViewMode] = useState<'full-screen' | 'side-peek'>('full-screen');
+
+  const handleToggleMode = () => {
+    setViewMode((prev) => (prev === 'full-screen' ? 'side-peek' : 'full-screen'));
+  };
+  const {
+    title,
+    content,
+    isLoading,
+    handleTitleChange,
+    handleContentChange,
+    saveToDatabase,
+    deleteDraft,
+  } = useNoteDraft({
+    draftId,
+    onSaveToDatabase: () => {
+      // DB 저장 성공 → 오버레이만 닫기 (main 페이지로 돌아감)
+      onClose();
+    },
+  });
 
   const handleClose = async () => {
     // 유효한 Draft → DB 저장
     if (title.trim() && content.trim()) {
       try {
         await saveToDatabase();
-        // saveToDatabase()가 성공하면:
+        // saveToDatabase() 성공 시:
         // - DB에 Note 저장
         // - Redis에서 Draft 삭제
-        // - onSaveToDatabase 콜백 실행 → navigate({ to: '/note', search: { id: noteId } })
-        // 따라서 여기서 onClose() 호출하지 않음
+        // - onSaveToDatabase 콜백 실행 → onClose()
         return;
       } catch (error) {
         console.error('DB 저장 실패:', error);
+        toast.error('노트 저장에 실패했습니다', {
+          description: '작성하신 내용은 임시 저장되었어요. 잠시 후 다시 시도해주세요.',
+        });
         // 에러 시 그냥 닫기 (Draft는 Redis에 유지)
       }
     }
 
     // 빈 Draft → Redis 삭제
     if (!title.trim() && !content.trim()) {
-      deleteDraft().catch(() => {
-        // Draft가 없어도 정상 (빈 노트는 저장 안 됨)
-      });
+      try {
+        await deleteDraft();
+      } catch (error) {
+        console.error('Draft 삭제 실패:', error);
+      }
     }
 
-    // Side Peek 닫기
     onClose();
   };
 
@@ -64,12 +90,29 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
   };
 
   return (
-    <SidePeekOverlay isOpen={isOpen} onClose={() => void handleClose()}>
-      <DraftToolbar onBack={() => void handleClose()} onDelete={handleDelete} />
+    <SidePeekOverlay
+      isOpen={isOpen}
+      onClose={() => void handleClose()}
+      mode={viewMode}
+      onToggleMode={handleToggleMode}
+    >
+      <DraftToolbar
+        onBack={() => void handleClose()}
+        onDelete={handleDelete}
+        mode={viewMode}
+        onToggleMode={handleToggleMode}
+      />
 
       {/* 중앙 컨텐츠: Title + Editor (전체 스크롤) */}
-      <div className="custom-scrollbar absolute inset-x-0 bottom-0 top-32 flex flex-col items-center gap-8 overflow-y-auto px-32">
-        <div className="flex w-full max-w-[900px] flex-col">
+      <div className="custom-scrollbar absolute inset-x-0 bottom-0 top-32 flex flex-col items-center gap-8 overflow-y-auto px-24">
+        <div
+          className={`flex w-full max-w-4xl flex-col transition-all duration-500 ease-out ${
+            isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+          }`}
+          style={{
+            transitionDelay: isOpen ? '150ms' : '0ms',
+          }}
+        >
           {/* 제목 입력 */}
           <NoteTitleInput
             value={title}
@@ -79,7 +122,7 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
 
           {/* 마크다운 에디터 */}
           <div className="pb-20">
-            <NoteEditor defaultValue={content} onChange={handleContentChange} />
+            {!isLoading && <NoteEditor defaultValue={content} onChange={handleContentChange} />}
           </div>
         </div>
       </div>

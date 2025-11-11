@@ -3,13 +3,11 @@ package uknowklp.secondbrain.api.note.service;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,8 +36,6 @@ public class NoteServiceImpl implements NoteService {
 	private final NoteSearchService noteSearchService;
 	private final KnowledgeGraphProducerService knowledgeGraphProducerService;
 
-	// TODO: S3 업로드 서비스 추가 예정
-	// private final S3UploadService s3UploadService;
 
 	@Override
 	public Note createNote(Long userId, NoteRequest request) {
@@ -52,17 +48,14 @@ public class NoteServiceImpl implements NoteService {
 		User user = userService.findById(userId)
 			.orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
 
-		// 이미지 파일 처리 및 마크다운 content 생성
-		String finalContent = processImagesAndContent(request.getContent(), request.getImages());
-
-		// 서비스 레벨 검증: 이미지 추가 후 최종 content 길이 확인
-		validateContentLength(finalContent);
+		// 서비스 레벨 검증: content 길이 확인
+		validateContentLength(request.getContent());
 
 		// 노트 생성
 		Note note = Note.builder()
 			.user(user)
 			.title(request.getTitle())
-			.content(finalContent)
+			.content(request.getContent())
 			.remindCount(0)
 			.build();
 
@@ -127,18 +120,15 @@ public class NoteServiceImpl implements NoteService {
 			throw new BaseException(BaseResponseStatus.NOTE_ACCESS_DENIED);
 		}
 
-		// 이미지 파일 처리 및 마크다운 content 생성
-		String finalContent = processImagesAndContent(request.getContent(), request.getImages());
-
 		// 최종 content 길이 검증 (현재는 길이 제한 없음)
-		validateContentLength(finalContent);
+		validateContentLength(request.getContent());
 
 		// 변경 전 값 저장 (지식 그래프 검증용)
 		String oldTitle = note.getTitle();
 		String oldContent = note.getContent();
 
 		// 노트 수정 (updatedAt은 @UpdateTimestamp로 자동 갱신)
-		note.update(request.getTitle(), finalContent);
+		note.update(request.getTitle(), request.getContent());
 
 		// 변경사항 저장 (JPA dirty checking)
 		Note updatedNote = noteRepository.save(note);
@@ -236,40 +226,6 @@ public class NoteServiceImpl implements NoteService {
 		// content 길이 제한 제거 (TEXT 타입은 무제한)
 	}
 
-	private String processImagesAndContent(String originalContent, List<MultipartFile> images) {
-		if (images == null || images.isEmpty()) {
-			return originalContent;
-		}
-
-		// TODO: S3 업로드 후 실제 URL로 변경 예정
-		// 현재는 임시로 파일명만 사용
-		List<String> imageMarkdowns = images.stream()
-			.filter(file -> !file.isEmpty())
-			.map(file -> {
-				String filename = file.getOriginalFilename();
-				// TODO: S3 업로드 로직 추가 예정
-				// String imageUrl = s3UploadService.upload(file);
-				String imageUrl = "https://placeholder-s3-url/" + filename; // placeholder
-
-				// 마크다운 이미지 문법: ![alt text](url)
-				return String.format("![%s](%s)", filename, imageUrl);
-			})
-			.collect(Collectors.toList());
-
-		// 원본 content 뒤에 이미지 마크다운 추가
-		if (imageMarkdowns.isEmpty()) {
-			return originalContent;
-		}
-
-		StringBuilder contentBuilder = new StringBuilder(originalContent);
-		contentBuilder.append("\n\n"); // 구분을 위한 줄바꿈
-
-		for (String imageMarkdown : imageMarkdowns) {
-			contentBuilder.append(imageMarkdown).append("\n");
-		}
-
-		return contentBuilder.toString().trim();
-	}
 
 	private void validateContentLength(String content) {
 		// TEXT 타입으로 변경되어 길이 제한 제거

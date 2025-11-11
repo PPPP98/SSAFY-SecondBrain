@@ -70,32 +70,56 @@ public class NoteDraftAutoSaveService {
 			}
 
 			int savedCount = 0;
-			int skippedCount = 0;  // 검증 실패 (정상 케이스)
-			int failedCount = 0;   // 시스템 오류 (비정상 케이스)
+			int skippedCount = 0;         // 검증 실패 (정상 케이스)
+			int alreadyProcessedCount = 0; // 이미 처리된 Draft
+			int failedCount = 0;          // 시스템 오류 (비정상 케이스)
 
 			for (NoteDraft draft : staleDrafts) {
 				try {
-					// 각 Draft별 독립 트랜잭션으로 처리
+					// 이미 처리된 Draft인지 확인
+					String status = draftService.getProcessingStatus(draft.getNoteId());
+
+					if (status != null) {
+						// 이미 처리 완료 또는 처리 중
+						log.info("스케줄러: 이미 처리된 Draft 건너뜀 - DraftId: {}, Status: {}",
+							draft.getNoteId(), status);
+
+						// Draft 정리 시도
+						try {
+							draftService.deleteDraft(
+								draft.getNoteId(),
+								draft.getUserId()
+							);
+						} catch (Exception e) {
+							log.warn("스케줄러: Draft 정리 실패 - DraftId: {}",
+								draft.getNoteId(), e);
+						}
+
+						alreadyProcessedCount++;
+						continue;
+					}
+
+					// 미처리 Draft 저장 시도
 					promoteDraftToDatabaseWithTransaction(draft);
 					savedCount++;
 
 				} catch (BaseException e) {
 					// 비즈니스 검증 실패 - 정상적인 케이스 (빈 내용 등)
-					log.warn("Draft 검증 실패로 건너뜀 - NoteId: {}, Reason: {}",
+					log.warn("스케줄러: Draft 검증 실패 - NoteId: {}, Reason: {}",
 						draft.getNoteId(), e.getMessage());
 					skippedCount++;
 
 				} catch (Exception e) {
 					// 시스템 오류 - 비정상 케이스 (DB 장애, Redis 오류 등)
-					log.error("Draft 자동 저장 시스템 오류 - NoteId: {}",
+					log.error("스케줄러: Draft 자동 저장 오류 - NoteId: {}",
 						draft.getNoteId(), e);
 					failedCount++;
 				}
 			}
 
 			// 구분된 로깅으로 모니터링 품질 향상
-			log.info("Draft 자동 저장 완료 - 성공: {}, 검증 건너뜀: {}, 시스템 오류: {}, 전체: {}",
-				savedCount, skippedCount, failedCount, staleDrafts.size());
+			log.info("Draft 자동 저장 완료 - 성공: {}, 이미처리: {}, 검증실패: {}, 시스템오류: {}, 전체: {}",
+				savedCount, alreadyProcessedCount, skippedCount, failedCount, staleDrafts.size());
 
 			// 시스템 오류가 있으면 경고 (모니터링 시스템 연동 가능)
 			if (failedCount > 0) {
@@ -121,18 +145,40 @@ public class NoteDraftAutoSaveService {
 	 */
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	protected void promoteDraftToDatabaseWithTransaction(NoteDraft draft) {
-		// NoteRequest 생성 (도메인 모델 변환 메서드 사용)
-		NoteRequest request = draft.toNoteRequest();
+		String draftId = draft.getNoteId();
 
-		// DB 저장 (검증 포함 - title과 content 모두 필수)
-		// validateNoteRequest()에서 빈 값 체크
-		Note note = noteService.createNote(draft.getUserId(), request);
+		try {
+			// 처리 시작 표시
+			boolean marked = draftService.markAsProcessing(draftId);
+			if (!marked) {
+				log.info("스케줄러: 다른 요청이 이미 처리 중 - DraftId: {}", draftId);
+				return;
+			}
 
-		// Draft 삭제 (DB 저장 성공 후)
-		// throwOnFailure=true: 삭제 실패 시 트랜잭션 롤백 (Note도 롤백)
-		draftService.deleteDraft(draft.getNoteId(), draft.getUserId(), true);
+			// NoteRequest 생성 (도메인 모델 변환 메서드 사용)
+			NoteRequest request = draft.toNoteRequest();
 
-		log.info("Draft 자동 저장 성공 - DraftId: {} → NoteId: {}",
-			draft.getNoteId(), note.getId());
+			// DB 저장 (검증 포함 - title과 content 모두 필수)
+			Note savedNote = noteService.createNote(draft.getUserId(), request);
+			Long dbNoteId = savedNote.getId();
+
+			// 처리 완료 기록
+			draftService.markAsCompleted(draftId, dbNoteId);
+
+			// Draft 삭제 (실패 허용)
+			try {
+				draftService.deleteDraft(draftId, draft.getUserId(), true);
+			} catch (Exception e) {
+				log.warn("스케줄러: Draft 삭제 실패 - DraftId: {}", draftId, e);
+			}
+
+			log.info("스케줄러: Draft 자동 저장 성공 - DraftId: {} → DB NoteId: {}",
+				draftId, dbNoteId);
+
+		} catch (Exception e) {
+			// 실패 시 상태 롤백
+			draftService.rollbackProcessingStatus(draftId);
+			throw e;
+		}
 	}
 }
