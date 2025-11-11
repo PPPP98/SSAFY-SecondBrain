@@ -243,6 +243,7 @@ public class NoteController {
 
 			Note savedNote = noteService.createNote(user.getId(), request);
 			Long dbNoteId = savedNote.getId();
+			log.info("✅ Note 생성 및 KnowledgeGraph 이벤트 발행 완료 - DB NoteId: {}", dbNoteId);
 
 			// ===== Step 4: 처리 완료 기록 =====
 			noteDraftService.markAsCompleted(draftId, dbNoteId);
