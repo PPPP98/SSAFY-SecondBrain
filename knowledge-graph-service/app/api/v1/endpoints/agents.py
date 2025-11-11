@@ -49,13 +49,14 @@ async def note_summarize(
     authorization = credentials.credentials
 
     result = await note_summarize_service.get_note_summarize(data)
-
     if not result:
         raise HTTPException(status_code=400, detail="empty data")
-
+    
+    logger.debug("✅ Note summarize completed")
     response = _call_external_service(authorization, result)
 
     if response.get("success") is not True:
         raise HTTPException(status_code=500, detail="Failed to save Create note")
     # return result
+    logger.debug("✅ Note saved to external service")
     return response
