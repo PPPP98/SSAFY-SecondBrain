@@ -96,7 +96,16 @@ public enum BaseResponseStatus {
 	DRAFT_EMPTY(false, HttpStatus.BAD_REQUEST, -10803, "제목과 내용 중 하나는 필수입니다."),
 	REDIS_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10804, "Redis 저장소 오류"),
 	DRAFT_VERSION_REQUIRED(false, HttpStatus.BAD_REQUEST, -10805, "버전 정보는 필수입니다."),
-	DRAFT_INVALID_VERSION(false, HttpStatus.BAD_REQUEST, -10806, "잘못된 버전 정보입니다.");
+	DRAFT_INVALID_VERSION(false, HttpStatus.BAD_REQUEST, -10806, "잘못된 버전 정보입니다."),
+
+	/**
+	 * -10900 ~ -10909 : TTS 관련 에러
+	 */
+	TTS_TEXT_EMPTY(false, HttpStatus.BAD_REQUEST, -10900, "음성 변환할 텍스트가 비어있습니다."),
+	TTS_TEXT_TOO_LONG(false, HttpStatus.BAD_REQUEST, -10901, "텍스트는 최대 2000자까지 입력 가능합니다."),
+	TTS_API_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10902, "음성 변환 서비스 오류가 발생했습니다."),
+	TTS_CONNECTION_ERROR(false, HttpStatus.SERVICE_UNAVAILABLE, -10903, "TTS 서버 연결에 실패했습니다."),
+	TTS_INVALID_SPEAKER(false, HttpStatus.BAD_REQUEST, -10904, "지원하지 않는 화자입니다.");
 
 	private final boolean isSuccess;
 	private final HttpStatus httpStatus;
