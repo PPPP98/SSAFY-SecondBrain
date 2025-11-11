@@ -3,7 +3,6 @@ package uknowklp.secondbrain.api.note.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -48,20 +46,16 @@ public class NoteController {
 	private final NoteDraftService noteDraftService;
 
 	// 노트 생성
-	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	@Operation(summary = "노트 생성", description = "새로운 노트를 생성합니다 (제목, 내용, 이미지 업로드 지원)")
+	@PostMapping
+	@Operation(summary = "노트 생성", description = "새로운 노트를 생성합니다")
 	public ResponseEntity<BaseResponse<Void>> createNote(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
-		@RequestParam String title,
-		@RequestParam String content,
-		@RequestParam(required = false) List<MultipartFile> images) {
+		@Valid @RequestBody NoteRequest request) {
 
 		User user = userDetails.getUser();
-		int imageCount = images != null ? images.size() : 0;
-		log.info("Creating note for userId: {} - Title: {}, Content length: {}, Image count: {}",
-			user.getId(), title, content.length(), imageCount);
+		log.info("Creating note for userId: {} - Title: {}, Content length: {}",
+			user.getId(), request.getTitle(), request.getContent().length());
 
-		NoteRequest request = NoteRequest.of(title, content, images);
 		noteService.createNote(user.getId(), request);
 
 		BaseResponse<Void> response = new BaseResponse<>(BaseResponseStatus.CREATED);
@@ -87,20 +81,17 @@ public class NoteController {
 	}
 
 	// 노트 수정
-	@PutMapping(value = "/{noteId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	@Operation(summary = "노트 수정", description = "기존 노트의 제목, 내용, 이미지를 수정합니다")
+	@PutMapping("/{noteId}")
+	@Operation(summary = "노트 수정", description = "기존 노트의 제목과 내용을 수정합니다")
 	public ResponseEntity<BaseResponse<NoteResponse>> updateNote(
 		@AuthenticationPrincipal CustomUserDetails userDetails,
 		@PathVariable Long noteId,
-		@RequestParam String title,
-		@RequestParam String content,
-		@RequestParam(required = false) List<MultipartFile> images) {
+		@Valid @RequestBody NoteRequest request) {
 
 		User user = userDetails.getUser();
-		log.info("Updating note for userId: {} - NoteId: {}, Title: {}, Content length: {}, Image count: {}",
-			user.getId(), noteId, title, content.length(), images != null ? images.size() : 0);
+		log.info("Updating note for userId: {} - NoteId: {}, Title: {}, Content length: {}",
+			user.getId(), noteId, request.getTitle(), request.getContent().length());
 
-		NoteRequest request = NoteRequest.of(title, content, images);
 		NoteResponse noteResponse = noteService.updateNote(noteId, user.getId(), request);
 
 		BaseResponse<NoteResponse> response = new BaseResponse<>(noteResponse);
@@ -205,11 +196,10 @@ public class NoteController {
 		NoteDraft draft = noteDraftService.getDraft(noteId, user.getId());
 
 		// 2. Draft → NoteRequest 변환
-		NoteRequest request = NoteRequest.of(
-			draft.getTitle(),
-			draft.getContent(),
-			null // images
-		);
+		NoteRequest request = NoteRequest.builder()
+			.title(draft.getTitle())
+			.content(draft.getContent())
+			.build();
 
 		// 3. 기존 검증 로직 적용 (title과 content 모두 필수)
 		// validateNoteRequest()에서 빈 값 체크
