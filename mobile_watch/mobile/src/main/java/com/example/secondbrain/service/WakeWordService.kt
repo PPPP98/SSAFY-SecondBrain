@@ -29,10 +29,12 @@ class WakeWordService : Service() {
         private const val TAG = "WakeWordService"
         private const val CHANNEL_ID = "wakeword_service_channel"
         private const val NOTIFICATION_ID = 1001
+        private const val COOLDOWN_PERIOD = 5000L // 5초 쿨다운
     }
 
     private lateinit var wakeWordDetector: WakeWordDetector
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var lastDetectionTime = 0L
 
     override fun onCreate() {
         super.onCreate()
@@ -45,8 +47,17 @@ class WakeWordService : Service() {
         serviceScope.launch {
             wakeWordDetector.wakeWordDetected.collect { detected ->
                 if (detected) {
-                    Log.d(TAG, "웨이크워드 감지됨! 앱 실행")
-                    onWakeWordDetected()
+                    val currentTime = System.currentTimeMillis()
+                    val timeSinceLastDetection = currentTime - lastDetectionTime
+
+                    // 쿨다운 기간 확인
+                    if (timeSinceLastDetection >= COOLDOWN_PERIOD) {
+                        Log.d(TAG, "웨이크워드 감지됨! 앱 실행")
+                        lastDetectionTime = currentTime
+                        onWakeWordDetected()
+                    } else {
+                        Log.d(TAG, "웨이크워드 감지 무시 (쿨다운: ${COOLDOWN_PERIOD - timeSinceLastDetection}ms 남음)")
+                    }
                 }
             }
         }
@@ -114,19 +125,21 @@ class WakeWordService : Service() {
     }
 
     private fun onWakeWordDetected() {
+        Log.i(TAG, "웨이크워드 처리 시작")
+
         // 알림 업데이트
         val notification = createNotification("헤이스비 감지됨!")
         val notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.notify(NOTIFICATION_ID, notification)
 
-        // 앱 실행
+        // 앱 실행 (SINGLE_TOP으로 중복 실행 방지)
         val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("wake_word_detected", true)
         }
         startActivity(intent)
 
-        // 짧은 딜레이 후 알림 원래대로
+        // 3초 후 알림 원래대로
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             val normalNotification = createNotification("웨이크워드 감지 중...")
             notificationManager.notify(NOTIFICATION_ID, normalNotification)
