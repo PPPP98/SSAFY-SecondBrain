@@ -7,7 +7,7 @@ import { NotePage } from '@/features/note/pages/NotePage';
  * - beforeLoad에서 인증 체크 및 리다이렉트
  * - 컴포넌트 렌더링 전에 인증 상태 검증
  */
-export const Route = createFileRoute('/note')({
+export const Route = createFileRoute('/notes/$noteId')({
   // 라우트 로드 전 인증 체크 (TanStack Router 공식 권장 패턴)
   beforeLoad: ({ context }) => {
     // 미인증 사용자는 랜딩페이지로 리다이렉트
