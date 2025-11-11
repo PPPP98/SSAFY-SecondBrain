@@ -4,7 +4,7 @@ import { GlassElement } from '@/shared/components/GlassElement/GlassElement';
 import { UserProfileButton } from '@/features/auth/components/UserProfileButton';
 import { SearchBar } from '@/features/main/components/SearchBar';
 import PlusIcon from '@/shared/components/icon/Plus.svg?react';
-import MenuIcon from '@/shared/components/icon/Menu.svg?react';
+import MenuIcon from '@/shared/components/icon/menu.svg?react';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
 
 interface MainLayoutProps {
