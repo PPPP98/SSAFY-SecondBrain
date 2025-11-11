@@ -79,13 +79,12 @@ public class NoteDraft {
 	 * Draft를 DB에 저장하기 위한 NoteRequest 생성
 	 * DRY 원칙: 변환 로직을 도메인 모델에 캡슐화
 	 *
-	 * @return NoteRequest (images는 null, Draft는 이미지 미지원)
+	 * @return NoteRequest
 	 */
 	public uknowklp.secondbrain.api.note.dto.NoteRequest toNoteRequest() {
-		return uknowklp.secondbrain.api.note.dto.NoteRequest.of(
-			this.title,
-			this.content,
-			null // Draft는 images 미지원
-		);
+		return uknowklp.secondbrain.api.note.dto.NoteRequest.builder()
+			.title(this.title)
+			.content(this.content)
+			.build();
 	}
 }
