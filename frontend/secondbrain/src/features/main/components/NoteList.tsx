@@ -67,14 +67,16 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
     }
 
     return (
-      <div className="w-full space-y-4">
-        {noteData.map((note) => (
-          <NoteItem
-            key={note.noteId}
-            note={note}
-            isSelected={selectedIds.has(note.noteId)}
-            onToggle={toggleSelection}
-          />
+      <div className="w-full">
+        {noteData.map((note, index) => (
+          <div key={note.noteId}>
+            <NoteItem
+              note={note}
+              isSelected={selectedIds.has(note.noteId)}
+              onToggle={toggleSelection}
+            />
+            {index < noteData.length - 1 && <div className="border-b border-white/10" />}
+          </div>
         ))}
       </div>
     );
@@ -99,7 +101,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
 
     return (
       <>
-        <div className="w-full space-y-4">
+        <div className="w-full">
           {allNotes.map((note: Note, index: number) => (
             <div key={note.id}>
               <NoteItem
@@ -107,6 +109,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
                 isSelected={selectedIds.has(note.id)}
                 onToggle={toggleSelection}
               />
+              {index < allNotes.length - 1 && <div className="border-b border-white/10" />}
               {/* 마지막 아이템 또는 마지막에서 3번째 중 작은 인덱스에 배치 */}
               {index === Math.min(allNotes.length - 1, Math.max(0, allNotes.length - 3)) && (
                 <div ref={observerRef} className="h-1" />

@@ -33,16 +33,15 @@ const MainLayout = ({ children, onPlusClick }: MainLayoutProps) => {
 
       {/* UI 레이어: 개별 요소만 z-index로 위에 배치 */}
       {/* 햄버거 메뉴 버튼 - 패널이 닫혀있을 때만 표시 */}
-      {!isOpen && (
-        <div className="absolute left-10 top-10 z-50">
-          <GlassElement
-            as="button"
-            icon={<MenuIcon />}
-            onClick={handleMenuClick}
-            aria-label="검색 패널 열기"
-          />
-        </div>
-      )}
+      <button
+        onClick={handleMenuClick}
+        className={`absolute left-10 top-10 z-50 text-white/80 transition-opacity duration-200 ease-out hover:text-white motion-reduce:transition-none ${
+          isOpen ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100'
+        }`}
+        aria-label="검색 패널 열기"
+      >
+        <MenuIcon className="size-6" />
+      </button>
 
       {/* 검색창 */}
       <div className="absolute left-1/2 top-10 z-50 -translate-x-1/2">

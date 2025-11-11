@@ -3,7 +3,7 @@ import { PanelHeader } from '@/features/main/components/PanelHeader';
 import { NoteList } from '@/features/main/components/NoteList';
 import { useRecentNotes } from '@/features/main/hooks/useRecentNotes';
 import { useSearchNotes } from '@/features/main/hooks/useSearchNotes';
-import type { RecentNote } from '@/features/main/types/search';
+import '@/shared/styles/glass-base.css';
 
 export function SearchPanel() {
   const mode = useSearchPanelStore((state) => state.mode);
@@ -13,37 +13,24 @@ export function SearchPanel() {
   const recentNotesQuery = useRecentNotes();
   const searchNotesQuery = useSearchNotes({ keyword: query });
 
-  // 현재 모드에 따라 전체 노트 ID 추출
-  const getAllNoteIds = (): number[] => {
-    if (mode === 'recent' && recentNotesQuery.data) {
-      const notes = recentNotesQuery.data;
-      if (Array.isArray(notes)) {
-        return notes.map((note: RecentNote) => note.noteId);
-      }
-      return [];
-    }
-
-    if (mode === 'search' && searchNotesQuery.data?.pages) {
-      const allNotes = searchNotesQuery.data.pages.flatMap((page) => {
-        return page.results || [];
-      });
-      return allNotes.map((note) => note.id);
-    }
-
-    return [];
-  };
-
-  const allNoteIds = getAllNoteIds();
-
   return (
-    <div className="flex h-full flex-col">
-      <PanelHeader allNoteIds={allNoteIds} />
-      <div
-        data-scroll-container="true"
-        className="m-0 flex flex-1 flex-col overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {mode === 'recent' && <NoteList type="recent" recentQuery={recentNotesQuery} />}
-        {mode === 'search' && <NoteList type="search" searchQuery={searchNotesQuery} />}
+    <div className="backdrop-saturate-180 relative flex h-full flex-col rounded-3xl bg-white/15 p-6 font-medium text-white shadow-[0px_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-[3.5px]">
+      {/* Glass border effects */}
+      <span className="glass-border pointer-events-none absolute inset-0 z-10 rounded-3xl p-px opacity-20 mix-blend-screen"></span>
+      <span className="glass-border pointer-events-none absolute inset-0 z-10 rounded-3xl p-px mix-blend-overlay"></span>
+
+      {/* Content */}
+      <div className="relative z-20 flex h-full flex-col">
+        <PanelHeader />
+        {/* Divider between header and list */}
+        <div className="border-b border-white/75" />
+        <div
+          data-scroll-container="true"
+          className="m-0 flex flex-1 flex-col overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {mode === 'recent' && <NoteList type="recent" recentQuery={recentNotesQuery} />}
+          {mode === 'search' && <NoteList type="search" searchQuery={searchNotesQuery} />}
+        </div>
       </div>
     </div>
   );
