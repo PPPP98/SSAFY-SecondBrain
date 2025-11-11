@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import { Crepe } from '@milkdown/crepe';
 import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/frame.css';
@@ -11,6 +12,13 @@ interface NoteEditorProps {
 }
 
 function CrepeEditor({ defaultValue, onChange }: NoteEditorProps) {
+  // onChange를 ref로 저장하여 안정적인 참조 유지
+  const onChangeRef = useRef(onChange);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
   useEditor(
     (root) => {
       const crepe = new Crepe({
@@ -24,23 +32,21 @@ function CrepeEditor({ defaultValue, onChange }: NoteEditorProps) {
         },
       });
 
-      // onChange 이벤트 연결 (Milkdown listener plugin 사용)
-      if (onChange) {
-        crepe.editor.use(listener);
+      // onChange 이벤트 연결 (ref 사용으로 에디터 재생성 방지)
+      crepe.editor.use(listener);
 
-        crepe.editor.config((ctx) => {
-          const listenerPlugin = ctx.get(listenerCtx);
-          listenerPlugin.markdownUpdated((_ctx, markdown, prevMarkdown) => {
-            if (markdown !== prevMarkdown) {
-              onChange(markdown);
-            }
-          });
+      crepe.editor.config((ctx) => {
+        const listenerPlugin = ctx.get(listenerCtx);
+        listenerPlugin.markdownUpdated((_ctx, markdown, prevMarkdown) => {
+          if (markdown !== prevMarkdown) {
+            onChangeRef.current?.(markdown);
+          }
         });
-      }
+      });
 
       return crepe;
     },
-    [onChange],
+    [], // onChange 의존성 제거 - ref로 최신 값 참조
   );
 
   return <Milkdown />;

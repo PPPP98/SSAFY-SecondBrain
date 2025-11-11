@@ -31,7 +31,7 @@
 
 /* ProseMirror editor padding 제거 */
 .note-editor .ProseMirror.virtual-cursor-enabled.editor {
-  padding: 4rem;
+  padding: 0;
 }
 
 /* Content 영역 - 일반 문단 */
