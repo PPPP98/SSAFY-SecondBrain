@@ -111,6 +111,8 @@ public class SecurityConfig {
 
 		// 프로덕션용 (주석 처리됨)
 		// configuration.setAllowedOrigins(allowedOrigins);
+		// ⚠️ Chrome Extension 지원을 위해 추가 필요:
+		// - chrome-extension://pdagbpahenjhkbcldeilmdgpajiobhch (Extension ID)
 		// ================================================
 
 		// 허용 헤더

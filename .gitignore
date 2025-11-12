@@ -319,3 +319,4 @@ docker-data/
 *.pem
 secrets/
 .secrets/
+dist.crx
