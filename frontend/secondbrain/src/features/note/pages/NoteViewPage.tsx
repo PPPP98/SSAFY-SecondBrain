@@ -8,6 +8,7 @@ import { NoteTitleInput } from '@/features/note/components/NoteTitleInput';
 import { NoteEditor } from '@/features/note/components/NoteEditor';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { useNoteQuery } from '@/features/note/hooks/useNoteQuery';
+import { useNoteDelete } from '@/features/note/hooks/useNoteDelete';
 import '@/shared/styles/custom-scrollbar.css';
 
 /**
@@ -24,6 +25,9 @@ export function NoteViewPage() {
   // 노트 데이터 가져오기
   const { data: noteData, isLoading, isError } = useNoteQuery(noteId);
 
+  // 노트 삭제 훅
+  const { mutate: deleteNote, isPending: isDeleting } = useNoteDelete();
+
   const handleClose = () => {
     void navigate({ to: '/main' });
   };
@@ -33,9 +37,19 @@ export function NoteViewPage() {
   };
 
   const handleDelete = () => {
-    // TODO: 노트 삭제 API 호출
-    console.log('Delete note:', noteId);
-    void navigate({ to: '/main' });
+    if (isDeleting) return;
+
+    deleteNote(
+      { noteIds: [Number(noteId)] },
+      {
+        onSuccess: () => {
+          void navigate({ to: '/main' });
+        },
+        onError: (error) => {
+          console.error('노트 삭제 실패:', error);
+        },
+      },
+    );
   };
 
   const handleCreateDraft = () => {
