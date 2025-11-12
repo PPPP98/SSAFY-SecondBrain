@@ -1,5 +1,3 @@
-import { env } from '@/config/env';
-
 /**
  * Google Login Button - Extension Version
  * Shadow DOM 환경 최적화 (inline styles only)
@@ -23,10 +21,10 @@ export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
       const { default: browser } = await import('webextension-polyfill');
       await browser.runtime.sendMessage({
         type: 'LOGIN',
-        url: env.oauth2LoginUrl,
       });
+      console.log('✅ Login request sent to service worker');
     } catch (error) {
-      console.error('Extension login failed:', error);
+      console.error('❌ Extension login failed:', error);
     }
   }
 
