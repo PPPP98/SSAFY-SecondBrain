@@ -7,6 +7,7 @@ settings = get_settings()
 
 logger = logging.getLogger(__name__)
 
+
 class ExternalService:
     def __init__(self):
         self.api_url = settings.secondbrain_api_url
@@ -17,12 +18,16 @@ class ExternalService:
             "Authorization": f"Bearer {auth_token}",
             "Content-Type": "application/json",
         }
-        json: dict = payload
         try:
-            response = requests.post(URL, json=json, headers=headers)
+            response = requests.post(URL, json=payload, headers=headers)
             response.raise_for_status()
             return response.json()
 
         except Exception as e:
             logger.error(f"External service call failed: {e}")
-            raise HTTPException(status_code=500, detail=f"External service call failed: {e}")
+            raise HTTPException(
+                status_code=500, detail=f"External service call failed: {e}"
+            )
+
+
+external_service = ExternalService()
