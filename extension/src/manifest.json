@@ -6,9 +6,9 @@
   "description": "Save and organize web pages to your SecondBrain",
 
   "icons": {
-    "16": "assets/icon.png",
-    "48": "assets/icon.png",
-    "128": "assets/icon.png"
+    "16": "assets/icon-16.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
   },
 
   "permissions": ["identity", "storage", "tabs", "activeTab", "scripting"],
@@ -30,8 +30,8 @@
 
   "action": {
     "default_icon": {
-      "16": "assets/icon.png",
-      "48": "assets/icon.png"
+      "16": "assets/icon-16.png",
+      "48": "assets/icon-48.png"
     }
   },
 
