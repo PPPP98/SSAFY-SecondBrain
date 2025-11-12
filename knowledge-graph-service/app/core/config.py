@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     summarize_model: str
     summarize_temperature: float
 
+    # external_service 설정
+    secondbrain_api_url: str
+
     # Pydantic 설정
     model_config = SettingsConfigDict(
         env_file=".env",
