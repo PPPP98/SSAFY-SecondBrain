@@ -22,6 +22,9 @@ export function useNoteDelete() {
 
       // 노트 목록 쿼리도 무효화 (목록이 있다면)
       await queryClient.invalidateQueries({ queryKey: ['notes'] });
+
+      // 그래프 쿼리 무효화 (삭제된 노트가 그래프에서 사라지도록)
+      await queryClient.invalidateQueries({ queryKey: ['graphs', 'visualization'] });
     },
   });
 }
