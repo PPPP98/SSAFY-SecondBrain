@@ -19,3 +19,15 @@ export interface NoteGetResponse {
   message: string;
   data: NoteData;
 }
+
+// 노트 삭제
+export interface NoteDeleteRequest {
+  noteIds: number[];
+}
+
+export interface NoteDeleteResponse {
+  success: boolean;
+  code: number;
+  message: string;
+  data: string;
+}
