@@ -33,3 +33,7 @@ dist-ssr
 
 # TypeScript
 *.tsbuildinfo
+
+# Chrome Extension
+*.pem
+*.crx
