@@ -1,4 +1,7 @@
 import browser from 'webextension-polyfill';
+import { exchangeToken, logout as logoutService } from '@/services/authService';
+import { getCurrentUser } from '@/services/userService';
+import type { UserInfo } from '@/types/auth';
 
 /**
  * Background Service Worker
@@ -17,11 +20,7 @@ type ExtensionMessage =
 
 interface AuthResponse {
   authenticated: boolean;
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-  };
+  user?: UserInfo;
 }
 
 // chrome.storage에서 인증 상태 확인
@@ -33,7 +32,7 @@ async function checkAuth(): Promise<AuthResponse> {
       console.log('✅ User is authenticated');
       return {
         authenticated: true,
-        user: result.user as { id: string; name: string; email: string } | undefined,
+        user: result.user as UserInfo | undefined,
       };
     }
 
@@ -45,142 +44,108 @@ async function checkAuth(): Promise<AuthResponse> {
   }
 }
 
-// OAuth 로그인 처리
+// OAuth 로그인 처리 (Chrome Identity API 사용)
 async function handleLogin(authUrl: string): Promise<void> {
-  try {
-    // 새 탭에서 OAuth 진행
-    const authTab = await browser.tabs.create({ url: authUrl, active: true });
-    const authTabId = authTab.id;
+  // 모든 Extension 탭에 인증 상태 변경 알림
+  const notifyAuthChanged = async () => {
+    const tabs = await browser.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.id && tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+        try {
+          await browser.tabs.sendMessage(tab.id, { type: 'AUTH_CHANGED' });
+        } catch {
+          // Content script 없는 탭 무시
+        }
+      }
+    }
+  };
 
-    if (!authTabId) {
-      throw new Error('Failed to create auth tab');
+  try {
+    console.log('🔐 Starting OAuth flow with chrome.identity...');
+
+    // 1. Extension의 정확한 Redirect URI 가져오기
+    const extensionRedirectUri = chrome.identity.getRedirectURL();
+    console.log('🆔 Extension Redirect URI:', extensionRedirectUri);
+    console.log('📍 Base OAuth URL:', authUrl);
+
+    // 2. OAuth URL에 redirect_uri 파라미터 추가
+    const oauthUrl = new URL(authUrl);
+    oauthUrl.searchParams.set('redirect_uri', extensionRedirectUri);
+
+    console.log('🔗 Final OAuth URL:', oauthUrl.toString());
+
+    // 3. chrome.identity API로 OAuth 팝업 실행
+    const redirectUrl = await chrome.identity.launchWebAuthFlow({
+      url: oauthUrl.toString(),
+      interactive: true,
+    });
+
+    // redirectUrl이 undefined인 경우 처리 (사용자가 취소했거나 실패)
+    if (!redirectUrl) {
+      console.error('❌ OAuth flow was cancelled or failed');
+      throw new Error('OAuth authentication was cancelled or failed to complete');
     }
 
-    console.log('OAuth tab opened:', authTabId);
+    console.log('✅ OAuth redirect received:', redirectUrl);
 
-    // 모든 Extension 탭에 인증 상태 변경 알림
-    const notifyAuthChanged = async () => {
-      const tabs = await browser.tabs.query({});
-      for (const tab of tabs) {
-        if (
-          tab.id &&
-          tab.url &&
-          (tab.url.startsWith('http://') || tab.url.startsWith('https://'))
-        ) {
-          try {
-            await browser.tabs.sendMessage(tab.id, { type: 'AUTH_CHANGED' });
-          } catch {
-            // Content script 없는 탭 무시
-          }
-        }
-      }
-    };
+    // 2. Authorization Code 추출
+    const callbackUrl = new URL(redirectUrl);
+    const code = callbackUrl.searchParams.get('code');
 
-    // OAuth 콜백 URL 감지
-    const handleUrlChange = (tabId: number, changeInfo: browser.Tabs.OnUpdatedChangeInfoType) => {
-      if (tabId === authTabId && changeInfo.url) {
-        try {
-          const url = new URL(changeInfo.url);
+    if (!code) {
+      console.error('❌ No authorization code found in callback URL:', redirectUrl);
+      throw new Error(
+        'OAuth callback did not contain authorization code. ' +
+          'Check if redirect_uri is correctly configured in Google Cloud Console.',
+      );
+    }
 
-          // /auth/callback?code=xxx 감지
-          if (url.pathname === '/auth/callback') {
-            const code = url.searchParams.get('code');
+    console.log('📋 Authorization code received');
 
-            if (code) {
-              console.log('OAuth callback with code:', code);
-              browser.tabs.onUpdated.removeListener(handleUrlChange);
-              browser.tabs.onRemoved.removeListener(handleTabClosed);
+    // 3. 토큰 교환 (기존 로직 유지)
+    console.log('🔄 Exchanging code for token...');
+    const tokenData = await exchangeToken(code);
 
-              // Authorization code를 토큰으로 교환
-              void (async () => {
-                try {
-                  const apiBaseUrl = authUrl.split('/oauth2')[0];
-                  console.log('Exchanging code for token at:', apiBaseUrl);
+    if (!tokenData.success || !tokenData.data) {
+      console.error('❌ Token exchange failed:', tokenData);
+      throw new Error('Token exchange returned invalid data');
+    }
 
-                  // 1. 토큰 교환
-                  const tokenResponse = await fetch(`${apiBaseUrl}/api/auth/token?code=${code}`, {
-                    method: 'POST',
-                    credentials: 'include',
-                  });
+    console.log('✅ Token exchange successful');
 
-                  if (tokenResponse.ok) {
-                    const tokenData = (await tokenResponse.json()) as {
-                      success: boolean;
-                      data?: { accessToken: string; refreshToken: string };
-                    };
+    const { accessToken } = tokenData.data;
 
-                    if (tokenData.success && tokenData.data) {
-                      console.log('✅ Token exchange successful!');
+    // 4. Access Token 저장 (getCurrentUser가 이 토큰을 사용함)
+    await browser.storage.local.set({
+      access_token: accessToken,
+    });
 
-                      // JWT에서 사용자 정보 추출
-                      const payload = JSON.parse(
-                        atob(tokenData.data.accessToken.split('.')[1]),
-                      ) as {
-                        userId?: number;
-                        sub?: string;
-                        name?: string;
-                        email?: string;
-                      };
-                      const user = {
-                        id: payload.userId?.toString() || payload.sub || '',
-                        name: payload.name || payload.email?.split('@')[0] || 'User',
-                        email: payload.email || '',
-                      };
+    console.log('💾 Access token saved to storage');
 
-                      // chrome.storage에 저장
-                      await browser.storage.local.set({
-                        access_token: tokenData.data.accessToken,
-                        refresh_token: tokenData.data.refreshToken,
-                        authenticated: true,
-                        user: user,
-                      });
+    // 5. 사용자 정보 조회 (기존 로직 유지)
+    try {
+      console.log('👤 Fetching user info...');
+      const userInfo = await getCurrentUser();
 
-                      console.log('✅ Login successful!', user.name);
+      // 6. 최종 인증 상태 저장 (기존 로직 유지)
+      await browser.storage.local.set({
+        authenticated: true,
+        user: userInfo,
+      });
 
-                      // 즉시 모든 탭에 인증 변경 알림
-                      await notifyAuthChanged();
+      console.log('✅ Login successful! User:', userInfo.name);
 
-                      // OAuth 탭 바로 닫기
-                      await browser.tabs.remove(authTabId);
-                    } else {
-                      console.error('Token data invalid:', tokenData);
-                      await browser.tabs.remove(authTabId);
-                    }
-                  } else {
-                    console.error(
-                      'Token exchange failed:',
-                      tokenResponse.status,
-                      await tokenResponse.text(),
-                    );
-                    await browser.tabs.remove(authTabId);
-                  }
-                } catch (e) {
-                  console.error('Token exchange failed:', e);
-                  await browser.tabs.remove(authTabId);
-                }
-              })();
-            }
-          }
-        } catch (e) {
-          console.debug('URL parsing failed:', e);
-        }
-      }
-    };
-
-    // 탭 수동 종료 시 리스너 정리
-    const handleTabClosed = (tabId: number) => {
-      if (tabId === authTabId) {
-        console.log('OAuth tab closed manually');
-        browser.tabs.onUpdated.removeListener(handleUrlChange);
-        browser.tabs.onRemoved.removeListener(handleTabClosed);
-        void notifyAuthChanged();
-      }
-    };
-
-    browser.tabs.onUpdated.addListener(handleUrlChange);
-    browser.tabs.onRemoved.addListener(handleTabClosed);
+      // 7. 모든 탭에 인증 변경 알림 (기존 로직 유지)
+      await notifyAuthChanged();
+    } catch (userError) {
+      // 사용자 정보 조회 실패 시 정리 (기존 에러 처리 유지)
+      console.error('❌ Failed to fetch user info:', userError);
+      await browser.storage.local.remove(['access_token', 'authenticated', 'user']);
+      throw new Error('Failed to fetch user information after successful login');
+    }
   } catch (error) {
-    console.error('OAuth login failed:', error);
+    // OAuth 전체 실패 처리 (기존 에러 처리 유지)
+    console.error('❌ OAuth login failed:', error);
     throw error;
   }
 }
@@ -270,6 +235,15 @@ browser.runtime.onMessage.addListener(
           }
 
           case 'LOGOUT': {
+            try {
+              // 백엔드 로그아웃 API 호출 (Refresh Token 무효화)
+              await logoutService();
+              console.log('✅ Backend logout successful');
+            } catch (error) {
+              console.error('Backend logout failed:', error);
+              // 백엔드 로그아웃 실패해도 클라이언트 측 로그아웃은 진행
+            }
+
             // chrome.storage에서 인증 정보 삭제
             await browser.storage.local.remove([
               'access_token',
@@ -277,7 +251,7 @@ browser.runtime.onMessage.addListener(
               'user',
               'authenticated',
             ]);
-            console.log('Logged out - storage cleared');
+            console.log('✅ Local storage cleared - logout complete');
             sendResponse({ success: true });
             break;
           }
