@@ -20,7 +20,22 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
+ * [현재 비활성화됨 - 향후 백그라운드 기능을 위해 보존]
+ *
  * 백그라운드에서 웨이크워드를 감지하는 Foreground Service (Wear OS)
+ *
+ * ## 비활성화 이유:
+ * - Wear OS 3 이상에서 백그라운드 음성 감지 제약사항으로 인해 현재 비활성화
+ * - 현재 구현은 버튼 기반 음성 인식 방식으로 전환됨 (MainActivity 참고)
+ *
+ * ## 향후 사용 계획:
+ * - Wear OS에서 백그라운드 음성 감지 정책이 완화될 경우
+ * - Always-on 마이크 기능이 지원되는 장치에서 활성화 가능
+ * - 배터리 최적화 및 사용자 경험 개선 후 재도입 고려
+ *
+ * ## 참고사항:
+ * - 이 파일은 향후 백그라운드 기능 추가를 위한 템플릿으로 보존
+ * - 실제 사용하지 않으므로 AndroidManifest.xml에서도 서비스 선언 제거 권장
  */
 class WakeWordService : Service() {
 
@@ -36,7 +51,7 @@ class WakeWordService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "워치 서비스 생성됨")
+        Log.d(TAG, "워치 서비스 생성됨 (현재 비활성화 상태)")
 
         // 버튼 기반 방식으로 변경되어 이 서비스는 현재 사용하지 않음
         // 필요시 향후 백그라운드 기능 추가 가능

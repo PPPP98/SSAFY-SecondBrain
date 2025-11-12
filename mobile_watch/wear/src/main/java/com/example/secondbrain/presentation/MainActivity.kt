@@ -9,6 +9,9 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,22 +46,30 @@ import com.example.secondbrain.wakeword.WakeWordDetector
 
 class MainActivity : ComponentActivity() {
 
+    companion object {
+        private const val TAG = "MainActivity"
+        private const val DOUBLE_CLICK_TIME_DELTA = 500L
+        private const val REQUEST_CODE_SPEECH = 100
+    }
+
     private lateinit var wakeWordDetector: WakeWordDetector
 
     // 홈 버튼 더블 클릭 감지를 위한 변수
-    private var lastHomeButtonPressTime = 0L
-    private val DOUBLE_CLICK_TIME_DELTA = 500L // 500ms 이내 더블 클릭
+    private var homeButtonClickCount = 0
+    private val homeButtonHandler = Handler(Looper.getMainLooper())
+    private val homeButtonRunnable = Runnable {
+        homeButtonClickCount = 0
+    }
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        android.util.Log.d("MainActivity", "권한 결과: $isGranted")
+        android.util.Log.d(TAG, "권한 결과: $isGranted")
         if (isGranted) {
-            android.util.Log.d("MainActivity", "권한 승인됨 - 음성 인식 시작")
-            // 권한 승인되면 즉시 음성 인식 Activity 실행
+            android.util.Log.d(TAG, "권한 승인됨 - 음성 인식 시작")
             startVoiceRecognitionActivity()
         } else {
-            android.util.Log.e("MainActivity", "권한 거부됨 - 음성 인식 불가")
+            android.util.Log.e(TAG, "권한 거부됨 - 음성 인식 불가")
             wakeWordDetector.setError("마이크 권한이 필요합니다")
         }
     }
@@ -67,19 +78,19 @@ class MainActivity : ComponentActivity() {
     private val speechRecognitionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        android.util.Log.d("MainActivity", "음성 인식 결과 코드: ${result.resultCode}")
+        android.util.Log.d(TAG, "음성 인식 결과 코드: ${result.resultCode}")
         if (result.resultCode == RESULT_OK) {
             val matches = result.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
             matches?.let {
                 if (it.isNotEmpty()) {
                     val recognizedText = it[0]
-                    android.util.Log.i("MainActivity", "✓ 인식 완료 (Activity): '$recognizedText'")
+                    android.util.Log.i(TAG, "✓ 인식 완료 (Activity): '$recognizedText'")
                     wakeWordDetector.setRecognizedText(recognizedText)
                 }
             }
         } else {
-            android.util.Log.w("MainActivity", "음성 인식 취소 또는 실패")
-            wakeWordDetector.setError("음성 인식 취소됨")
+            android.util.Log.w(TAG, "음성 인식 취소 또는 실패")
+            wakeWordDetector.setError("음성 인식이 취소되었습니다")
         }
         wakeWordDetector.setListening(false)
     }
@@ -100,17 +111,17 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkAndRequestPermission() {
-        android.util.Log.d("MainActivity", "권한 체크 시작...")
+        android.util.Log.d(TAG, "권한 체크 시작...")
         when {
             ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.RECORD_AUDIO
             ) == PackageManager.PERMISSION_GRANTED -> {
-                android.util.Log.d("MainActivity", "권한 있음 - 음성 인식 Activity 실행")
+                android.util.Log.d(TAG, "권한 있음 - 음성 인식 Activity 실행")
                 startVoiceRecognitionActivity()
             }
             else -> {
-                android.util.Log.d("MainActivity", "권한 없음 - 권한 요청")
+                android.util.Log.d(TAG, "권한 없음 - 권한 요청")
                 requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             }
         }
@@ -129,51 +140,66 @@ class MainActivity : ComponentActivity() {
             wakeWordDetector.setListening(true)
             wakeWordDetector.clearMessages()
 
-            android.util.Log.d("MainActivity", "음성 인식 Activity 실행 시도...")
+            android.util.Log.d(TAG, "음성 인식 Activity 실행 시도...")
             speechRecognitionLauncher.launch(intent)
+        } catch (e: SecurityException) {
+            android.util.Log.e(TAG, "권한 부족으로 음성 인식 실패", e)
+            wakeWordDetector.setError("마이크 권한이 필요합니다")
+            wakeWordDetector.setListening(false)
+        } catch (e: android.content.ActivityNotFoundException) {
+            android.util.Log.e(TAG, "음성 인식 서비스를 찾을 수 없습니다", e)
+            wakeWordDetector.setError("음성 인식 서비스가 설치되어 있지 않습니다")
+            wakeWordDetector.setListening(false)
         } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "음성 인식 Activity 실행 실패", e)
-            wakeWordDetector.setError("음성 인식을 시작할 수 없습니다: ${e.message}")
+            android.util.Log.e(TAG, "음성 인식 Activity 실행 실패", e)
+            wakeWordDetector.setError("음성 인식을 시작할 수 없습니다")
             wakeWordDetector.setListening(false)
         }
     }
 
-    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
-        android.util.Log.d("MainActivity", "onKeyDown - keyCode: $keyCode")
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (isHomeButton(keyCode)) {
+            android.util.Log.d(TAG, "홈 버튼 눌림 감지 - clickCount: $homeButtonClickCount")
 
-        // 홈 버튼(크라운 버튼) 더블 클릭 감지
-        if (keyCode == android.view.KeyEvent.KEYCODE_STEM_PRIMARY ||
-            keyCode == android.view.KeyEvent.KEYCODE_HOME) {
+            homeButtonClickCount++
 
-            android.util.Log.d("MainActivity", "홈 버튼 눌림 감지")
-            val currentTime = System.currentTimeMillis()
-            val timeDelta = currentTime - lastHomeButtonPressTime
-
-            android.util.Log.d("MainActivity", "시간 차이: ${timeDelta}ms (허용: ${DOUBLE_CLICK_TIME_DELTA}ms)")
-
-            if (timeDelta < DOUBLE_CLICK_TIME_DELTA && lastHomeButtonPressTime != 0L) {
-                // 더블 클릭 감지됨!
-                android.util.Log.d("MainActivity", "✓ 홈 버튼 더블 클릭 감지!")
-                lastHomeButtonPressTime = 0L // 리셋
+            if (homeButtonClickCount == 1) {
+                // 첫 번째 클릭 - 타이머 시작
+                homeButtonHandler.postDelayed(homeButtonRunnable, DOUBLE_CLICK_TIME_DELTA)
+                return super.onKeyDown(keyCode, event)
+            } else if (homeButtonClickCount == 2) {
+                // 두 번째 클릭 - 더블 클릭 감지!
+                android.util.Log.d(TAG, "✓ 홈 버튼 더블 클릭 감지!")
+                homeButtonHandler.removeCallbacks(homeButtonRunnable)
+                homeButtonClickCount = 0
                 onHomeButtonDoubleClick()
                 return true // 이벤트 소비
             }
-
-            android.util.Log.d("MainActivity", "첫 번째 클릭 또는 시간 초과")
-            lastHomeButtonPressTime = currentTime
-            return super.onKeyDown(keyCode, event) // 시스템이 처리하도록
         }
 
         return super.onKeyDown(keyCode, event)
     }
 
+    /**
+     * 홈 버튼 키 코드 체크
+     */
+    private fun isHomeButton(keyCode: Int): Boolean {
+        return keyCode == KeyEvent.KEYCODE_STEM_PRIMARY || keyCode == KeyEvent.KEYCODE_HOME
+    }
+
     private fun onHomeButtonDoubleClick() {
-        android.util.Log.d("MainActivity", "음성 인식 시작 (홈 버튼 더블 클릭)")
+        android.util.Log.d(TAG, "음성 인식 시작 (홈 버튼 더블 클릭)")
         checkAndRequestPermission()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        android.util.Log.d(TAG, "Activity 종료 - 리소스 정리 중")
+
+        // Handler 콜백 제거
+        homeButtonHandler.removeCallbacks(homeButtonRunnable)
+
+        // 음성 인식 종료
         wakeWordDetector.stopListening()
     }
 }
