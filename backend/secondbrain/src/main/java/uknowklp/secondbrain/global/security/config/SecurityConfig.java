@@ -70,6 +70,8 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/token/google").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/auth/google").permitAll() // 웹 Google 로그인
+				.requestMatchers("/api/mobile/auth/**").permitAll() // 모바일 인증 API만 허용
 
 				// TTS API (인증 불필요 - 개발 환경)
 				// TODO: 프로덕션 배포 시 인증 추가
@@ -112,8 +114,6 @@ public class SecurityConfig {
 
 		// 프로덕션용 (주석 처리됨)
 		// configuration.setAllowedOrigins(allowedOrigins);
-		// ⚠️ Chrome Extension 지원을 위해 추가 필요:
-		// - chrome-extension://pdagbpahenjhkbcldeilmdgpajiobhch (Extension ID)
 		// ================================================
 
 		// 허용 헤더

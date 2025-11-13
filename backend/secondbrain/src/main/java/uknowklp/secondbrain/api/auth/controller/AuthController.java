@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.auth.dto.GoogleTokenRequest;
 import uknowklp.secondbrain.api.auth.dto.GoogleTokenResponse;
 import uknowklp.secondbrain.api.auth.dto.GoogleUserInfo;
+import uknowklp.secondbrain.api.auth.dto.GoogleAuthRequest;
 import uknowklp.secondbrain.api.user.domain.User;
 import uknowklp.secondbrain.api.user.service.UserService;
 import uknowklp.secondbrain.global.exception.BaseException;
@@ -34,6 +35,7 @@ import uknowklp.secondbrain.global.security.jwt.dto.TokenResponse;
 import uknowklp.secondbrain.global.security.jwt.service.RefreshTokenService;
 import uknowklp.secondbrain.global.security.oauth2.dto.AuthCodeData;
 import uknowklp.secondbrain.global.security.oauth2.service.AuthorizationCodeService;
+import uknowklp.secondbrain.global.security.oauth2.service.GoogleTokenVerifier;
 import uknowklp.secondbrain.global.security.oauth2.service.GoogleOAuth2Service;
 
 /**
@@ -52,6 +54,7 @@ public class AuthController {
 	private final RefreshTokenService refreshTokenService;
 	private final AuthorizationCodeService authorizationCodeService;
 	private final UserService userService;
+	private final GoogleTokenVerifier googleTokenVerifier;
 	private final GoogleOAuth2Service googleOAuth2Service;
 
 	@Value("${security.jwt.cookie.secure}")
@@ -131,6 +134,72 @@ public class AuthController {
 		log.info("Token exchange successful. UserId: {}, Email: {}", user.getId(), user.getEmail());
 
 		// 8. Access Token은 JSON Body로 응답
+		TokenResponse tokenResponse = TokenResponse.of(accessToken, jwtProvider.getAccessExpireTime());
+		return ResponseEntity.ok(new BaseResponse<>(tokenResponse));
+	}
+
+	/**
+	 * Google ID Token을 사용한 인증 (모바일 앱용)
+	 * 모바일 앱에서 Google Sign-In SDK로 받은 ID Token을 검증하고 JWT 토큰을 발급합니다.
+	 *
+	 * 웹 vs 모바일 차이점:
+	 * - 웹: OAuth2 플로우 → Authorization Code → JWT
+	 * - 모바일: Google Sign-In SDK → ID Token → JWT (이 엔드포인트)
+	 *
+	 * @param request Google ID Token을 포함한 요청
+	 * @param response HTTP 응답 (Refresh Token 쿠키 설정용)
+	 * @return Access Token 정보 (JSON Body)
+	 */
+	@PostMapping("/google")
+	public ResponseEntity<BaseResponse<TokenResponse>> authenticateWithGoogle(
+		@RequestBody GoogleAuthRequest request,
+		HttpServletResponse response) {
+
+		// 1. Google ID Token 검증 및 이메일 추출
+		String email = googleTokenVerifier.verifyIdToken(request.getIdToken());
+
+		// 2. 사용자 조회 또는 생성 (기존 CustomOAuth2UserService 로직 재사용)
+		String name = email.split("@")[0]; // 이메일에서 이름 추출
+		User user = userService.saveOrUpdate(email, name, null);
+
+		log.info("Mobile app authentication successful. UserId: {}, Email: {}", user.getId(), user.getEmail());
+
+		// 3. Access Token 생성
+		String accessToken = jwtProvider.createAccessToken(user);
+		log.debug("Access token generated for mobile app - UserId: {}, Email: {}", user.getId(), user.getEmail());
+
+		// 4. Refresh Token 생성
+		String refreshToken = jwtProvider.createRefreshToken(user);
+		long refreshExpireSeconds = jwtProvider.getRefreshExpireTime() / 1000;
+
+		// 5. Refresh Token을 Redis에 저장
+		try {
+			refreshTokenService.storeRefreshToken(
+				user.getId(),
+				refreshToken,
+				refreshExpireSeconds
+			);
+			log.debug("Refresh token stored in Redis for mobile app - UserId: {}, TTL: {}s",
+				user.getId(), refreshExpireSeconds);
+		} catch (Exception e) {
+			log.error("Failed to store refresh token in Redis. UserId: {}, Email: {}",
+				user.getId(), user.getEmail(), e);
+			throw new BaseException(BaseResponseStatus.SERVER_ERROR);
+		}
+
+		// 6. Refresh Token을 HttpOnly 쿠키로 설정 (모바일에서는 사용 안 할 수도 있음)
+		ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+			.httpOnly(true)
+			.secure(cookieSecure)
+			.path("/")
+			.maxAge(Duration.ofSeconds(refreshExpireSeconds))
+			.sameSite("Lax")
+			.build();
+		response.addHeader("Set-Cookie", refreshCookie.toString());
+
+		log.info("Mobile app token issuance successful. UserId: {}, Email: {}", user.getId(), user.getEmail());
+
+		// 7. Access Token은 JSON Body로 응답
 		TokenResponse tokenResponse = TokenResponse.of(accessToken, jwtProvider.getAccessExpireTime());
 		return ResponseEntity.ok(new BaseResponse<>(tokenResponse));
 	}

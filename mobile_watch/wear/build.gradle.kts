@@ -37,12 +37,14 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
-    // Wear OS 기본
+    // Wear OS 기본 & Wearable Data Layer (Wear <-> Mobile 통신)
     implementation(libs.play.services.wearable)
+    implementation("com.google.android.gms:play-services-wearable:18.1.0")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
