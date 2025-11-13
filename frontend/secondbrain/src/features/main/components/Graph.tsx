@@ -15,16 +15,17 @@ const calculateParticleWidth = (link: { score: number }) => link.score * 1.5;
 const createNodeThreeObject = (highlightedNodeIds: Set<number>) => (node: GraphNode) => {
   const nodeIdNumber = Number(node.id);
   const isHighlighted = highlightedNodeIds.has(nodeIdNumber);
+  const hasHighlights = highlightedNodeIds.size > 0;
 
   const nodeSize = isHighlighted ? 7.5 : 4;
   const geometry = new THREE.SphereGeometry(nodeSize, 16, 16);
 
   if (isHighlighted) {
-    // 하이라이트된 노드: 강한 흰색 네온 효과
+    // 하이라이트된 노드: 노란색 네온 효과
     const material = new THREE.MeshPhongMaterial({
-      color: 0xffffff,
-      emissive: 0xffffff,
-      emissiveIntensity: 1.5, // 매우 강한 발광
+      color: 0xfffae3,
+      emissive: 0xfffae3,
+      emissiveIntensity: 1.5,
       shininess: 200,
     });
 
@@ -33,9 +34,9 @@ const createNodeThreeObject = (highlightedNodeIds: Set<number>) => (node: GraphN
     // 강한 글로우 효과를 위한 외부 구체 추가
     const glowGeometry = new THREE.SphereGeometry(nodeSize * 1.3, 13, 13);
     const glowMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+      color: 0xfffae3,
       transparent: true,
-      opacity: 0.6, // 더 강한 글로우
+      opacity: 0.6,
       side: THREE.BackSide,
     });
     const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
@@ -43,9 +44,11 @@ const createNodeThreeObject = (highlightedNodeIds: Set<number>) => (node: GraphN
     mesh.add(glowMesh);
     return mesh;
   } else {
-    // 일반 노드: 흰색
+    // 일반 노드: 하이라이트가 있을 경우 투명도 적용
     const material = new THREE.MeshBasicMaterial({
       color: 0xffffff,
+      transparent: hasHighlights,
+      opacity: hasHighlights ? 0.3 : 1.0,
     });
     return new THREE.Mesh(geometry, material);
   }

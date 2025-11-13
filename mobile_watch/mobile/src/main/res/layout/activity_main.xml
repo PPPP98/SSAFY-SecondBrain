@@ -35,18 +35,67 @@
         app:layout_constraintTop_toBottomOf="@id/tvTitle"
         android:layout_marginTop="16dp" />
 
+    <!-- 테스트 버튼들 -->
+    <LinearLayout
+        android:id="@+id/testButtonsLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="48dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvStatus">
+
+        <Button
+            android:id="@+id/btnTestNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="노트 상세 조회 테스트 (ID: 55)"
+            android:textSize="14sp"
+            android:backgroundTint="#007BFF" />
+
+        <TextView
+            android:id="@+id/tvTestResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="12sp"
+            android:textColor="#333333"
+            android:padding="16dp"
+            android:maxLines="10"
+            android:scrollbars="vertical"
+            android:layout_marginTop="8dp"
+            android:background="@android:color/white" />
+
+    </LinearLayout>
+
+    <!-- 하단 버튼들 -->
+    <Button
+        android:id="@+id/btnLogout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="로그아웃"
+        android:textSize="16sp"
+        android:paddingVertical="12dp"
+        android:backgroundTint="#FFC107"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btnExit"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="48dp" />
+
     <Button
         android:id="@+id/btnExit"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="앱 종료"
         android:textSize="16sp"
-        android:paddingHorizontal="48dp"
         android:paddingVertical="12dp"
         android:backgroundTint="#DC3545"
+        app:layout_constraintStart_toEndOf="@id/btnLogout"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginStart="8dp"
         android:layout_marginBottom="48dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
