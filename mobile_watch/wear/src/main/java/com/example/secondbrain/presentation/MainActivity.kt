@@ -16,6 +16,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,10 +42,6 @@ import com.example.secondbrain.presentation.theme.SecondBrainTheme
 import com.example.secondbrain.voicerecognition.VoiceRecognitionManager
 import com.example.secondbrain.utils.LogUtils
 import com.example.secondbrain.communication.WearableMessageSender
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -53,13 +50,12 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-        private const val APP_MINIMIZE_DELAY_SUCCESS_MILLIS = 1500L  // 전송 성공 시
-        private const val APP_MINIMIZE_DELAY_FAILURE_MILLIS = 500L   // 전송 실패 시 빠르게 최소화
+        private const val SUCCESS_DELAY_MS = 1500L  // 전송 성공 시 대기 시간
+        private const val FAILURE_DELAY_MS = 500L   // 전송 실패 시 빠른 최소화
     }
 
     private lateinit var messageSender: WearableMessageSender
     private lateinit var voiceRecognitionManager: VoiceRecognitionManager
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     // 권한 거부 횟수 추적 (SharedPreferences로 저장)
     private val prefs by lazy {
@@ -114,16 +110,16 @@ class MainActivity : ComponentActivity() {
                     voiceRecognitionManager.setRecognizedText(recognizedText)
 
                     // 모바일 앱으로 텍스트 전송
-                    scope.launch {
+                    lifecycleScope.launch {
                         val successCount = messageSender.sendVoiceText(recognizedText)
 
                         val delayMillis = if (successCount > 0) {
                             LogUtils.i(TAG, "모바일로 전송 성공 (${successCount}개 노드)")
-                            APP_MINIMIZE_DELAY_SUCCESS_MILLIS
+                            SUCCESS_DELAY_MS
                         } else {
                             LogUtils.w(TAG, "모바일로 전송 실패 (모든 노드)")
                             voiceRecognitionManager.setError("모바일 연결 없음")
-                            APP_MINIMIZE_DELAY_FAILURE_MILLIS  // 실패 시 빠르게 최소화
+                            FAILURE_DELAY_MS  // 실패 시 빠르게 최소화
                         }
 
                         // 전송 결과에 따른 딜레이 후 앱 최소화
@@ -160,7 +156,7 @@ class MainActivity : ComponentActivity() {
         voiceRecognitionManager = VoiceRecognitionManager(context = this)
 
         // 연결된 모바일 기기 확인 (디버깅용)
-        scope.launch {
+        lifecycleScope.launch {
             messageSender.logConnectedNodes()
         }
 
@@ -272,15 +268,14 @@ class MainActivity : ComponentActivity() {
             voiceRecognitionManager.stopListening()
         }
         // 진행 중인 네트워크 작업 취소 (불필요한 리소스 사용 방지)
-        // SupervisorJob을 사용했으므로 개별 작업은 독립적으로 취소됨
-        scope.coroutineContext.cancelChildren()
+        lifecycleScope.coroutineContext.job.cancelChildren()
         LogUtils.d(TAG, "진행 중인 코루틴 작업 취소됨")
     }
 
     override fun onDestroy() {
         super.onDestroy()
         LogUtils.d(TAG, "Destroy - 정리")
-        scope.cancel()
+        // lifecycleScope는 자동으로 취소되므로 별도 cancel 불필요
         voiceRecognitionManager.cleanup()
     }
 }
