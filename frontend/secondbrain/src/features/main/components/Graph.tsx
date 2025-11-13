@@ -1,31 +1,77 @@
 import { useNavigate } from '@tanstack/react-router';
+import { useRef, useEffect } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
+import type { ForceGraphMethods } from 'react-force-graph-3d';
+import * as THREE from 'three';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { useGraphVisualization } from '@/features/main/hooks/useGraphVisualization';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
-import type { GraphNode } from '@/features/main/types/graph';
-
-// 컴포넌트 외부에 순수 함수 정의
-// React 공식: 단순 계산 함수는 메모이제이션 불필요
-const getNodeColor = (node: GraphNode, highlightedNodeIds: Set<number>) => {
-  if (highlightedNodeIds.size === 0) return '#FFFFFF';
-  const nodeIdNumber = Number(node.id);
-  return highlightedNodeIds.has(nodeIdNumber) ? '#00FFFF' : '#666666';
-};
-
-const getNodeVal = (node: GraphNode, highlightedNodeIds: Set<number>) => {
-  if (highlightedNodeIds.size === 0) return 8;
-  const nodeIdNumber = Number(node.id);
-  return highlightedNodeIds.has(nodeIdNumber) ? 15 : 8;
-};
+import type { GraphNode, GraphLink } from '@/features/main/types/graph';
 
 const calculateLinkWidth = (link: { score: number }) => link.score * 2;
 const calculateParticleWidth = (link: { score: number }) => link.score * 1.5;
+
+// 네온 효과가 적용된 커스텀 노드 생성 함수 (컴포넌트 외부)
+const createNodeThreeObject = (highlightedNodeIds: Set<number>) => (node: GraphNode) => {
+  const nodeIdNumber = Number(node.id);
+  const isHighlighted = highlightedNodeIds.has(nodeIdNumber);
+
+  const nodeSize = isHighlighted ? 7.5 : 4;
+  const geometry = new THREE.SphereGeometry(nodeSize, 16, 16);
+
+  if (isHighlighted) {
+    // 하이라이트된 노드: 강한 흰색 네온 효과
+    const material = new THREE.MeshPhongMaterial({
+      color: 0xffffff,
+      emissive: 0xffffff,
+      emissiveIntensity: 1.5, // 매우 강한 발광
+      shininess: 200,
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+
+    // 강한 글로우 효과를 위한 외부 구체 추가
+    const glowGeometry = new THREE.SphereGeometry(nodeSize * 1.3, 13, 13);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.6, // 더 강한 글로우
+      side: THREE.BackSide,
+    });
+    const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+
+    mesh.add(glowMesh);
+    return mesh;
+  } else {
+    // 일반 노드: 흰색
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+    });
+    return new THREE.Mesh(geometry, material);
+  }
+};
 
 export const Graph = () => {
   const navigate = useNavigate();
   const { data: graphData, isLoading, isError } = useGraphVisualization();
   const highlightedNodeIds = useSearchPanelStore((state) => state.highlightedNodeIds);
+  const fgRef = useRef<ForceGraphMethods<GraphNode, GraphLink>>();
+
+  useEffect(() => {
+    if (fgRef.current) {
+      const fg = fgRef.current;
+      // 링크 거리를 100으로 설정
+      const linkForce = fg.d3Force('link') as { distance: (d: number) => void } | undefined;
+      if (linkForce) {
+        linkForce.distance(100);
+      }
+      // 반발력 강화로 노드 간격 증가
+      const chargeForce = fg.d3Force('charge') as { strength: (s: number) => void } | undefined;
+      if (chargeForce) {
+        chargeForce.strength(-200);
+      }
+    }
+  }, [graphData]);
 
   const handleNodeClick = (node: GraphNode) => {
     void navigate({ to: '/notes/$noteId', params: { noteId: String(node.id) } });
@@ -54,17 +100,18 @@ export const Graph = () => {
   return (
     <div className="h-screen w-full">
       <ForceGraph3D
+        ref={fgRef}
         graphData={graphData}
         nodeLabel="title"
-        nodeColor={(node) => getNodeColor(node as GraphNode, highlightedNodeIds)}
-        nodeVal={(node) => getNodeVal(node as GraphNode, highlightedNodeIds)}
+        nodeThreeObject={createNodeThreeObject(highlightedNodeIds)}
         linkWidth={calculateLinkWidth}
-        linkDirectionalParticles={2}
         linkDirectionalParticleWidth={calculateParticleWidth}
-        backgroundColor="#192030"
-        nodeRelSize={8}
+        linkDirectionalParticles={0}
+        backgroundColor="#10131A"
         onNodeClick={(node) => handleNodeClick(node as GraphNode)}
         showNavInfo={false}
+        d3AlphaDecay={0.02}
+        d3VelocityDecay={0.3}
       />
     </div>
   );
