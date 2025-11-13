@@ -206,16 +206,6 @@ browser.action.onClicked.addListener((tab) => {
     } catch (error) {
       console.error('Failed to send message to content script:', error);
       console.log('Tip: Please refresh the page and try again.');
-
-      // 최종 재시도
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      try {
-        await browser.tabs.sendMessage(tabId, { type: 'TOGGLE_OVERLAY' });
-        console.log('Retry successful');
-      } catch {
-        console.error('Retry failed. Please refresh the page.');
-      }
     }
   })();
 });
