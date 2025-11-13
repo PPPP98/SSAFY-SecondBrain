@@ -20,7 +20,7 @@ type ExtensionMessage =
   | { type: 'LOGOUT' }
   | { type: 'OPEN_TAB'; url: string }
   | { type: 'AUTH_CHANGED' }
-  | { type: 'SAVE_CURRENT_PAGE' };
+  | { type: 'SAVE_CURRENT_PAGE'; url?: string; urls?: string[] };
 
 interface AuthResponse {
   authenticated: boolean;
@@ -193,7 +193,7 @@ browser.action.onClicked.addListener((tab) => {
 browser.runtime.onMessage.addListener(
   (
     message: unknown,
-    _sender: browser.Runtime.MessageSender,
+    sender: browser.Runtime.MessageSender,
     sendResponse: (
       response: AuthResponse | { success: boolean } | SavePageResponse | SavePageError,
     ) => void,
@@ -245,31 +245,61 @@ browser.runtime.onMessage.addListener(
 
           case 'SAVE_CURRENT_PAGE': {
             try {
-              // 1. 현재 활성 탭 조회
-              const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-              const currentTab = tabs[0];
+              let urlsToSave: string[];
 
-              if (!currentTab || !currentTab.url) {
-                const error: SavePageError = {
-                  error: 'NO_TAB',
-                  message: 'Could not find current tab URL',
-                };
-                sendResponse(error);
-                break;
+              // 1순위: urls 배열이 전달된 경우 (여러 페이지)
+              if (msg.urls && msg.urls.length > 0) {
+                urlsToSave = msg.urls;
+                console.log('📍 Multiple URLs from message:', urlsToSave);
+              }
+              // 2순위: 단일 URL (url 필드)
+              else if (msg.url) {
+                urlsToSave = [msg.url];
+                console.log('📍 Single URL from message:', msg.url);
+              }
+              // 3순위: sender.tab.url
+              else if (sender.tab?.url) {
+                urlsToSave = [sender.tab.url];
+                console.log('📍 URL from sender.tab:', sender.tab.url);
+              }
+              // 4순위: Fallback - 현재 활성 탭 조회
+              else {
+                const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+                const currentTab = tabs[0];
+
+                if (!currentTab || !currentTab.url) {
+                  const error: SavePageError = {
+                    error: 'NO_TAB',
+                    message: 'Could not find current tab URL',
+                  };
+                  sendResponse(error);
+                  break;
+                }
+                urlsToSave = [currentTab.url];
+                console.log('📍 URL from active tab:', currentTab.url);
               }
 
-              // 시스템 페이지 검증
-              if (!currentTab.url.startsWith('http://') && !currentTab.url.startsWith('https://')) {
+              // URL 유효성 검증 및 필터링
+              const validUrls = urlsToSave.filter((url) => {
+                if (!url || url.trim() === '') return false;
+                if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+                return true;
+              });
+
+              if (validUrls.length === 0) {
+                console.error('❌ No valid URLs to save');
                 const error: SavePageError = {
                   error: 'INVALID_URL',
-                  message: 'Cannot save system pages (chrome://, about://, etc.)',
+                  message: 'No valid URLs to save',
                 };
                 sendResponse(error);
                 break;
               }
 
+              console.log('💾 Saving URLs:', validUrls);
+
               // 2. Note Service 호출 (토큰 자동 획득)
-              const response = await saveCurrentPageWithStoredToken(currentTab.url);
+              const response = await saveCurrentPageWithStoredToken(validUrls);
 
               // 3. 성공 응답
               sendResponse(response);

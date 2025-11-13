@@ -12,7 +12,7 @@ async function getAccessToken(): Promise<string | null> {
 
 /**
  * POST /ai/api/v1/agents/summarize
- * 현재 페이지 URL을 Knowledge Graph Service로 전송하여 노트 생성
+ * 페이지 URL(들)을 Knowledge Graph Service로 전송하여 노트 생성
  *
  * **Flow:**
  * 1. URL 크롤링 (trafilatura)
@@ -20,16 +20,23 @@ async function getAccessToken(): Promise<string | null> {
  * 3. Spring Boot API 호출하여 노트 생성
  * 4. Neo4j 지식 그래프에 저장
  *
- * @param url - 현재 탭 URL
+ * @param urls - 저장할 URL 배열 (단일 또는 다중 페이지)
  * @param token - JWT Access Token
  * @returns SavePageResponse
  * @throws SavePageError
  */
-export async function saveCurrentPage(url: string, token: string): Promise<SavePageResponse> {
+export async function saveCurrentPage(urls: string[], token: string): Promise<SavePageResponse> {
   try {
     const requestBody: SavePageRequest = {
-      data: [url], // URL 배열로 전송
+      data: urls, // URL 배열로 전송
     };
+
+    console.log('📤 Request to backend:', {
+      url: `${env.kgApiBaseUrl}/ai/api/v1/agents/summarize`,
+      body: requestBody,
+      urlCount: urls.length,
+      urls: urls,
+    });
 
     const response = await fetch(`${env.kgApiBaseUrl}/ai/api/v1/agents/summarize`, {
       method: 'POST',
@@ -70,14 +77,14 @@ export async function saveCurrentPage(url: string, token: string): Promise<SaveP
 }
 
 /**
- * chrome.storage에서 토큰을 가져와 현재 페이지 저장
+ * chrome.storage에서 토큰을 가져와 페이지 저장
  * Background Service Worker에서 사용
  *
- * @param url - 현재 탭 URL
+ * @param urls - 저장할 URL 배열 (단일 또는 다중 페이지)
  * @returns SavePageResponse
  * @throws SavePageError (토큰 없음 또는 API 오류)
  */
-export async function saveCurrentPageWithStoredToken(url: string): Promise<SavePageResponse> {
+export async function saveCurrentPageWithStoredToken(urls: string[]): Promise<SavePageResponse> {
   const token = await getAccessToken();
 
   if (!token) {
@@ -89,5 +96,5 @@ export async function saveCurrentPageWithStoredToken(url: string): Promise<SaveP
     throw error;
   }
 
-  return saveCurrentPage(url, token);
+  return saveCurrentPage(urls, token);
 }
