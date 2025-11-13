@@ -52,7 +52,8 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-        private const val SILENCE_LENGTH_MILLIS = 3000L
+        private const val SILENCE_LENGTH_MILLIS = 1000L
+        private const val MINIMUM_SPEECH_LENGTH_MILLIS = 500L
         private const val APP_MINIMIZE_DELAY_MILLIS = 1500L
     }
 
@@ -238,6 +239,8 @@ class MainActivity : ComponentActivity() {
                 // 침묵 시간을 짧게 설정하여 빠르게 자동 완료
                 putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, SILENCE_LENGTH_MILLIS)
                 putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, SILENCE_LENGTH_MILLIS)
+                // 최소 음성 길이 설정 (자동 완료 유도)
+                putExtra(android.speech.RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, MINIMUM_SPEECH_LENGTH_MILLIS)
 
                 // 오프라인 인식 선호하지 않음 (더 정확한 인식)
                 putExtra(android.speech.RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
