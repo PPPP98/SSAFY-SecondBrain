@@ -68,6 +68,15 @@ export default tseslint.config(
             'color',
             'castShadow',
             'receiveShadow',
+            // 재질 속성
+            'metalness',
+            'roughness',
+            'flatShading',
+            'wireframe',
+            'opacity',
+            'transparent',
+            'side',
+            'depthWrite',
             // 기타 Three.js 속성
             'args',
             'attach',

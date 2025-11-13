@@ -6,6 +6,7 @@
 
 const ENV_HINTS: Partial<Record<keyof ImportMetaEnv, string>> = {
   VITE_API_BASE_URL: 'http://localhost:8080',
+  VITE_KG_API_BASE_URL: 'http://localhost:8000',
   VITE_GOOGLE_CLIENT_ID: '123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com',
 };
 
@@ -26,6 +27,7 @@ const getEnvVar = <Key extends keyof ImportMetaEnv>(key: Key): ImportMetaEnv[Key
 
 export const env = {
   apiBaseUrl: getEnvVar('VITE_API_BASE_URL'),
+  kgApiBaseUrl: getEnvVar('VITE_KG_API_BASE_URL'),
   googleClientId: getEnvVar('VITE_GOOGLE_CLIENT_ID'),
 } as const;
 
