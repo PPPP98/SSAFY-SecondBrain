@@ -52,6 +52,29 @@ export default tseslint.config(
         'warn',
         { allowSameFolder: true, rootDir: 'src', prefix: '@' },
       ],
+      // React Three Fiber: 커스텀 props 허용
+      'react/no-unknown-property': [
+        'error',
+        {
+          ignore: [
+            // Three.js 메쉬 속성
+            'geometry',
+            'material',
+            'position',
+            'rotation',
+            'scale',
+            // 조명 속성
+            'intensity',
+            'color',
+            'castShadow',
+            'receiveShadow',
+            // 기타 Three.js 속성
+            'args',
+            'attach',
+            'dispose',
+          ],
+        },
+      ],
     },
   },
   eslintConfigPrettier,
