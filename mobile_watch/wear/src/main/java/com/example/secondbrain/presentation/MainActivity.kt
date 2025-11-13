@@ -10,10 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
-import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,10 +19,8 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -34,29 +29,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
-import androidx.wear.tooling.preview.devices.WearDevices
 import com.example.secondbrain.BuildConfig
-import com.example.secondbrain.R
 import com.example.secondbrain.presentation.theme.SecondBrainTheme
-import com.example.secondbrain.wakeword.VoiceRecognitionManager
+import com.example.secondbrain.voicerecognition.VoiceRecognitionManager
 
 class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-        private const val DOUBLE_CLICK_TIME_DELTA = 500L
-        private const val REQUEST_CODE_SPEECH = 100
 
         // 디버그 로깅 헬퍼
         private fun logD(message: String) {
@@ -90,19 +78,22 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var voiceRecognitionManager: VoiceRecognitionManager
 
-    // 홈 버튼 더블 클릭 감지를 위한 변수
-    private var homeButtonClickCount = 0
-    private var lastHomeButtonTime = 0L
-    private val homeButtonHandler = Handler(Looper.getMainLooper())
-    private val homeButtonRunnable = Runnable {
-        homeButtonClickCount = 0
+    // 권한 거부 횟수 추적 (SharedPreferences로 저장)
+    private val prefs by lazy {
+        getSharedPreferences("voice_recognition_prefs", MODE_PRIVATE)
     }
 
-    // 권한 거부 횟수 추적
-    private var permissionDeniedCount = 0
+    private var permissionDeniedCount: Int
+        get() = prefs.getInt("permission_denied_count", 0)
+        set(value) = prefs.edit().putInt("permission_denied_count", value).apply()
 
-    // 온보딩 표시 여부
-    private var showOnboarding = true
+    // 온보딩 표시 여부 (한 번만 표시)
+    private var showOnboarding: Boolean
+        get() = prefs.getBoolean("show_onboarding", true)
+        set(value) = prefs.edit().putBoolean("show_onboarding", value).apply()
+
+    // 음성 인식 시작 플래그 (중복 실행 방지)
+    private var hasStartedRecognition = false
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -138,6 +129,13 @@ class MainActivity : ComponentActivity() {
                 if (recognizedText.isNotBlank()) {
                     logI("✓ 인식 완료 (Activity): '$recognizedText'")
                     voiceRecognitionManager.setRecognizedText(recognizedText)
+
+                    // TODO: 여기서 텍스트를 서버로 전송하거나 처리
+                    // 처리 완료 후 앱 종료 (메인 화면으로 이동)
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        logD("음성 인식 완료 - 앱 최소화")
+                        moveTaskToBack(true)
+                    }, 1500) // 1.5초 후 앱 최소화
                 } else {
                     logW("인식된 텍스트가 비어있음")
                     voiceRecognitionManager.setError("음성을 인식하지 못했습니다")
@@ -165,13 +163,36 @@ class MainActivity : ComponentActivity() {
             WearApp(
                 voiceRecognitionManager = voiceRecognitionManager,
                 showOnboarding = showOnboarding,
-                onDismissOnboarding = { showOnboarding = false },
+                onDismissOnboarding = {
+                    showOnboarding = false
+                    // 온보딩 종료 후 자동으로 음성 인식 시작
+                    checkAndRequestPermission()
+                },
                 onStartListening = { checkAndRequestPermission() }
             )
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // 앱이 포그라운드로 올 때마다 자동으로 음성 인식 시작
+        // 단, 온보딩 화면이 아닐 때만, 그리고 아직 시작하지 않았을 때만
+        if (!showOnboarding && !hasStartedRecognition && !voiceRecognitionManager.isCurrentlyListening()) {
+            logD("앱 실행 - 자동으로 음성 인식 시작")
+            hasStartedRecognition = true
+            checkAndRequestPermission()
+        } else {
+            logD("온보딩 화면 표시 중이거나 이미 음성 인식 시작됨 - 스킵")
+        }
+    }
+
     private fun checkAndRequestPermission() {
+        // 이미 음성 인식 중이면 중복 실행 방지
+        if (voiceRecognitionManager.isCurrentlyListening()) {
+            logD("이미 음성 인식 중 - 중복 실행 방지")
+            return
+        }
+
         logD("권한 체크 시작...")
         when {
             ContextCompat.checkSelfPermission(
@@ -232,51 +253,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * 홈 버튼 더블 클릭을 감지합니다.
-     *
-     * Note: Wear OS에서 KEYCODE_HOME은 제대로 캐치되지 않을 수 있습니다.
-     * 향후 onUserLeaveHint()나 onPause()/onResume() 조합 사용을 고려할 수 있습니다.
-     */
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (isHomeButton(keyCode)) {
-            val currentTime = System.currentTimeMillis()
-
-            // 더블 클릭 시간 윈도우 체크
-            if (currentTime - lastHomeButtonTime < DOUBLE_CLICK_TIME_DELTA) {
-                // 두 번째 클릭 - 더블 클릭 감지!
-                logD("✓ 홈 버튼 더블 클릭 감지!")
-                homeButtonHandler.removeCallbacks(homeButtonRunnable)
-                homeButtonClickCount = 0
-                lastHomeButtonTime = 0L
-                onHomeButtonDoubleClick()
-                return true // 이벤트 소비
-            } else {
-                // 첫 번째 클릭
-                logD("홈 버튼 눌림 감지 (첫 클릭)")
-                lastHomeButtonTime = currentTime
-                homeButtonClickCount = 1
-                homeButtonHandler.postDelayed(homeButtonRunnable, DOUBLE_CLICK_TIME_DELTA)
-                return super.onKeyDown(keyCode, event)
-            }
-        }
-
-        return super.onKeyDown(keyCode, event)
-    }
-
-    /**
-     * 홈 버튼 키 코드 체크
-     * KEYCODE_STEM_PRIMARY: Wear OS의 물리적 버튼
-     */
-    private fun isHomeButton(keyCode: Int): Boolean {
-        return keyCode == KeyEvent.KEYCODE_STEM_PRIMARY
-    }
-
-    private fun onHomeButtonDoubleClick() {
-        logD("음성 인식 시작 (홈 버튼 더블 클릭)")
-        checkAndRequestPermission()
-    }
-
     override fun onPause() {
         super.onPause()
         logD("Activity paused - 음성 인식 정리")
@@ -284,14 +260,13 @@ class MainActivity : ComponentActivity() {
         if (voiceRecognitionManager.isCurrentlyListening()) {
             voiceRecognitionManager.stopListening()
         }
+        // 플래그 리셋 - 다음에 다시 앱을 열 때 음성 인식을 시작할 수 있도록
+        hasStartedRecognition = false
     }
 
     override fun onDestroy() {
         super.onDestroy()
         logD("Activity 종료 - 리소스 정리 중")
-
-        // Handler 콜백 제거
-        homeButtonHandler.removeCallbacks(homeButtonRunnable)
 
         // 음성 인식 리소스 정리
         voiceRecognitionManager.cleanup()
@@ -379,7 +354,7 @@ fun WearApp(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = if (isListening) "🎤 음성 인식 중" else "홈 버튼 2번 클릭\n또는 '말하기' 버튼",
+                        text = if (isListening) "🎤 음성 인식 중" else "앱 실행 시 자동 시작\n또는 '말하기' 버튼",
                         style = MaterialTheme.typography.caption1,
                         color = MaterialTheme.colors.onBackground,
                         textAlign = TextAlign.Center
@@ -396,59 +371,6 @@ fun WearApp(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun OnboardingScreen(onDismiss: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "사용 방법",
-            style = MaterialTheme.typography.title3,
-            color = MaterialTheme.colors.primary,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "음성 인식 시작하기:",
-            style = MaterialTheme.typography.body2,
-            color = MaterialTheme.colors.onBackground,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "1. 홈 버튼 2번 빠르게 클릭\n또는\n2. '말하기' 버튼 누르기",
-            style = MaterialTheme.typography.caption1,
-            color = MaterialTheme.colors.onBackground,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "💡 팁: 조용한 환경에서 사용하면 인식률이 높아집니다",
-            style = MaterialTheme.typography.caption1,
-            color = MaterialTheme.colors.onBackground.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = onDismiss
-        ) {
-            Text("시작하기")
         }
     }
 }
