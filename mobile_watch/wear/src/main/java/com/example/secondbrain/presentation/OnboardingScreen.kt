@@ -30,14 +30,6 @@ fun OnboardingScreen(onDismiss: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "🎤",
-            style = MaterialTheme.typography.display1,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
             text = "음성 인식",
             style = MaterialTheme.typography.title2,
             color = MaterialTheme.colors.primary,
