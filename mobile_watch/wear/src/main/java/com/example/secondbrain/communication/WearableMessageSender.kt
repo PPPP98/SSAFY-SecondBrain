@@ -20,6 +20,9 @@ class WearableMessageSender(private val context: Context) {
         // 메시지 경로 (모바일 앱과 동일한 경로를 사용해야 함)
         const val PATH_VOICE_TEXT = "/voice_text"
         const val PATH_VOICE_REQUEST = "/voice_request"
+
+        // Wearable Data Layer 메시지 크기 제한 (공식 문서 권장: 100KB)
+        private const val MAX_MESSAGE_SIZE = 100 * 1024 // 100KB in bytes
     }
 
     private val messageClient: MessageClient = Wearable.getMessageClient(context)
@@ -32,7 +35,20 @@ class WearableMessageSender(private val context: Context) {
      */
     suspend fun sendVoiceText(recognizedText: String): Int {
         return try {
-            LogUtils.d(TAG, "음성 텍스트 전송 시작: '$recognizedText'")
+            // 입력 검증: 빈 문자열 체크
+            if (recognizedText.isBlank()) {
+                LogUtils.w(TAG, "빈 텍스트는 전송하지 않음")
+                return 0
+            }
+
+            // 입력 검증: 메시지 크기 체크
+            val data = recognizedText.toByteArray(Charsets.UTF_8)
+            if (data.size > MAX_MESSAGE_SIZE) {
+                LogUtils.w(TAG, "텍스트가 너무 큼: ${data.size} bytes (최대: $MAX_MESSAGE_SIZE bytes)")
+                return 0
+            }
+
+            LogUtils.d(TAG, "음성 텍스트 전송 시작: '$recognizedText' (${data.size} bytes)")
 
             // 연결된 노드(모바일 기기) 찾기
             val nodes = Wearable.getNodeClient(context)
@@ -43,9 +59,6 @@ class WearableMessageSender(private val context: Context) {
                 LogUtils.w(TAG, "연결된 모바일 기기 없음")
                 return 0
             }
-
-            // 텍스트를 바이트 배열로 변환
-            val data = recognizedText.toByteArray(Charsets.UTF_8)
 
             // 모든 연결된 노드에 메시지 전송 및 성공 카운트 추적
             var successCount = 0
