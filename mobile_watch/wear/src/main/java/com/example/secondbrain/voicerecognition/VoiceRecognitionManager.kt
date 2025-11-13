@@ -51,7 +51,7 @@ class VoiceRecognitionManager(private val context: Context) {
     fun setRecognizedText(text: String) {
         if (text.isNotBlank()) {
             _recognizedText.value = "$PREFIX_RECOGNIZED$text"
-            _statusMessage.value = "전송 중..."
+            // 상태 메시지는 MainActivity에서 관리
             Log.d(TAG, "인식 결과: $text")
         }
     }
