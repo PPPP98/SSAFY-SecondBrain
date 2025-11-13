@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -17,6 +18,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.secondbrain.data.local.TokenManager
 import com.example.secondbrain.service.WakeWordService
 import com.example.secondbrain.ui.login.LoginActivity
+import com.example.secondbrain.ui.note.NoteDetailActivity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.system.exitProcess
@@ -26,7 +28,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
     private lateinit var btnLogout: Button
     private lateinit var btnExit: Button
-    private lateinit var btnTestNote: Button
+    private lateinit var etNoteId: EditText
+    private lateinit var btnSearchNote: Button
     private lateinit var tvTestResult: TextView
     private lateinit var tokenManager: TokenManager
 
@@ -77,7 +80,8 @@ class MainActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tvStatus)
         btnLogout = findViewById(R.id.btnLogout)
         btnExit = findViewById(R.id.btnExit)
-        btnTestNote = findViewById(R.id.btnTestNote)
+        etNoteId = findViewById(R.id.etNoteId)
+        btnSearchNote = findViewById(R.id.btnSearchNote)
         tvTestResult = findViewById(R.id.tvTestResult)
 
         // 웨이크워드로 앱이 실행된 경우
@@ -111,24 +115,33 @@ class MainActivity : AppCompatActivity() {
             exitProcess(0) // 프로세스 완전 종료
         }
 
-        // 노트 조회 테스트 버튼
-        btnTestNote.setOnClickListener {
-            testNoteApi()
+        // 노트 조회 버튼
+        btnSearchNote.setOnClickListener {
+            searchNoteById()
         }
     }
 
-    // 노트 API 테스트
-    private fun testNoteApi() {
-        android.util.Log.e("MainActivity", "🔥🔥🔥 testNoteApi 호출됨! 🔥🔥🔥")
+    // 노트 ID로 조회
+    private fun searchNoteById() {
+        val noteIdText = etNoteId.text.toString()
+
+        if (noteIdText.isEmpty()) {
+            tvTestResult.text = "노트 ID를 입력해주세요."
+            return
+        }
+
+        val noteId = noteIdText.toLongOrNull()
+        if (noteId == null) {
+            tvTestResult.text = "올바른 노트 ID를 입력해주세요."
+            return
+        }
+
         lifecycleScope.launch {
             try {
-                android.util.Log.e("MainActivity", "🔥 코루틴 시작!")
-                tvTestResult.text = "로딩 중..."
+                tvTestResult.text = "노트 조회 중..."
 
                 // 토큰 확인
                 val token = tokenManager.getAccessToken()
-                android.util.Log.d("MainActivity", "저장된 토큰: ${token?.take(20)}...")
-
                 if (token.isNullOrEmpty()) {
                     tvTestResult.text = "❌ 토큰이 없습니다. 다시 로그인해주세요."
                     return@launch
@@ -139,24 +152,27 @@ class MainActivity : AppCompatActivity() {
                     tokenManager.getAccessToken()
                 }
 
-                // 노트 상세 조회 (ID: 55)
-                val response = apiService.getNote(55)
+                // 노트 상세 조회
+                val response = apiService.getNote(noteId)
 
                 if (response.code == 200 && response.data != null) {
                     val note = response.data
-                    tvTestResult.text = """
-                        ✅ 성공!
+                    tvTestResult.text = "✅ ${note.title}\n\n탭하여 상세보기"
 
-                        제목: ${note.title}
-                        내용: ${note.content?.take(100)}...
-                        생성일: ${note.createdAt}
-                    """.trimIndent()
+                    // 결과 텍스트를 클릭하면 상세 페이지로 이동
+                    tvTestResult.setOnClickListener {
+                        val intent = Intent(this@MainActivity, NoteDetailActivity::class.java)
+                        intent.putExtra("NOTE_ID", noteId)
+                        startActivity(intent)
+                    }
                 } else {
                     tvTestResult.text = "❌ 실패: ${response.message}"
+                    tvTestResult.setOnClickListener(null)
                 }
             } catch (e: Exception) {
                 tvTestResult.text = "❌ 에러: ${e.message}"
-                android.util.Log.e("MainActivity", "Note API test failed", e)
+                tvTestResult.setOnClickListener(null)
+                android.util.Log.e("MainActivity", "Note search failed", e)
             }
         }
     }
