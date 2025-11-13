@@ -19,7 +19,7 @@ interface ToolbarProps {
 
 export function Toolbar({ authenticated, user, onCollapse, onClose, onLogout }: ToolbarProps) {
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-border bg-card p-2 rounded-t-xl">
+    <div className="flex items-center justify-between gap-2 rounded-t-xl border-b border-border bg-card p-2">
       <div className="flex items-center gap-2">
         <ThemeToggle />
       </div>

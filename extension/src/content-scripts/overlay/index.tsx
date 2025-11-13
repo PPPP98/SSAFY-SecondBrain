@@ -42,7 +42,9 @@ export function onExecute() {
     // 초기 상태로 렌더링
     function renderOverlay(visible: boolean): void {
       isOverlayVisible = visible;
-      root.render(<OverlayRoot isOpen={visible} onToggle={setOverlayVisible} shadowRoot={shadowRoot} />);
+      root.render(
+        <OverlayRoot isOpen={visible} onToggle={setOverlayVisible} shadowRoot={shadowRoot} />,
+      );
     }
 
     function setOverlayVisible(visible: boolean): void {

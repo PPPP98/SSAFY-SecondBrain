@@ -97,7 +97,10 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
 
   return (
     <ThemeContext.Provider value={value}>
-      <div ref={containerRef} className={cn(resolvedTheme === 'dark' ? 'dark' : '', 'text-foreground')}>
+      <div
+        ref={containerRef}
+        className={cn(resolvedTheme === 'dark' ? 'dark' : '', 'text-foreground')}
+      >
         {children}
       </div>
     </ThemeContext.Provider>

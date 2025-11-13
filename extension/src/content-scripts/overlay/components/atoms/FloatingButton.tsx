@@ -17,7 +17,7 @@ export function FloatingButton({ onClick }: FloatingButtonProps) {
       <SimpleTooltip content="SecondBrain 열기" side="bottom">
         <button
           onClick={onClick}
-          className="inline-flex items-center justify-center size-10 rounded-full shadow-lg transition-transform hover:scale-110 border-2 border-foreground/20 dark:border-white"
+          className="inline-flex size-10 items-center justify-center rounded-full border-2 border-foreground/20 shadow-lg transition-transform hover:scale-110 dark:border-white"
           style={{ backgroundColor: 'oklch(0.25 0 0)' }}
         >
           <img

@@ -26,7 +26,7 @@ export function UserAvatar({ user, onLogout }: UserAvatarProps) {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <button className="inline-flex items-center justify-center rounded-full p-0 hover:opacity-80 transition-opacity">
+        <button className="inline-flex items-center justify-center rounded-full p-0 transition-opacity hover:opacity-80">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user.picture} alt={user.name} />
             <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>

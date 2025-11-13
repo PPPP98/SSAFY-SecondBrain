@@ -66,7 +66,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
         pointerEvents: isOpen && isExpanded ? 'auto' : 'none',
       }}
     >
-      <div className="rounded-xl extension-overlay-border bg-background shadow-2xl">
+      <div className="extension-overlay-border rounded-xl bg-background shadow-2xl">
         <Toolbar
           authenticated={authenticated}
           user={user}
