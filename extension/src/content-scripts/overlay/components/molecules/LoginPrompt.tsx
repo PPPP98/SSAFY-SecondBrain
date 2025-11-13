@@ -1,19 +1,21 @@
 import { GoogleLoginButton } from '@/content-scripts/overlay/GoogleLoginButton';
-import { LogoSpinnerIframe } from '@/content-scripts/overlay/components/LogoSpinnerIframe';
 
 /**
  * Login Prompt (Molecule)
  * - 로그인 전 표시되는 프롬프트
- * - iframe 기반 진짜 3D WebGL 렌더링
- * - SVG ExtrudeGeometry 입체 조형물
  * - Shadcn UI + Tailwind CSS 기반
  */
 export function LoginPrompt() {
   return (
     <div className="w-[320px] rounded-xl border border-border bg-card p-6 shadow-lg">
-      {/* iframe 기반 진짜 3D 입체 조형물 */}
+      {/* 로고 이미지 (회전 애니메이션) */}
       <div className="mb-6 flex justify-center">
-        <LogoSpinnerIframe size={120} />
+        <img
+          src={chrome.runtime.getURL('Logo_upscale.png')}
+          alt="Second Brain Logo"
+          className="h-[120px] w-[120px] animate-spin object-contain"
+          style={{ animationDuration: '6s' }}
+        />
       </div>
 
       <h3 className="mb-2 text-center text-lg font-semibold text-card-foreground">Second Brain</h3>
