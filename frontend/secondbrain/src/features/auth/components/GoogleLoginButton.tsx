@@ -33,7 +33,7 @@ export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
       onClick={handleLogin}
       type="button"
       aria-label={buttonText[text]}
-      className="flex min-w-[200px] cursor-pointer items-center justify-center rounded border border-[#747775] bg-white px-3 py-2.5 text-sm font-medium leading-5 text-[#1F1F1F] transition-colors duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-100"
+      className="flex min-w-[200px] cursor-pointer items-center justify-center rounded border border-[#747775] bg-transparent px-3 py-2.5 text-sm font-medium leading-5 text-white transition-colors duration-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-100"
     >
       {/* Google "G" Logo - Official SVG with standard colors */}
       <svg

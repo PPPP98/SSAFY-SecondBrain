@@ -69,6 +69,7 @@ public class SecurityConfig {
 				// 인증 API (인증 불필요)
 				.requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/auth/token/google").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/google").permitAll() // 웹 Google 로그인
 				.requestMatchers("/api/mobile/**").permitAll() // 모바일 API (Traefik에서 OAuth 제외 처리)
 

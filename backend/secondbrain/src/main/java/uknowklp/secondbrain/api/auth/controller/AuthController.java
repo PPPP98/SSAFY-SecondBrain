@@ -13,11 +13,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import uknowklp.secondbrain.api.auth.dto.GoogleTokenRequest;
+import uknowklp.secondbrain.api.auth.dto.GoogleTokenResponse;
+import uknowklp.secondbrain.api.auth.dto.GoogleUserInfo;
 import uknowklp.secondbrain.api.auth.dto.GoogleAuthRequest;
 import uknowklp.secondbrain.api.user.domain.User;
 import uknowklp.secondbrain.api.user.service.UserService;
@@ -31,6 +36,7 @@ import uknowklp.secondbrain.global.security.jwt.service.RefreshTokenService;
 import uknowklp.secondbrain.global.security.oauth2.dto.AuthCodeData;
 import uknowklp.secondbrain.global.security.oauth2.service.AuthorizationCodeService;
 import uknowklp.secondbrain.global.security.oauth2.service.GoogleTokenVerifier;
+import uknowklp.secondbrain.global.security.oauth2.service.GoogleOAuth2Service;
 
 /**
  * 인증 관련 REST API 컨트롤러
@@ -49,6 +55,7 @@ public class AuthController {
 	private final AuthorizationCodeService authorizationCodeService;
 	private final UserService userService;
 	private final GoogleTokenVerifier googleTokenVerifier;
+	private final GoogleOAuth2Service googleOAuth2Service;
 
 	@Value("${security.jwt.cookie.secure}")
 	private boolean cookieSecure;
@@ -308,5 +315,95 @@ public class AuthController {
 		log.info("User logged out successfully. UserId: {}, Email: {}", userId, userDetails.getUsername());
 
 		return ResponseEntity.ok(new BaseResponse<>(BaseResponseStatus.SUCCESS));
+	}
+
+	/**
+	 * Google Authorization Code를 JWT 토큰으로 교환 (Chrome Extension용)
+	 *
+	 * Extension이 Google OAuth에서 직접 받은 authorization code를 처리합니다.
+	 *
+	 * Flow:
+	 * 1. Google Token Exchange API 호출하여 access token 획득
+	 * 2. Google UserInfo API로 사용자 정보 조회
+	 * 3. DB에서 사용자 조회 또는 생성
+	 * 4. Backend JWT 토큰 생성 및 발급
+	 *
+	 * @param request Google token request (code, redirectUri)
+	 * @param response HTTP 응답 (쿠키 설정용)
+	 * @return Access Token 정보 (JSON Body)
+	 */
+	@PostMapping("/token/google")
+	public ResponseEntity<BaseResponse<TokenResponse>> exchangeGoogleToken(
+		@RequestBody @Valid GoogleTokenRequest request,
+		HttpServletResponse response) {
+
+		log.info("Processing Google token exchange for Chrome Extension");
+		log.debug("Redirect URI: {}", request.getRedirectUri());
+
+		try {
+			// 1. Google Token Exchange
+			GoogleTokenResponse googleTokens = googleOAuth2Service.exchangeAuthorizationCode(
+				request.getCode(),
+				request.getRedirectUri()
+			);
+
+			// 2. Google UserInfo 조회
+			GoogleUserInfo userInfo = googleOAuth2Service.getUserInfo(googleTokens.getAccessToken());
+
+			// 3. 사용자 조회 또는 생성 (기존 코드 재사용)
+			User user = userService.saveOrUpdate(
+				userInfo.getEmail(),
+				userInfo.getName(),
+				userInfo.getPicture()
+			);
+
+			log.info("User authenticated via Google OAuth. UserId: {}, Email: {}",
+				user.getId(), user.getEmail());
+
+			// 4. Access Token 생성
+			String accessToken = jwtProvider.createAccessToken(user);
+			log.debug("Access token generated for user: {}", user.getEmail());
+
+			// 5. Refresh Token 생성
+			String refreshToken = jwtProvider.createRefreshToken(user);
+			long refreshExpireSeconds = jwtProvider.getRefreshExpireTime() / 1000;
+
+			// 6. Refresh Token Redis 저장
+			try {
+				refreshTokenService.storeRefreshToken(
+					user.getId(),
+					refreshToken,
+					refreshExpireSeconds
+				);
+				log.debug("Refresh token stored in Redis. UserId: {}", user.getId());
+			} catch (Exception e) {
+				log.error("Failed to store refresh token in Redis. UserId: {}", user.getId(), e);
+				throw new BaseException(BaseResponseStatus.SERVER_ERROR);
+			}
+
+			// 7. Refresh Token을 HttpOnly 쿠키로 설정
+			ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+				.httpOnly(true)
+				.secure(cookieSecure)
+				.path("/")
+				.maxAge(Duration.ofSeconds(refreshExpireSeconds))
+				.sameSite("Lax")
+				.build();
+			response.addHeader("Set-Cookie", refreshCookie.toString());
+
+			log.info("Google token exchange successful. UserId: {}, Email: {}",
+				user.getId(), user.getEmail());
+
+			// 8. Access Token 응답
+			TokenResponse tokenResponse = TokenResponse.of(accessToken, jwtProvider.getAccessExpireTime());
+			return ResponseEntity.ok(new BaseResponse<>(tokenResponse));
+
+		} catch (BaseException e) {
+			log.error("Google OAuth authentication failed: {}", e.getMessage());
+			throw e;
+		} catch (Exception e) {
+			log.error("Unexpected error during Google OAuth authentication", e);
+			throw new BaseException(BaseResponseStatus.SERVER_ERROR);
+		}
 	}
 }

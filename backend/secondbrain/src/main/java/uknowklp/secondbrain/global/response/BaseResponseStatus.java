@@ -109,7 +109,13 @@ public enum BaseResponseStatus {
 	TTS_TEXT_TOO_LONG(false, HttpStatus.BAD_REQUEST, -10901, "텍스트는 최대 2000자까지 입력 가능합니다."),
 	TTS_API_ERROR(false, HttpStatus.INTERNAL_SERVER_ERROR, -10902, "음성 변환 서비스 오류가 발생했습니다."),
 	TTS_CONNECTION_ERROR(false, HttpStatus.SERVICE_UNAVAILABLE, -10903, "TTS 서버 연결에 실패했습니다."),
-	TTS_INVALID_SPEAKER(false, HttpStatus.BAD_REQUEST, -10904, "지원하지 않는 화자입니다.");
+	TTS_INVALID_SPEAKER(false, HttpStatus.BAD_REQUEST, -10904, "지원하지 않는 화자입니다."),
+
+	/**
+	 * -11000 ~ -11009 : Google OAuth 관련 에러
+	 */
+	GOOGLE_TOKEN_EXCHANGE_FAILED(false, HttpStatus.BAD_REQUEST, -11000, "Google 로그인 중 오류가 발생했습니다. 다시 시도해주세요."),
+	GOOGLE_USER_INFO_FAILED(false, HttpStatus.BAD_REQUEST, -11001, "Google 사용자 정보를 가져올 수 없습니다. 다시 시도해주세요.");
 
 	private final boolean isSuccess;
 	private final HttpStatus httpStatus;
