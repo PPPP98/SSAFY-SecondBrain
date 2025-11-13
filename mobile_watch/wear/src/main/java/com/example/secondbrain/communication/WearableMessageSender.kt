@@ -50,7 +50,7 @@ class WearableMessageSender(private val context: Context) {
 
             LogUtils.d(TAG, "음성 텍스트 전송 시작: '$recognizedText' (${data.size} bytes)")
 
-            // 연결된 노드(모바일 기기) 찾기
+            // 연결된 모바일 기기 찾기
             val nodes = Wearable.getNodeClient(context)
                 .connectedNodes
                 .await()
