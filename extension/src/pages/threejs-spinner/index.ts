@@ -78,7 +78,11 @@ svgLoader.load(
 
     // 크기 정규화
     const bbox = geometry.boundingBox!;
-    const size = Math.max(bbox.max.x - bbox.min.x, bbox.max.y - bbox.min.y, bbox.max.z - bbox.min.z);
+    const size = Math.max(
+      bbox.max.x - bbox.min.x,
+      bbox.max.y - bbox.min.y,
+      bbox.max.z - bbox.min.z,
+    );
     const scale = 50 / size;
     geometry.scale(scale, scale, scale);
     geometry.center();
@@ -105,7 +109,7 @@ svgLoader.load(
   },
   (error) => {
     console.error('❌ Failed to load SVG:', error);
-  }
+  },
 );
 
 // 애니메이션 루프

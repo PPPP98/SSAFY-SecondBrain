@@ -29,11 +29,7 @@ interface LogoSpinnerIframeProps {
  * <LogoSpinnerIframe size={120} />
  * ```
  */
-export function LogoSpinnerIframe({
-  size = 120,
-  className = '',
-  onLoad,
-}: LogoSpinnerIframeProps) {
+export function LogoSpinnerIframe({ size = 120, className = '', onLoad }: LogoSpinnerIframeProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
