@@ -30,14 +30,6 @@ fun OnboardingScreen(onDismiss: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "🎤",
-            style = MaterialTheme.typography.display1,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
             text = "음성 인식",
             style = MaterialTheme.typography.title2,
             color = MaterialTheme.colors.primary,
@@ -47,7 +39,7 @@ fun OnboardingScreen(onDismiss: () -> Unit) {
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "앱 실행 시\n자동으로 시작됩니다",
+            text = "앱 실행 시\n자동으로 시작되고\n인식 중에 뒤로가기를\n누르면 종료됩니다",
             style = MaterialTheme.typography.body1,
             color = MaterialTheme.colors.onBackground,
             textAlign = TextAlign.Center
