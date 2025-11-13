@@ -48,6 +48,7 @@ public enum BaseResponseStatus {
 	CODE_NOT_PROVIDED(false, HttpStatus.BAD_REQUEST, -10421, "인증 코드가 제공되지 않았습니다."),
 	UNAUTHORIZED(false, HttpStatus.UNAUTHORIZED, -10422, "인증되지 않은 요청입니다."),
 	FORBIDDEN(false, HttpStatus.FORBIDDEN, -10423, "접근 권한이 없습니다."),
+	INVALID_GOOGLE_TOKEN(false, HttpStatus.UNAUTHORIZED, -10424, "유효하지 않은 Google ID Token입니다."),
 
 	/**
 	 * -10100 ~ -10199 : 노트(Note) 관련 에러

@@ -189,7 +189,7 @@ class WakeWordDetector(private val context: Context) {
             currentRmsDb = rmsdB
             if (rmsdB > MIN_RMS_THRESHOLD) {
                 speechDetected = true
-                Log.v(TAG, "음성 감지됨: RMS = $rmsdB dB")
+                // Log.v(TAG, "음성 감지됨: RMS = $rmsdB dB") // 너무 많은 로그 방지
             }
         }
 
