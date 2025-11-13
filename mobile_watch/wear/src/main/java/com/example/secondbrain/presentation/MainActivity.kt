@@ -37,43 +37,14 @@ import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
-import com.example.secondbrain.BuildConfig
 import com.example.secondbrain.presentation.theme.SecondBrainTheme
 import com.example.secondbrain.voicerecognition.VoiceRecognitionManager
+import com.example.secondbrain.utils.LogUtils
 
 class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-
-        // 디버그 로깅 헬퍼
-        private fun logD(message: String) {
-            if (BuildConfig.DEBUG) {
-                android.util.Log.d(TAG, message)
-            }
-        }
-
-        private fun logI(message: String) {
-            if (BuildConfig.DEBUG) {
-                android.util.Log.i(TAG, message)
-            }
-        }
-
-        private fun logW(message: String) {
-            if (BuildConfig.DEBUG) {
-                android.util.Log.w(TAG, message)
-            }
-        }
-
-        private fun logE(message: String, e: Throwable? = null) {
-            if (BuildConfig.DEBUG) {
-                if (e != null) {
-                    android.util.Log.e(TAG, message, e)
-                } else {
-                    android.util.Log.e(TAG, message)
-                }
-            }
-        }
     }
 
     private lateinit var voiceRecognitionManager: VoiceRecognitionManager
@@ -98,21 +69,21 @@ class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        logD("권한 결과: $isGranted")
+        LogUtils.d(TAG, "권한 결과: $isGranted")
         if (isGranted) {
-            logD("권한 승인됨 - 음성 인식 시작")
+            LogUtils.d(TAG, "권한 승인됨 - 음성 인식 시작")
             permissionDeniedCount = 0
             startVoiceRecognitionActivity()
         } else {
             permissionDeniedCount++
-            logE("권한 거부됨 (${permissionDeniedCount}번째) - 음성 인식 불가")
+            LogUtils.e(TAG, "권한 거부됨 (${permissionDeniedCount}번째)")
 
             if (permissionDeniedCount >= 2) {
                 // 두 번 이상 거부시 설정으로 이동 안내
-                voiceRecognitionManager.setError("마이크 권한이 필요합니다.\n설정에서 권한을 허용해주세요.")
+                voiceRecognitionManager.setError("마이크 권한 필요\n설정에서 허용해주세요")
                 showPermissionSettingsDialog()
             } else {
-                voiceRecognitionManager.setError("마이크 권한이 필요합니다")
+                voiceRecognitionManager.setError("마이크 권한 필요")
             }
         }
     }
@@ -121,32 +92,32 @@ class MainActivity : ComponentActivity() {
     private val speechRecognitionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        logD("음성 인식 결과 코드: ${result.resultCode}")
+        LogUtils.d(TAG, "음성 인식 결과: ${result.resultCode}")
         if (result.resultCode == RESULT_OK) {
             val matches = result.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
             if (!matches.isNullOrEmpty()) {
                 val recognizedText = matches[0]
                 if (recognizedText.isNotBlank()) {
-                    logI("✓ 인식 완료 (Activity): '$recognizedText'")
+                    LogUtils.i(TAG, "인식 완료: '$recognizedText'")
                     voiceRecognitionManager.setRecognizedText(recognizedText)
 
                     // TODO: 여기서 텍스트를 서버로 전송하거나 처리
-                    // 처리 완료 후 앱 종료 (메인 화면으로 이동)
+                    // 처리 완료 후 앱 최소화 (메인 화면으로 이동)
                     android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        logD("음성 인식 완료 - 앱 최소화")
+                        LogUtils.d(TAG, "앱 최소화")
                         moveTaskToBack(true)
-                    }, 1500) // 1.5초 후 앱 최소화
+                    }, 1500)
                 } else {
-                    logW("인식된 텍스트가 비어있음")
-                    voiceRecognitionManager.setError("음성을 인식하지 못했습니다")
+                    LogUtils.w(TAG, "빈 텍스트")
+                    voiceRecognitionManager.setError("인식 실패")
                 }
             } else {
-                logW("인식 결과가 null이거나 비어있음")
-                voiceRecognitionManager.setError("음성을 인식하지 못했습니다")
+                LogUtils.w(TAG, "결과 없음")
+                voiceRecognitionManager.setError("인식 실패")
             }
         } else {
-            logW("음성 인식 취소 또는 실패")
-            voiceRecognitionManager.setError("음성 인식이 취소되었습니다")
+            LogUtils.w(TAG, "취소됨")
+            voiceRecognitionManager.setError("취소됨")
         }
         voiceRecognitionManager.setListening(false)
     }
@@ -178,32 +149,32 @@ class MainActivity : ComponentActivity() {
         // 앱이 포그라운드로 올 때마다 자동으로 음성 인식 시작
         // 단, 온보딩 화면이 아닐 때만, 그리고 아직 시작하지 않았을 때만
         if (!showOnboarding && !hasStartedRecognition && !voiceRecognitionManager.isCurrentlyListening()) {
-            logD("앱 실행 - 자동으로 음성 인식 시작")
+            LogUtils.d(TAG, "앱 실행 - 자동 시작")
             hasStartedRecognition = true
             checkAndRequestPermission()
         } else {
-            logD("온보딩 화면 표시 중이거나 이미 음성 인식 시작됨 - 스킵")
+            LogUtils.d(TAG, "음성 인식 스킵")
         }
     }
 
     private fun checkAndRequestPermission() {
         // 이미 음성 인식 중이면 중복 실행 방지
         if (voiceRecognitionManager.isCurrentlyListening()) {
-            logD("이미 음성 인식 중 - 중복 실행 방지")
+            LogUtils.d(TAG, "중복 실행 방지")
             return
         }
 
-        logD("권한 체크 시작...")
+        LogUtils.d(TAG, "권한 체크")
         when {
             ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.RECORD_AUDIO
             ) == PackageManager.PERMISSION_GRANTED -> {
-                logD("권한 있음 - 음성 인식 Activity 실행")
+                LogUtils.d(TAG, "권한 있음")
                 startVoiceRecognitionActivity()
             }
             else -> {
-                logD("권한 없음 - 권한 요청")
+                LogUtils.d(TAG, "권한 요청")
                 requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             }
         }
@@ -219,7 +190,7 @@ class MainActivity : ComponentActivity() {
             }
             startActivity(intent)
         } catch (e: Exception) {
-            logE("설정 화면 열기 실패", e)
+            LogUtils.e(TAG, "설정 열기 실패", e)
         }
     }
 
@@ -236,39 +207,37 @@ class MainActivity : ComponentActivity() {
             voiceRecognitionManager.setListening(true)
             voiceRecognitionManager.clearMessages()
 
-            logD("음성 인식 Activity 실행 시도...")
+            LogUtils.d(TAG, "음성 인식 시작")
             speechRecognitionLauncher.launch(intent)
         } catch (e: SecurityException) {
-            logE("권한 부족으로 음성 인식 실패", e)
-            voiceRecognitionManager.setError("마이크 권한이 필요합니다")
+            LogUtils.e(TAG, "권한 부족", e)
+            voiceRecognitionManager.setError("권한 필요")
             voiceRecognitionManager.setListening(false)
         } catch (e: android.content.ActivityNotFoundException) {
-            logE("음성 인식 서비스를 찾을 수 없습니다", e)
-            voiceRecognitionManager.setError("음성 인식 서비스가 설치되어 있지 않습니다")
+            LogUtils.e(TAG, "서비스 없음", e)
+            voiceRecognitionManager.setError("서비스 없음")
             voiceRecognitionManager.setListening(false)
         } catch (e: Exception) {
-            logE("음성 인식 Activity 실행 실패", e)
-            voiceRecognitionManager.setError("음성 인식을 시작할 수 없습니다")
+            LogUtils.e(TAG, "시작 실패", e)
+            voiceRecognitionManager.setError("시작 실패")
             voiceRecognitionManager.setListening(false)
         }
     }
 
     override fun onPause() {
         super.onPause()
-        logD("Activity paused - 음성 인식 정리")
+        LogUtils.d(TAG, "Pause - 정리")
         // 백그라운드로 갈 때 음성 인식 리소스 해제
         if (voiceRecognitionManager.isCurrentlyListening()) {
             voiceRecognitionManager.stopListening()
         }
-        // 플래그 리셋 - 다음에 다시 앱을 열 때 음성 인식을 시작할 수 있도록
+        // 플래그 리셋
         hasStartedRecognition = false
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        logD("Activity 종료 - 리소스 정리 중")
-
-        // 음성 인식 리소스 정리
+        LogUtils.d(TAG, "Destroy - 정리")
         voiceRecognitionManager.cleanup()
     }
 }
