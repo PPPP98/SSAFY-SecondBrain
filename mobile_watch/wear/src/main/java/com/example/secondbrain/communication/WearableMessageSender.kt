@@ -36,6 +36,10 @@ class WearableMessageSender(private val context: Context) {
      */
     suspend fun sendVoiceText(recognizedText: String): Int {
         return try {
+            LogUtils.i(TAG, "========================================")
+            LogUtils.i(TAG, "음성 텍스트 전송 시작")
+            LogUtils.i(TAG, "========================================")
+
             // 입력 검증: 빈 문자열 체크
             if (recognizedText.isBlank()) {
                 LogUtils.w(TAG, "빈 텍스트는 전송하지 않음")
@@ -49,16 +53,24 @@ class WearableMessageSender(private val context: Context) {
                 return 0
             }
 
-            LogUtils.d(TAG, "음성 텍스트 전송 시작: '$recognizedText' (${data.size} bytes)")
+            LogUtils.i(TAG, "전송 텍스트: '$recognizedText'")
+            LogUtils.i(TAG, "데이터 크기: ${data.size} bytes")
+            LogUtils.i(TAG, "전송 경로: ${WearableConstants.PATH_VOICE_TEXT}")
 
             // 연결된 모바일 기기 찾기
             val nodes = Wearable.getNodeClient(context)
                 .connectedNodes
                 .await()
 
+            LogUtils.i(TAG, "연결된 노드 수: ${nodes.size}")
+
             if (nodes.isEmpty()) {
-                LogUtils.w(TAG, "연결된 모바일 기기 없음")
+                LogUtils.w(TAG, "❌ 연결된 모바일 기기 없음")
                 return 0
+            }
+
+            nodes.forEachIndexed { index, node ->
+                LogUtils.i(TAG, "노드 ${index + 1}: ${node.displayName} (${node.id})")
             }
 
             // 모든 연결된 노드에 메시지 전송 및 성공 카운트 추적
@@ -67,31 +79,38 @@ class WearableMessageSender(private val context: Context) {
                 var retryCount = 0
                 var sent = false
 
+                LogUtils.i(TAG, "노드 ${node.displayName}로 전송 시도 중...")
+
                 // 재시도 로직
                 while (retryCount <= MAX_RETRY_COUNT && !sent) {
                     try {
+                        LogUtils.d(TAG, "sendMessage 호출: nodeId=${node.id}, path=${WearableConstants.PATH_VOICE_TEXT}, dataSize=${data.size}")
+
                         messageClient.sendMessage(
                             node.id,
                             WearableConstants.PATH_VOICE_TEXT,
                             data
                         ).await()
 
-                        LogUtils.i(TAG, "전송 성공: ${node.displayName} (${node.id})${if (retryCount > 0) " - ${retryCount}회 재시도 후" else ""}")
+                        LogUtils.i(TAG, "✅ 전송 성공: ${node.displayName} (${node.id})${if (retryCount > 0) " - ${retryCount}회 재시도 후" else ""}")
                         successCount++
                         sent = true
                     } catch (e: Exception) {
                         retryCount++
                         if (retryCount <= MAX_RETRY_COUNT) {
-                            LogUtils.w(TAG, "전송 실패 (${retryCount}/${MAX_RETRY_COUNT}): ${node.displayName} - ${RETRY_DELAY_MS}ms 후 재시도")
+                            LogUtils.w(TAG, "❌ 전송 실패 (${retryCount}/${MAX_RETRY_COUNT}): ${node.displayName} - ${RETRY_DELAY_MS}ms 후 재시도")
+                            LogUtils.w(TAG, "에러: ${e.javaClass.simpleName}: ${e.message}")
                             delay(RETRY_DELAY_MS)
                         } else {
-                            LogUtils.e(TAG, "노드 전송 실패 (최종): ${node.displayName}", e)
+                            LogUtils.e(TAG, "❌ 노드 전송 실패 (최종): ${node.displayName}", e)
                         }
                     }
                 }
             }
 
-            LogUtils.i(TAG, "전송 결과: ${successCount}/${nodes.size}")
+            LogUtils.i(TAG, "========================================")
+            LogUtils.i(TAG, "전송 완료: ${successCount}/${nodes.size} 성공")
+            LogUtils.i(TAG, "========================================")
             successCount
         } catch (e: Exception) {
             LogUtils.e(TAG, "메시지 전송 실패", e)
