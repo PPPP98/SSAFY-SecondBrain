@@ -1,0 +1,63 @@
+import { X } from 'lucide-react';
+import { Button } from '@/content-scripts/overlay/components/ui/button';
+import { SaveStatusItem } from '@/content-scripts/overlay/components/molecules/SaveStatusItem';
+import { useSaveStatusStore } from '@/stores/saveStatusStore';
+import { cn } from '@/lib/utils/utils';
+
+interface SaveStatusPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+/**
+ * 저장 상태 패널 (Organism)
+ * - 현재 진행 중인 저장 요청 목록 표시
+ * - 실시간 상태 업데이트
+ * - 완료된 항목 자동 제거
+ * - Shadow DOM 환경 최적화
+ */
+export function SaveStatusPanel({ isOpen, onClose }: SaveStatusPanelProps) {
+  const { getRequestList, removeSaveRequest } = useSaveStatusStore();
+  const requests = getRequestList();
+
+  return (
+    <div
+      className={cn(
+        'absolute left-0 top-full z-10 mt-2 w-full rounded-lg border border-border bg-card shadow-xl transition-all duration-300',
+        isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+      )}
+      style={{
+        maxHeight: '300px',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border p-3">
+        <h3 className="text-sm font-semibold text-card-foreground">저장 진행 상황</h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0"
+          onClick={onClose}
+          aria-label="닫기"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Status List */}
+      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+        {requests.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            저장 중인 항목이 없습니다
+          </div>
+        ) : (
+          requests.map((request) => (
+            <SaveStatusItem key={request.id} request={request} onRemove={removeSaveRequest} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

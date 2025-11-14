@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Plus, Download, Loader2, CheckCircle } from 'lucide-react';
+import { Plus, Download } from 'lucide-react';
 import { Button } from '@/content-scripts/overlay/components/ui/button';
 import { CounterBadge } from '@/content-scripts/overlay/components/atoms/CounterBadge';
 import { URLListModal } from '@/content-scripts/overlay/components/organisms/URLListModal';
+import { SaveStatusPanel } from '@/content-scripts/overlay/components/organisms/SaveStatusPanel';
 import { usePageCollectionStore } from '@/stores/pageCollectionStore';
+import { useSaveStatusStore } from '@/stores/saveStatusStore';
 import browser from 'webextension-polyfill';
 import { showToast } from '@/content-scripts/overlay/components/molecules/SimpleToast';
 import type { SavePageResponse, SavePageError } from '@/types/note';
@@ -32,11 +34,11 @@ function getErrorMessage(errorCode: string): string {
  * - Shadcn UI + Tailwind CSS 기반
  */
 export function ActionButtons() {
-  const [savingRequests, setSavingRequests] = useState<Set<string>>(new Set());
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [showURLList, setShowURLList] = useState(false);
+  const [showSaveStatus, setShowSaveStatus] = useState(false);
 
   const { pages, addPage, removePage, clearPages, getPageList } = usePageCollectionStore();
+  const { addSaveRequest, updateSaveStatus, getSavingCount } = useSaveStatusStore();
 
   async function handleAddPage(): Promise<void> {
     const currentUrl = window.location.href;
@@ -58,13 +60,6 @@ export function ActionButtons() {
   }
 
   async function handleSave(): Promise<void> {
-    // 고유 요청 ID 생성
-    const requestId = `save-${Date.now()}-${Math.random()}`;
-
-    // 요청 시작 - 큐에 추가
-    setSavingRequests((prev) => new Set(prev).add(requestId));
-    setSaveSuccess(false);
-
     try {
       const urlsToSave = getPageList();
       const currentUrl = window.location.href;
@@ -72,7 +67,13 @@ export function ActionButtons() {
       // 수집된 페이지가 있으면 전체 저장, 없으면 현재 페이지만 저장
       const finalUrls = urlsToSave.length > 0 ? urlsToSave : [currentUrl];
 
-      // Background Service Worker에 메시지 전송 (URLs 배열 포함)
+      // 1. 각 URL을 Store에 'saving' 상태로 추가
+      const requestIds = finalUrls.map((url) => addSaveRequest(url));
+
+      // 2. 패널 자동 열기
+      setShowSaveStatus(true);
+
+      // 3. Background Service Worker에 메시지 전송 (URLs 배열 포함)
       const rawResponse: unknown = await browser.runtime.sendMessage({
         type: 'SAVE_CURRENT_PAGE',
         urls: finalUrls,
@@ -81,54 +82,43 @@ export function ActionButtons() {
       // 응답 타입 검증
       const response = rawResponse as SavePageResponse | SavePageError;
 
-      // 에러 응답 처리
+      // 4. 응답에 따라 상태 업데이트
       if ('error' in response) {
+        // 에러 발생 - 모든 요청을 error 상태로
         console.error('Save failed:', response);
-
-        // 사용자 친화적 에러 메시지
         const errorMessage = getErrorMessage(response.error);
+        requestIds.forEach((id) => {
+          updateSaveStatus(id, 'error', errorMessage);
+        });
         showToast(`저장 실패: ${errorMessage}`, 'error');
-        return;
+      } else {
+        // 성공 - 모든 요청을 success 상태로
+        requestIds.forEach((id) => {
+          updateSaveStatus(id, 'success');
+        });
+
+        const savedCount = finalUrls.length;
+        showToast(
+          savedCount > 1
+            ? `${savedCount}개 페이지가 저장되었습니다`
+            : '페이지가 저장되었습니다',
+          'success',
+        );
+
+        // 성공 시 수집 목록 초기화
+        if (urlsToSave.length > 0) {
+          void clearPages();
+          setShowURLList(false);
+        }
       }
-
-      // 성공 응답 처리
-      // 성공 메시지
-      const savedCount = finalUrls.length;
-      showToast(
-        savedCount > 1
-          ? `${savedCount}개 페이지가 성공적으로 저장되었습니다!`
-          : '페이지가 성공적으로 저장되었습니다!',
-        'success',
-      );
-
-      // 성공 시 수집 목록 초기화
-      if (urlsToSave.length > 0) {
-        void clearPages();
-        setShowURLList(false);
-      }
-
-      // 성공 애니메이션 표시
-      setSaveSuccess(true);
-
-      // 2초 후 성공 상태 초기화
-      setTimeout(() => {
-        setSaveSuccess(false);
-      }, 2000);
     } catch (error) {
       // 예외 처리 (Background 통신 실패)
       console.error('Failed to save page:', error);
       showToast('저장 실패: 확장 프로그램 오류', 'error');
-    } finally {
-      // 요청 완료 - 큐에서 제거
-      setSavingRequests((prev) => {
-        const next = new Set(prev);
-        next.delete(requestId);
-        return next;
-      });
     }
   }
 
-  const isSaving = savingRequests.size > 0;
+  const savingCount = getSavingCount();
   const pageCount = pages.size;
 
   return (
@@ -147,29 +137,28 @@ export function ActionButtons() {
         <CounterBadge count={pageCount} onClick={() => setShowURLList(!showURLList)} />
       </div>
 
-      {/* Save Button */}
-      <Button
-        variant="outline"
-        className="w-full justify-start gap-2 hover:bg-accent"
-        onClick={() => void handleSave()}
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Saving{savingRequests.size > 1 ? ` (${savingRequests.size})` : ''}...</span>
-          </>
-        ) : saveSuccess ? (
-          <>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            <span>Saved!</span>
-          </>
-        ) : (
-          <>
-            <Download className="h-4 w-4" />
-            <span>Save</span>
-          </>
+      {/* Save Button + Status Toggle */}
+      <div className="relative flex items-center gap-2">
+        <Button
+          variant="outline"
+          className="flex-1 justify-start gap-2 hover:bg-accent"
+          onClick={() => void handleSave()}
+        >
+          <Download className="h-4 w-4" />
+          <span>Save</span>
+        </Button>
+
+        {/* Save Status Toggle Button */}
+        {savingCount > 0 && (
+          <CounterBadge
+            count={savingCount}
+            onClick={() => setShowSaveStatus(!showSaveStatus)}
+          />
         )}
-      </Button>
+
+        {/* Save Status Panel */}
+        <SaveStatusPanel isOpen={showSaveStatus} onClose={() => setShowSaveStatus(false)} />
+      </div>
 
       {/* URL List Modal */}
       <URLListModal
