@@ -92,8 +92,6 @@ export function ActionButtons() {
       }
 
       // 성공 응답 처리
-      console.log('✅ Page saved successfully:', response);
-
       // 성공 메시지
       const savedCount = finalUrls.length;
       showToast(

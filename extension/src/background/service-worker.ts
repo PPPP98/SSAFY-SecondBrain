@@ -250,17 +250,14 @@ browser.runtime.onMessage.addListener(
               // 1순위: urls 배열이 전달된 경우 (여러 페이지)
               if (msg.urls && msg.urls.length > 0) {
                 urlsToSave = msg.urls;
-                console.log('📍 Multiple URLs from message:', urlsToSave);
               }
               // 2순위: 단일 URL (url 필드)
               else if (msg.url) {
                 urlsToSave = [msg.url];
-                console.log('📍 Single URL from message:', msg.url);
               }
               // 3순위: sender.tab.url
               else if (sender.tab?.url) {
                 urlsToSave = [sender.tab.url];
-                console.log('📍 URL from sender.tab:', sender.tab.url);
               }
               // 4순위: Fallback - 현재 활성 탭 조회
               else {
@@ -276,7 +273,6 @@ browser.runtime.onMessage.addListener(
                   break;
                 }
                 urlsToSave = [currentTab.url];
-                console.log('📍 URL from active tab:', currentTab.url);
               }
 
               // URL 유효성 검증 및 필터링
@@ -295,8 +291,6 @@ browser.runtime.onMessage.addListener(
                 sendResponse(error);
                 break;
               }
-
-              console.log('💾 Saving URLs:', validUrls);
 
               // 2. Note Service 호출 (토큰 자동 획득)
               const response = await saveCurrentPageWithStoredToken(validUrls);
