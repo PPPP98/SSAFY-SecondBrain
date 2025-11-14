@@ -10,7 +10,7 @@ import retrofit2.http.Query
 interface FastApiService {
 
     // 노트의 1depth 연결 노트 조회
-    @GET("/ai/api/v1/graph/neighbors/{note_id}")
+    @GET("api/v1/graph/neighbors/{note_id}")
     suspend fun getNeighborNodes(
         @Path("note_id") noteId: Long,
         @Query("depth") depth: Int = 1,

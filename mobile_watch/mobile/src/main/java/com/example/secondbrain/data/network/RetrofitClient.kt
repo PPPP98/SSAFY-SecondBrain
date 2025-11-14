@@ -16,13 +16,8 @@ object RetrofitClient {
     private val BASE_URL = BuildConfig.BASE_URL
 
     // FastAPI 서버 URL (Knowledge Graph Service)
-    // Debug: http://10.0.2.2:8000/ (localhost FastAPI)
-    // Release: https://api.brainsecond.site/ (Traefik /ai 경로로 프록시)
-    private val FASTAPI_BASE_URL = if (BuildConfig.DEBUG) {
-        "http://10.0.2.2:8000/"
-    } else {
-        "https://api.brainsecond.site/"
-    }
+    // 배포 서버 사용: Traefik /ai 경로로 프록시
+    private val FASTAPI_BASE_URL = "https://api.brainsecond.site/ai/"
 
     // HTTP 로깅 인터셉터 (디버그용)
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
