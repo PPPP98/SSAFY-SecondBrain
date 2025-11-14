@@ -22,15 +22,19 @@ SEARCH_LIMIT = 10
 
 class Nodes:
     """ 
-    
-    
+    검색 Agent Graph 노드 정의
+    Pre-Filter
+    Simple Lookup
+    Similarity Search
+    Relevance Check
+    Generate Response
     
     """
 
     @staticmethod
     async def pre_filter_node(state: State) -> State:
         """
-        0단계: Pre-Filter
+        Pre-Filter
 
         작업:
         1. 시간 범위 추출

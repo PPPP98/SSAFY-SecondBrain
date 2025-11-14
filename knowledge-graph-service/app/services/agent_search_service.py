@@ -1,0 +1,56 @@
+import logging
+from typing import List
+from app.agents.search_agent.graph import Graph
+from app.agents.search_agent.state import State
+
+logger = logging.getLogger(__name__)
+
+class AgentSearchService:
+    """
+    LLM을 활용하여 지식 그래프 내에서 검색 수행
+    """
+
+    def __init__(self):
+        self.graph = Graph.create_search_graph()
+
+    async def search(
+        self,
+        user_id: int,
+        query: str,
+    ) -> dict:
+        """
+        지식 그래프 내에서 검색 수행
+
+        Args:
+            user_id: 사용자 ID
+            query: 검색 쿼리
+
+        Returns:
+            dict: 검색 결과 및 응답
+        """
+        if not query:
+            logger.warning("⚠️ Empty query provided")
+            return {
+                "response": "",
+                "documents": [],
+            }
+        try:
+            initial_state: State = {
+                "user_id": user_id,
+                "original_query": query,
+                "documents": [],
+            }
+            result = await self.graph.ainvoke(initial_state)
+            return {
+                "response": result.get("response", ""),
+                "documents": result.get("documents", []),
+            }
+        except Exception as e:
+            logger.error(f"error : {e}")
+            return {
+                "response": "",
+                "documents": [],
+            }
+        
+
+agent_search_service = AgentSearchService()
