@@ -204,6 +204,8 @@ class MainActivity : AppCompatActivity() {
                 // 토큰 확인
                 val token = tokenManager.getAccessToken()
                 if (token.isNullOrEmpty()) {
+                    android.util.Log.w("MainActivity", "검색 실패: 액세스 토큰 없음")
+                    searchAdapter.updateResults(emptyList())
                     rvSearchResults.visibility = View.GONE
                     return@launch
                 }
@@ -216,23 +218,61 @@ class MainActivity : AppCompatActivity() {
                 // 검색 실행
                 val response = apiService.searchNotes(keyword)
 
-                if (response.code == 200 && response.data != null) {
-                    val searchResponse = response.data
-                    if (searchResponse.results.isNotEmpty()) {
-                        searchAdapter.updateResults(searchResponse.results)
-                        rvSearchResults.visibility = View.VISIBLE
-                    } else {
+                when (response.code) {
+                    200 -> {
+                        if (response.data != null) {
+                            val searchResponse = response.data
+                            searchAdapter.updateResults(searchResponse.results)
+                            if (searchResponse.results.isNotEmpty()) {
+                                rvSearchResults.visibility = View.VISIBLE
+                            } else {
+                                rvSearchResults.visibility = View.GONE
+                            }
+                        } else {
+                            android.util.Log.w("MainActivity", "검색 결과가 없습니다")
+                            searchAdapter.updateResults(emptyList())
+                            rvSearchResults.visibility = View.GONE
+                        }
+                    }
+                    401 -> {
+                        // 인증 오류 (토큰 만료 등)
+                        android.util.Log.e("MainActivity", "검색 실패: 인증 오류 (401)")
                         searchAdapter.updateResults(emptyList())
                         rvSearchResults.visibility = View.GONE
                     }
-                } else {
-                    searchAdapter.updateResults(emptyList())
-                    rvSearchResults.visibility = View.GONE
+                    in 500..599 -> {
+                        // 서버 오류
+                        android.util.Log.e("MainActivity", "검색 실패: 서버 오류 (${response.code})")
+                        searchAdapter.updateResults(emptyList())
+                        rvSearchResults.visibility = View.GONE
+                    }
+                    else -> {
+                        // 기타 오류
+                        android.util.Log.e("MainActivity", "검색 실패: 예상치 못한 응답 코드 (${response.code})")
+                        searchAdapter.updateResults(emptyList())
+                        rvSearchResults.visibility = View.GONE
+                    }
                 }
-            } catch (e: Exception) {
+            } catch (e: java.net.UnknownHostException) {
+                // 네트워크 연결 오류
+                android.util.Log.e("MainActivity", "검색 실패: 네트워크 연결 오류", e)
                 searchAdapter.updateResults(emptyList())
                 rvSearchResults.visibility = View.GONE
-                android.util.Log.e("MainActivity", "Search failed", e)
+            } catch (e: java.net.SocketTimeoutException) {
+                // 네트워크 타임아웃
+                android.util.Log.e("MainActivity", "검색 실패: 네트워크 타임아웃", e)
+                searchAdapter.updateResults(emptyList())
+                rvSearchResults.visibility = View.GONE
+            } catch (e: java.io.IOException) {
+                // 기타 네트워크 오류
+                android.util.Log.e("MainActivity", "검색 실패: 네트워크 I/O 오류", e)
+                searchAdapter.updateResults(emptyList())
+                rvSearchResults.visibility = View.GONE
+            } catch (e: Exception) {
+                // 예상치 못한 오류
+                android.util.Log.e("MainActivity", "검색 실패: 예상치 못한 오류", e)
+                searchAdapter.updateResults(emptyList())
+                rvSearchResults.visibility = View.GONE
             }
         }
     }
