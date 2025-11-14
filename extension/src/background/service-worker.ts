@@ -46,18 +46,135 @@ async function checkAuth(): Promise<AuthResponse> {
   }
 }
 
+// 중복 로그인 방지 플래그
+let isLoginInProgress = false;
+
 /**
- * OAuth 로그인 처리 (Chrome Identity API - Google 직접 호출)
+ * 새 탭에서 Google OAuth 인증 처리
+ *
+ * Flow:
+ * 1. chrome.tabs.create()로 OAuth URL을 새 탭에서 열기
+ * 2. chrome.tabs.onUpdated로 redirect_uri 감지
+ * 3. authorization code 추출
+ * 4. chrome.tabs.remove()로 탭 자동 닫기
+ *
+ * @param authUrl - Google OAuth authorization URL
+ * @param redirectUri - Extension redirect URI
+ * @returns Promise<string> - authorization code
+ * @throws Error - OAuth 취소, 타임아웃, 코드 없음 등
+ */
+async function handleLoginWithTab(authUrl: string, redirectUri: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // 1. 새 탭 생성
+    chrome.tabs.create({ url: authUrl, active: true }, (createdTab) => {
+      if (!createdTab.id) {
+        reject(new Error('Failed to create OAuth tab'));
+        return;
+      }
+
+      const tabId = createdTab.id;
+      let isResolved = false; // 중복 처리 방지 플래그
+
+      // 2. 타임아웃 설정 (5분)
+      const timeout = setTimeout(() => {
+        if (!isResolved) {
+          isResolved = true;
+          cleanup();
+          chrome.tabs.remove(tabId).catch(() => {
+            // 탭이 이미 닫혔을 수 있음
+          });
+          reject(new Error('OAuth authentication timeout (5 minutes)'));
+        }
+      }, 5 * 60 * 1000);
+
+      // 3. 탭 URL 업데이트 감지
+      const updateListener = (updatedTabId: number, changeInfo: { url?: string }) => {
+        // 생성한 탭만 처리
+        if (updatedTabId !== tabId || isResolved) return;
+
+        // URL이 존재하고 string 타입인지 확인
+        const urlValue = changeInfo.url;
+        if (!urlValue || typeof urlValue !== 'string') return;
+
+        const changedUrl: string = urlValue;
+
+        if (changedUrl.startsWith(redirectUri)) {
+          isResolved = true;
+          clearTimeout(timeout);
+
+          try {
+            // Authorization code 추출
+            const callbackUrl = new URL(changedUrl);
+            const code = callbackUrl.searchParams.get('code');
+            const oauthError = callbackUrl.searchParams.get('error');
+
+            // 탭 닫기
+            chrome.tabs.remove(tabId).catch(() => {
+              // 탭이 이미 닫혔을 수 있음
+            });
+            cleanup();
+
+            // 에러 처리
+            if (oauthError) {
+              const errorDescription =
+                callbackUrl.searchParams.get('error_description') || oauthError;
+              reject(new Error(`OAuth error: ${errorDescription}`));
+            } else if (code) {
+              resolve(code);
+            } else {
+              reject(new Error('No authorization code found in callback URL'));
+            }
+          } catch (parseError) {
+            cleanup();
+            const errorMessage =
+              parseError instanceof Error ? parseError.message : String(parseError);
+            reject(new Error(`Failed to parse callback URL: ${errorMessage}`));
+          }
+        }
+      };
+
+      // 4. 탭 닫힘 감지 (사용자가 수동으로 닫은 경우)
+      const removeListener = (removedTabId: number) => {
+        if (removedTabId === tabId && !isResolved) {
+          isResolved = true;
+          clearTimeout(timeout);
+          cleanup();
+          reject(new Error('User cancelled OAuth by closing the tab'));
+        }
+      };
+
+      // 5. 리스너 정리 함수
+      const cleanup = () => {
+        chrome.tabs.onUpdated.removeListener(updateListener);
+        chrome.tabs.onRemoved.removeListener(removeListener);
+      };
+
+      // 6. 리스너 등록
+      chrome.tabs.onUpdated.addListener(updateListener);
+      chrome.tabs.onRemoved.addListener(removeListener);
+    });
+  });
+}
+
+/**
+ * OAuth 로그인 처리 (새 탭 방식)
  *
  * Flow:
  * 1. chrome.identity.getRedirectURL()로 Extension redirect URI 획득
  * 2. Google OAuth URL 직접 생성 (백엔드 거치지 않음!)
- * 3. chrome.identity.launchWebAuthFlow()로 OAuth 팝업 실행
- * 4. Authorization code 추출
+ * 3. chrome.tabs.create()로 OAuth를 새 탭에서 실행
+ * 4. Authorization code 추출 (탭 자동 닫기)
  * 5. 백엔드 API로 code 전송하여 JWT 토큰 교환
  * 6. 사용자 정보 조회 및 저장
  */
 async function handleLogin(): Promise<void> {
+  // 중복 로그인 방지
+  if (isLoginInProgress) {
+    console.warn('⚠️ OAuth login already in progress');
+    return;
+  }
+
+  isLoginInProgress = true;
   // 모든 Extension 탭에 인증 상태 변경 알림
   const notifyAuthChanged = async () => {
     const tabs = await browser.tabs.query({});
@@ -85,28 +202,13 @@ async function handleLogin(): Promise<void> {
     googleAuthUrl.searchParams.set('access_type', 'offline');
     googleAuthUrl.searchParams.set('prompt', 'consent');
 
-    // 3. Chrome Identity API로 OAuth 팝업 실행
-    const redirectUrl = await chrome.identity.launchWebAuthFlow({
-      url: googleAuthUrl.toString(),
-      interactive: true,
-    });
+    // 3. 새 탭에서 OAuth 실행
+    const code = await handleLoginWithTab(googleAuthUrl.toString(), redirectUri);
 
-    // redirectUrl이 undefined인 경우 처리 (사용자가 취소했거나 실패)
-    if (!redirectUrl) {
-      console.error('❌ OAuth flow was cancelled or failed');
-      throw new Error('OAuth authentication was cancelled or failed to complete');
-    }
-
-    // 4. Authorization Code 추출
-    const callbackUrl = new URL(redirectUrl);
-    const code = callbackUrl.searchParams.get('code');
-
+    // 4. Authorization Code 검증
     if (!code) {
-      console.error('❌ No authorization code found in callback URL:', redirectUrl);
-      throw new Error(
-        'OAuth callback did not contain authorization code. ' +
-          'Check if redirect_uri is correctly configured in Google Cloud Console.',
-      );
+      console.error('❌ No authorization code received');
+      throw new Error('OAuth callback did not contain authorization code.');
     }
 
     // 5. Google Authorization Code를 Backend JWT로 교환
@@ -146,6 +248,9 @@ async function handleLogin(): Promise<void> {
     // OAuth 전체 실패 처리
     console.error('❌ OAuth login failed:', error);
     throw error;
+  } finally {
+    // 항상 플래그 해제
+    isLoginInProgress = false;
   }
 }
 
@@ -211,7 +316,10 @@ browser.runtime.onMessage.addListener(
 
           case 'LOGIN': {
             // 백그라운드에서 로그인 처리 (즉시 응답 반환)
-            void handleLogin();
+            void handleLogin().catch(() => {
+              // 에러를 조용히 처리 (이미 console.error에서 로그됨)
+              // 사용자 취소 등은 정상 동작이므로 UI에 영향 없음
+            });
             sendResponse({ success: true });
             break;
           }
