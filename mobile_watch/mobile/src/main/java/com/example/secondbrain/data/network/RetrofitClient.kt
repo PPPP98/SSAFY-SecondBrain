@@ -15,6 +15,15 @@ object RetrofitClient {
     // Release: https://api.brainsecond.site/ (Traefik 통과)
     private val BASE_URL = BuildConfig.BASE_URL
 
+    // FastAPI 서버 URL (Knowledge Graph Service)
+    // Debug: http://10.0.2.2:8000/ (localhost FastAPI)
+    // Release: https://api.brainsecond.site/ (Traefik /ai 경로로 프록시)
+    private val FASTAPI_BASE_URL = if (BuildConfig.DEBUG) {
+        "http://10.0.2.2:8000/"
+    } else {
+        "https://api.brainsecond.site/"
+    }
+
     // HTTP 로깅 인터셉터 (디버그용)
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -61,9 +70,9 @@ object RetrofitClient {
 
     // FastAPI 서비스 생성 함수
     fun createFastApiService(tokenProvider: suspend () -> String?): FastApiService {
-        // FastAPI는 같은 도메인의 /ai 경로를 사용
+        // FastAPI는 포트 8000 (Debug) 또는 Traefik /ai 경로 (Release)
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(FASTAPI_BASE_URL)
             .client(createOkHttpClient(tokenProvider))
             .addConverterFactory(GsonConverterFactory.create())
             .build()

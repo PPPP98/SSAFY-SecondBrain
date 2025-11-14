@@ -141,11 +141,11 @@ class NoteDetailActivity : AppCompatActivity() {
                     tvNoNeighbors.visibility = TextView.VISIBLE
                 }
             } catch (e: Exception) {
-                // 오류 발생 시
+                // 오류 발생 시 (서버 에러, 네트워크 오류 등)
                 tvLoadingNeighbors.visibility = TextView.GONE
-                tvNoNeighbors.text = "연결된 노트를 불러올 수 없습니다.\n${e.message}"
+                tvNoNeighbors.text = "연결된 노트가 없습니다."
                 tvNoNeighbors.visibility = TextView.VISIBLE
-                android.util.Log.e("NoteDetailActivity", "Failed to load neighbors", e)
+                android.util.Log.e("NoteDetailActivity", "Failed to load neighbors (showing as empty)", e)
             }
         }
     }
