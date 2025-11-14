@@ -2,9 +2,11 @@ import browser from 'webextension-polyfill';
 import { exchangeGoogleToken, logout as logoutService } from '@/services/authService';
 import { getCurrentUser } from '@/services/userService';
 import { saveCurrentPageWithStoredToken } from '@/services/noteService';
+import { handleDragSearchMessage } from './dragSearchHandler';
 import { env } from '@/config/env';
 import type { UserInfo } from '@/types/auth';
 import type { SavePageResponse, SavePageError } from '@/types/note';
+import type { DragSearchMessage } from '@/types/dragSearch';
 
 /**
  * Background Service Worker
@@ -20,7 +22,8 @@ type ExtensionMessage =
   | { type: 'LOGOUT' }
   | { type: 'OPEN_TAB'; url: string }
   | { type: 'AUTH_CHANGED' }
-  | { type: 'SAVE_CURRENT_PAGE'; url?: string; urls?: string[] };
+  | { type: 'SAVE_CURRENT_PAGE'; url?: string; urls?: string[] }
+  | DragSearchMessage;
 
 interface AuthResponse {
   authenticated: boolean;
@@ -76,16 +79,19 @@ async function handleLoginWithTab(authUrl: string, redirectUri: string): Promise
       let isResolved = false; // 중복 처리 방지 플래그
 
       // 2. 타임아웃 설정 (5분)
-      const timeout = setTimeout(() => {
-        if (!isResolved) {
-          isResolved = true;
-          cleanup();
-          chrome.tabs.remove(tabId).catch(() => {
-            // 탭이 이미 닫혔을 수 있음
-          });
-          reject(new Error('OAuth authentication timeout (5 minutes)'));
-        }
-      }, 5 * 60 * 1000);
+      const timeout = setTimeout(
+        () => {
+          if (!isResolved) {
+            isResolved = true;
+            cleanup();
+            chrome.tabs.remove(tabId).catch(() => {
+              // 탭이 이미 닫혔을 수 있음
+            });
+            reject(new Error('OAuth authentication timeout (5 minutes)'));
+          }
+        },
+        5 * 60 * 1000,
+      );
 
       // 3. 탭 URL 업데이트 감지
       const updateListener = (updatedTabId: number, changeInfo: { url?: string }) => {
@@ -306,6 +312,13 @@ browser.runtime.onMessage.addListener(
     void (async () => {
       try {
         const msg = message as ExtensionMessage;
+
+        // 드래그 검색 메시지 처리 (별도 핸들러)
+        if (msg.type === 'SEARCH_DRAG_TEXT') {
+          void handleDragSearchMessage(msg, sender);
+          sendResponse({ success: true });
+          return;
+        }
 
         switch (msg.type) {
           case 'CHECK_AUTH': {
