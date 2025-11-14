@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -15,10 +16,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.secondbrain.data.local.TokenManager
 import com.example.secondbrain.service.WakeWordService
 import com.example.secondbrain.ui.login.LoginActivity
 import com.example.secondbrain.ui.note.NoteDetailActivity
+import com.example.secondbrain.ui.search.SearchResultAdapter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.system.exitProcess
@@ -31,6 +35,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etNoteId: EditText
     private lateinit var btnSearchNote: Button
     private lateinit var tvTestResult: TextView
+    private lateinit var etSearchKeyword: EditText
+    private lateinit var btnSearch: Button
+    private lateinit var rvSearchResults: RecyclerView
+    private lateinit var searchAdapter: SearchResultAdapter
     private lateinit var tokenManager: TokenManager
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -83,6 +91,12 @@ class MainActivity : AppCompatActivity() {
         etNoteId = findViewById(R.id.etNoteId)
         btnSearchNote = findViewById(R.id.btnSearchNote)
         tvTestResult = findViewById(R.id.tvTestResult)
+        etSearchKeyword = findViewById(R.id.etSearchKeyword)
+        btnSearch = findViewById(R.id.btnSearch)
+        rvSearchResults = findViewById(R.id.rvSearchResults)
+
+        // RecyclerView 설정
+        setupRecyclerView()
 
         // 웨이크워드로 앱이 실행된 경우
         if (intent.getBooleanExtra("wake_word_detected", false)) {
@@ -118,6 +132,70 @@ class MainActivity : AppCompatActivity() {
         // 노트 조회 버튼
         btnSearchNote.setOnClickListener {
             searchNoteById()
+        }
+
+        // 검색 버튼
+        btnSearch.setOnClickListener {
+            performSearch()
+        }
+    }
+
+    // RecyclerView 설정
+    private fun setupRecyclerView() {
+        searchAdapter = SearchResultAdapter { noteId ->
+            // 검색 결과 클릭 시 상세 페이지로 이동
+            val intent = Intent(this, NoteDetailActivity::class.java)
+            intent.putExtra("NOTE_ID", noteId)
+            startActivity(intent)
+        }
+        rvSearchResults.layoutManager = LinearLayoutManager(this)
+        rvSearchResults.adapter = searchAdapter
+    }
+
+    // 노트 검색 수행
+    private fun performSearch() {
+        val keyword = etSearchKeyword.text.toString()
+
+        if (keyword.isEmpty()) {
+            rvSearchResults.visibility = View.GONE
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                // 토큰 확인
+                val token = tokenManager.getAccessToken()
+                if (token.isNullOrEmpty()) {
+                    rvSearchResults.visibility = View.GONE
+                    return@launch
+                }
+
+                // API 서비스 생성
+                val apiService = com.example.secondbrain.data.network.RetrofitClient.createApiService {
+                    tokenManager.getAccessToken()
+                }
+
+                // 검색 실행
+                val response = apiService.searchNotes(keyword)
+
+                if (response.code == 200 && response.data != null) {
+                    val searchResponse = response.data
+                    if (searchResponse.results.isNotEmpty()) {
+                        searchAdapter.updateResults(searchResponse.results)
+                        rvSearchResults.visibility = View.VISIBLE
+                    } else {
+                        searchAdapter.updateResults(emptyList())
+                        rvSearchResults.visibility = View.GONE
+                    }
+                } else {
+                    searchAdapter.updateResults(emptyList())
+                    rvSearchResults.visibility = View.GONE
+                }
+            } catch (e: Exception) {
+                searchAdapter.updateResults(emptyList())
+                rvSearchResults.visibility = View.GONE
+                android.util.Log.e("MainActivity", "Search failed", e)
+            }
         }
     }
 
