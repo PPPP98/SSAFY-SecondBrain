@@ -8,7 +8,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.KeyEvent
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -137,6 +139,17 @@ class MainActivity : AppCompatActivity() {
         // 검색 버튼
         btnSearch.setOnClickListener {
             performSearch()
+        }
+
+        // 검색어 입력 시 엔터 키로 검색
+        etSearchKeyword.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
+                performSearch()
+                true
+            } else {
+                false
+            }
         }
     }
 

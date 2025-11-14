@@ -69,6 +69,8 @@
                 android:layout_weight="1"
                 android:hint="검색어 입력"
                 android:inputType="text"
+                android:imeOptions="actionSearch"
+                android:maxLines="1"
                 android:padding="12dp"
                 android:background="@android:color/white"
                 android:textSize="14sp" />
