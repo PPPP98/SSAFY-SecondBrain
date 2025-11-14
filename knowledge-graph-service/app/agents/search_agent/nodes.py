@@ -3,6 +3,8 @@ from .state import State
 from .models import Models
 from .prompts import Prompts
 from .utils.time_utils import get_time_context
+from .utils.neo4j_query_builder import build_time_filter_cypher
+from app.db.neo4j_client import neo4j_client
 from typing import Any
 
 import logging
@@ -84,4 +86,83 @@ class Nodes:
                 "original_query": state.get("query", ""),
                 "filters": {},
                 "search_type": "similarity",
+            }
+
+    @staticmethod
+    async def simple_lookup_node(state: State) -> State:
+        """
+        Simple Lookup 노드: 시간 필터로 Neo4j 검색
+        
+        작업:
+        1. 시간 필터 기반 Cypher 쿼리 생성
+        2. Neo4j 검색 실행
+        3. 최대 10개 결과를 state["documents"]에 저장
+        
+        Returns:
+            documents: 검색된 노트 리스트 (최대 search_limit개)
+        """
+        
+        try:
+            logger.debug("🔍 Simple Lookup 시작")
+            
+            # 파라미터 추출
+            user_id = state.get("user_id")
+            timespan = state.get("filters", {}).get("timespan")
+            
+            if not user_id:
+                logger.error("user_id가 없습니다")
+                raise ValueError("user_id가 필요합니다")
+            
+            # Cypher 쿼리 생성
+            cypher, params = build_time_filter_cypher(
+                user_id=user_id,
+                timespan=timespan,
+                limit=10
+            )
+            
+            logger.debug(f"📝 Cypher:\n{cypher}")
+            logger.debug(f"📦 Params: {params}")
+            
+            # Neo4j 검색
+            with neo4j_client.get_session() as session:
+                result = session.run(cypher, params)
+                records = list(result)
+            
+            # 결과 포맷팅
+            documents = []
+            for record in records:
+                doc = {
+                    "note_id": record["note_id"],
+                    "title": record["title"],
+                }
+                
+                if record["created_at"]:
+                    doc["created_at"] = record["created_at"].isoformat()
+                
+                if record["updated_at"]:
+                    doc["updated_at"] = record["updated_at"].isoformat()
+                
+                documents.append(doc)
+            
+            logger.debug(
+                f"✅ Simple Lookup 완료: {len(documents)}개 "
+                f"(최대 {10}개)"
+            )
+            
+            if timespan:
+                logger.debug(f"📅 시간 범위: {timespan.get('description', 'N/A')}")
+            
+            return {
+                **state,
+                "documents": documents,
+            }
+        
+        except Exception as e:
+            logger.error(f"❌ Simple Lookup 에러: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            return {
+                **state,
+                "documents": [],
             }

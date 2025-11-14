@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 
 class LLMResponse(BaseModel):
@@ -67,3 +67,8 @@ class PreFilterOutput(BaseModel):
         default="",
         description="재작성된 쿼리 (search_type=similarity일 때 사용)",
     )
+
+class SimpleLookupOutput(BaseModel):
+    """Simple Lookup 출력"""
+    documents: List[Dict] = Field(description="검색된 노트 리스트")
+    count: int = Field(description="검색된 노트 개수")

@@ -17,9 +17,9 @@ class State(TypedDict, total=False):
     # === Pre-Filter ===
     filters: Dict[str, any] # {"timespan": {...}}
     search_type: str
-    # === simple lookup ===
-    simple_documents: List[Dict]
-    simple_top3: List[Dict]
+
+    documents: List[Dict]
+
     # === similarity ===
     embeddings: List[float]
     neo4j_vector: List[Dict]
@@ -32,4 +32,3 @@ class State(TypedDict, total=False):
 
     # === result ===
     response: Optional[str]
-    sources: List[Dict]
