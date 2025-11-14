@@ -147,6 +147,46 @@
             android:layout_marginTop="8dp"
             android:background="@android:color/white" />
 
+        <!-- 워치 연결 확인 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="워치 연결 확인"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnCheckWearConnection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="워치 연결 상태 확인"
+            android:textSize="14sp"
+            android:backgroundTint="#007BFF" />
+
+        <TextView
+            android:id="@+id/tvWearStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="12sp"
+            android:textColor="#333333"
+            android:padding="16dp"
+            android:layout_marginTop="8dp"
+            android:background="@android:color/white" />
+
+        <!-- 앱 설정 열기 -->
+        <Button
+            android:id="@+id/btnOpenSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="앱 설정 열기 (권한/알림)"
+            android:textSize="14sp"
+            android:backgroundTint="#FF5722"
+            android:layout_marginTop="16dp" />
+
     </LinearLayout>
 
     <!-- 하단 버튼들 -->

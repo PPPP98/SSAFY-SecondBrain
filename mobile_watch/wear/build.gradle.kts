@@ -6,9 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.secondbrain"
-    compileSdk {
-        version = release(35)
-    }
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.secondbrain"
@@ -19,7 +17,19 @@ android {
 
     }
 
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("../mobile/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(

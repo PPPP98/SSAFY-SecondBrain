@@ -1,6 +1,8 @@
 package com.example.secondbrain
 
 import android.Manifest
+import android.app.NotificationManager
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -8,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -25,8 +28,11 @@ import com.example.secondbrain.service.WakeWordService
 import com.example.secondbrain.ui.login.LoginActivity
 import com.example.secondbrain.ui.note.NoteDetailActivity
 import com.example.secondbrain.ui.search.SearchResultAdapter
+import com.google.android.gms.wearable.CapabilityClient
+import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlin.system.exitProcess
 
 class MainActivity : AppCompatActivity() {
@@ -41,13 +47,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSearch: Button
     private lateinit var rvSearchResults: RecyclerView
     private lateinit var searchAdapter: SearchResultAdapter
+    private lateinit var btnCheckWearConnection: Button
+    private lateinit var tvWearStatus: TextView
+    private lateinit var btnOpenSettings: Button
     private lateinit var tokenManager: TokenManager
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            startWakeWordService()
+            checkFullScreenIntentPermission()
         } else {
             tvStatus.text = "마이크 권한 필요"
             tvStatus.setTextColor(Color.RED)
@@ -86,6 +95,9 @@ class MainActivity : AppCompatActivity() {
     private fun initializeMainScreen() {
         setContentView(R.layout.activity_main)
 
+        // WearableListenerService 활성화 (중요!)
+        enableWearableListenerService()
+
         // View 초기화
         tvStatus = findViewById(R.id.tvStatus)
         btnLogout = findViewById(R.id.btnLogout)
@@ -96,6 +108,9 @@ class MainActivity : AppCompatActivity() {
         etSearchKeyword = findViewById(R.id.etSearchKeyword)
         btnSearch = findViewById(R.id.btnSearch)
         rvSearchResults = findViewById(R.id.rvSearchResults)
+        btnCheckWearConnection = findViewById(R.id.btnCheckWearConnection)
+        tvWearStatus = findViewById(R.id.tvWearStatus)
+        btnOpenSettings = findViewById(R.id.btnOpenSettings)
 
         // RecyclerView 설정
         setupRecyclerView()
@@ -150,6 +165,16 @@ class MainActivity : AppCompatActivity() {
             } else {
                 false
             }
+        }
+
+        // 워치 연결 확인 버튼
+        btnCheckWearConnection.setOnClickListener {
+            checkWearableConnection()
+        }
+
+        // 앱 설정 열기 버튼
+        btnOpenSettings.setOnClickListener {
+            openAppSettings()
         }
     }
 
@@ -209,6 +234,20 @@ class MainActivity : AppCompatActivity() {
                 rvSearchResults.visibility = View.GONE
                 android.util.Log.e("MainActivity", "Search failed", e)
             }
+        }
+    }
+
+    // 앱 설정 화면 열기
+    private fun openAppSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = android.net.Uri.parse("package:$packageName")
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "설정 화면 열기 실패", e)
+            tvStatus.text = "설정 열기 실패"
+            tvStatus.setTextColor(Color.RED)
         }
     }
 
@@ -274,11 +313,38 @@ class MainActivity : AppCompatActivity() {
                 this,
                 Manifest.permission.RECORD_AUDIO
             ) == PackageManager.PERMISSION_GRANTED -> {
-                startWakeWordService()
+                // 마이크 권한 있음 - Full-Screen Intent 권한 확인
+                checkFullScreenIntentPermission()
             }
             else -> {
                 requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             }
+        }
+    }
+
+    private fun checkFullScreenIntentPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { // Android 14+
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            if (!notificationManager.canUseFullScreenIntent()) {
+                android.util.Log.w("MainActivity", "Full-Screen Intent 권한 없음 - 설정으로 안내")
+                // 사용자를 설정 화면으로 안내
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                        data = android.net.Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "설정 화면 열기 실패", e)
+                    // 설정 화면을 열 수 없으면 일반 설정으로 이동
+                    startActivity(Intent(Settings.ACTION_SETTINGS))
+                }
+            } else {
+                android.util.Log.i("MainActivity", "Full-Screen Intent 권한 있음")
+                startWakeWordService()
+            }
+        } else {
+            // Android 13 이하는 권한 불필요
+            startWakeWordService()
         }
     }
 
@@ -296,6 +362,106 @@ class MainActivity : AppCompatActivity() {
     private fun stopWakeWordService() {
         val serviceIntent = Intent(this, WakeWordService::class.java)
         stopService(serviceIntent)
+    }
+
+    /**
+     * WearableListenerService 활성화
+     *
+     * Google Play Services가 WearableListenerService를 자동으로 바인딩하도록 합니다.
+     */
+    private fun enableWearableListenerService() {
+        lifecycleScope.launch {
+            try {
+                android.util.Log.i("MainActivity", "WearableListenerService 활성화 시작")
+
+                // CapabilityClient를 통해 Wearable API 초기화
+                // Google Play Services가 WearableListenerService를 자동 발견하고 바인딩
+                val capabilityClient = Wearable.getCapabilityClient(this@MainActivity)
+                try {
+                    val capability = capabilityClient.getCapability("voice_recognition", CapabilityClient.FILTER_REACHABLE).await()
+                    android.util.Log.i("MainActivity", "Capability 확인: ${capability.nodes.size}개 노드")
+                } catch (e: Exception) {
+                    android.util.Log.w("MainActivity", "Capability 확인 실패 (정상): ${e.message}")
+                }
+
+                // ComponentName을 통해 WearableListenerService 상태 확인
+                val pm = packageManager
+                val componentName = ComponentName(this@MainActivity, com.example.secondbrain.service.WearableListenerService::class.java)
+                val componentEnabledSetting = pm.getComponentEnabledSetting(componentName)
+
+                android.util.Log.i("MainActivity", "WearableListenerService 상태: $componentEnabledSetting")
+
+                if (componentEnabledSetting == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
+                    android.util.Log.w("MainActivity", "WearableListenerService 비활성화 상태 - 활성화")
+                    pm.setComponentEnabledSetting(
+                        componentName,
+                        android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                        android.content.pm.PackageManager.DONT_KILL_APP
+                    )
+                }
+
+                android.util.Log.i("MainActivity", "WearableListenerService 활성화 완료")
+
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "WearableListenerService 활성화 실패", e)
+            }
+        }
+    }
+
+    // 워치 연결 상태 확인
+    private fun checkWearableConnection() {
+        lifecycleScope.launch {
+            try {
+                tvWearStatus.text = "확인 중..."
+                android.util.Log.i("MainActivity", "워치 연결 상태 확인")
+
+                // 연결된 노드 확인
+                val nodeClient = Wearable.getNodeClient(this@MainActivity)
+                val nodes = nodeClient.connectedNodes.await()
+
+                val statusBuilder = StringBuilder()
+                statusBuilder.append("연결된 기기: ${nodes.size}개\n\n")
+
+                if (nodes.isEmpty()) {
+                    statusBuilder.append("❌ 연결된 워치가 없습니다.\n")
+                    statusBuilder.append("\n확인사항:\n")
+                    statusBuilder.append("1. 워치와 폰이 블루투스로 연결되어 있나요?\n")
+                    statusBuilder.append("2. 워치 앱이 설치되어 있나요?\n")
+                    statusBuilder.append("3. 양쪽 앱이 모두 실행되어 있나요?")
+                    android.util.Log.w("MainActivity", "연결된 워치 없음")
+                } else {
+                    statusBuilder.append("✅ 연결됨:\n\n")
+                    nodes.forEachIndexed { index, node ->
+                        statusBuilder.append("${index + 1}. ${node.displayName}\n")
+                        statusBuilder.append("   ID: ${node.id}\n")
+                        statusBuilder.append("   근처: ${if (node.isNearby) "예" else "아니오"}\n\n")
+
+                        android.util.Log.i("MainActivity", "노드: ${node.displayName} (${node.id})")
+                    }
+                }
+
+                // Capability 확인 (선택적)
+                val capabilityClient = Wearable.getCapabilityClient(this@MainActivity)
+                val capability = try {
+                    capabilityClient.getCapability("voice_recognition", 0).await()
+                } catch (e: Exception) {
+                    android.util.Log.w("MainActivity", "Capability 확인 실패: ${e.message}")
+                    null
+                }
+
+                if (capability != null && capability.nodes.isNotEmpty()) {
+                    statusBuilder.append("\n음성 인식 가능 기기: ${capability.nodes.size}개")
+                }
+
+                tvWearStatus.text = statusBuilder.toString()
+                android.util.Log.i("MainActivity", "워치 연결 확인 완료: ${nodes.size}개")
+
+            } catch (e: Exception) {
+                val errorMsg = "❌ 오류: ${e.message}"
+                tvWearStatus.text = errorMsg
+                android.util.Log.e("MainActivity", "워치 연결 확인 실패", e)
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

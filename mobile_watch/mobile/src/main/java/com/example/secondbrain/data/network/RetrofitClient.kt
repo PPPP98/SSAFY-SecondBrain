@@ -15,7 +15,6 @@ object RetrofitClient {
     // Release: https://api.brainsecond.site/ (Traefik 통과)
     private val BASE_URL = BuildConfig.BASE_URL
 
-    // FastAPI 서버 URL (Knowledge Graph Service)
     // 배포 서버 사용: Traefik /ai 경로로 프록시
     private val FASTAPI_BASE_URL = "https://api.brainsecond.site/ai/"
 
