@@ -42,15 +42,14 @@ public class NoteSearchService {
 		}
 
 		try {
-			// 1. Multi-match 쿼리 생성 (제목에 2배 가중치, 오타 허용)
+			// 1. Multi-match 쿼리 생성 (제목 10배 가중치, 엄격한 점수 필터링)
 			Query multiMatchQuery = MultiMatchQuery.of(m -> m
 				.query(keyword)
-				.fields("title^2", "content")
+				.fields("title^10", "content")      // 제목 가중치 10배
 				.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.BestFields)
-				.fuzziness("1")             // 오타 허용 1글자까지 (균형있는 검색)
-				.prefixLength(0)            // 첫 글자도 오타 허용
-				.maxExpansions(50)          // 검색 범위 적절히 제한
-				.minimumShouldMatch("70%")  // 최소 70% 일치해야 결과 포함
+				.fuzziness("AUTO")                  // 단어 길이 기반 자동 조정
+				.prefixLength(1)                    // 첫 글자 고정 (성능 + 정확도)
+				.maxExpansions(30)                  // 검색 범위 축소
 			)._toQuery();
 
 			// 2. Bool 쿼리 생성
@@ -66,9 +65,10 @@ public class NoteSearchService {
 				boolQueryBuilder.filter(userFilter);
 			}
 
-			// 4. Native Query 생성
+			// 4. Native Query 생성 (최소 점수 10 이상만 반환)
 			NativeQuery searchQuery = NativeQuery.builder()
 				.withQuery(boolQueryBuilder.build()._toQuery())
+				.withMinScore(10.0f)                // 점수 10 미만 결과 제외
 				.withPageable(pageable)
 				.build();
 
@@ -123,12 +123,11 @@ public class NoteSearchService {
 
 			Query multiMatchQuery = MultiMatchQuery.of(m -> m
 				.query(searchText)
-				.fields("title^2", "content")
+				.fields("title^10", "content")      // 제목 가중치 10배
 				.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.BestFields)
-				.fuzziness("1")             // 오타 허용 1글자까지
-				.prefixLength(0)            // 첫 글자도 오타 허용
-				.maxExpansions(50)          // 검색 범위 적절히 제한
-				.minimumShouldMatch("70%")  // 최소 70% 일치
+				.fuzziness("AUTO")                  // 단어 길이 기반 자동 조정
+				.prefixLength(1)                    // 첫 글자 고정
+				.maxExpansions(30)
 			)._toQuery();
 
 			// Bool 쿼리 생성 (자기 자신 제외 + userId 필터)
