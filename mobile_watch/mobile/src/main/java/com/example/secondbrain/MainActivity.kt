@@ -18,14 +18,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import android.content.ComponentName
-import android.content.ServiceConnection
-import android.os.IBinder
 import com.example.secondbrain.data.local.TokenManager
 import com.example.secondbrain.service.WakeWordService
 import com.example.secondbrain.ui.login.LoginActivity
 import com.example.secondbrain.ui.note.NoteDetailActivity
 import com.google.android.gms.wearable.CapabilityClient
-import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -114,22 +111,16 @@ class MainActivity : AppCompatActivity() {
         tvWearStatus = findViewById(R.id.tvWearStatus)
         btnOpenSettings = findViewById(R.id.btnOpenSettings)
 
-        // 웨이크워드로 앱이 실행된 경우
+        // 웨이크워드로 앱이 실행된 경우 표시
         if (intent.getBooleanExtra("wake_word_detected", false)) {
-            // Intent 플래그 제거 (재사용 시 문제 방지)
             intent.removeExtra("wake_word_detected")
             intent.removeExtra("auto_opened")
-
             tvStatus.text = "헤이스비 감지!"
             tvStatus.setTextColor(getColor(android.R.color.holo_green_dark))
-
-            // 자동 종료 없이 앱 유지
-            // 서비스가 실행 중이 아니면 시작
-            checkAndRequestPermission()
-        } else {
-            // 일반 실행 시 권한 확인 및 서비스 시작
-            checkAndRequestPermission()
         }
+
+        // 권한 확인 및 서비스 시작
+        checkAndRequestPermission()
 
         // 로그아웃 버튼
         btnLogout.setOnClickListener {
@@ -409,18 +400,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent) // 새 Intent로 업데이트
+        setIntent(intent)
 
-        // 웨이크워드로 다시 실행된 경우
+        // 웨이크워드로 다시 실행된 경우 표시
         if (intent.getBooleanExtra("wake_word_detected", false)) {
-            // Intent 플래그 제거
             intent.removeExtra("wake_word_detected")
             intent.removeExtra("auto_opened")
-
             tvStatus.text = "헤이스비 감지!"
             tvStatus.setTextColor(getColor(android.R.color.holo_green_dark))
-
-            // 자동 종료 없이 앱 유지
         }
     }
 }
