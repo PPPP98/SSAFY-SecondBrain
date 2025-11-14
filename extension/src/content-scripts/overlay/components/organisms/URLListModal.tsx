@@ -29,11 +29,25 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-3">
-        <h3 className="text-sm font-semibold text-card-foreground">
-          수집된 페이지 ({urls.length})
-        </h3>
-        <div className="flex items-center gap-1">
+      <div className="border-b border-border">
+        {/* 닫기 버튼 - 우측 상단 고정 */}
+        <div className="flex justify-end p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={onClose}
+            aria-label="닫기"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* 정보 + 액션 - 별도 행 */}
+        <div className="flex items-center justify-between px-3 pb-3">
+          <h3 className="text-sm font-semibold text-card-foreground">
+            수집된 페이지 ({urls.length})
+          </h3>
           {urls.length > 0 && (
             <Button
               variant="ghost"
@@ -45,15 +59,6 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
               <span>전체 삭제</span>
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={onClose}
-            aria-label="닫기"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
