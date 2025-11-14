@@ -5,9 +5,7 @@ plugins {
 
 android {
     namespace = "com.example.secondbrain"
-    compileSdk {
-        version = release(35)
-    }
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.secondbrain"
@@ -23,7 +21,7 @@ android {
     }
 
     signingConfigs {
-        create("debug") {
+        getByName("debug") {
             storeFile = file("debug.keystore")
             storePassword = "android"
             keyAlias = "androiddebugkey"
@@ -34,7 +32,7 @@ android {
     buildTypes {
         debug {
             // 개발: localhost 직접 연결 (Traefik 우회)
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+            buildConfigField("String", "BASE_URL", "\"https://api.brainsecond.site/\"")
             signingConfig = signingConfigs.getByName("debug")
         }
         release {

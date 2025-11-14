@@ -19,7 +19,7 @@ object RetrofitClient {
     // Debug: http://10.0.2.2:8000/ (localhost FastAPI)
     // Release: https://api.brainsecond.site/ (Traefik /ai 경로로 프록시)
     private val FASTAPI_BASE_URL = if (BuildConfig.DEBUG) {
-        "http://10.0.2.2:8000/"
+        "https://api.brainsecond.site/ai/"
     } else {
         "https://api.brainsecond.site/"
     }

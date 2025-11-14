@@ -279,7 +279,7 @@ class MainActivity : ComponentActivity() {
             voiceRecognitionManager.stopListening()
         }
         // 진행 중인 네트워크 작업 취소 (불필요한 리소스 사용 방지)
-        lifecycleScope.coroutineContext.job.cancelChildren()
+        lifecycleScope.coroutineContext.cancelChildren()
         LogUtils.d(TAG, "진행 중인 코루틴 작업 취소됨")
     }
 
