@@ -173,10 +173,7 @@ export async function loadOverlayState(): Promise<OverlayState> {
  * unwatch();
  */
 export function watchStorageChanges(callback: StorageChangeCallback): () => void {
-  const listener = (
-    changes: Record<string, browser.Storage.StorageChange>,
-    areaName: string,
-  ) => {
+  const listener = (changes: Record<string, browser.Storage.StorageChange>, areaName: string) => {
     // local storage 변경만 감지
     if (areaName === 'local') {
       Object.entries(changes).forEach(([key, change]) => {
