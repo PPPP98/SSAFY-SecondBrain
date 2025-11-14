@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, status
+from fastapi import APIRouter, HTTPException, Depends, Query, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import logging
 
 from app.services.note_summarize_service import note_summarize_service
 from app.services.agent_search_service import agent_search_service
 from app.services.external_service import external_service
+from app.api.v1.dependencies import get_user_id
 
 from app.schemas.agents import (
     NoteSummarizeRequest,
@@ -65,7 +66,7 @@ async def note_summarize(
     description="LLM을 활용하여 지식 그래프 내에서 검색 수행\nTOP_K : 3 으로 설정되어 있습니다. 수정 가능 테스트 확인 바람",
 )
 async def agent_search(
-    user_id: int = Query(..., description="사용자 ID"),
+    x_user_id: int = Header(..., alias="X-User-ID"),
     query: str = Query(
         ...,
         description="검색 쿼리",
@@ -87,6 +88,8 @@ async def agent_search(
         HTTPException: 400 - 잘못된 요청
         HTTPException: 500 - 서버 오류
     """
+    user_id = get_user_id(x_user_id)
+
     if not query:
         logger.warning(f"⚠️  빈 쿼리 - user_id: {user_id}")
         raise HTTPException(

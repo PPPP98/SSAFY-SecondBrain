@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_user_id(x_user_id: str = Header(..., alias="X-User-ID")) -> str:
+def get_user_id(x_user_id: int = Header(..., alias="X-User-ID")) -> int:
     """
     Header에서 user_id 추출
     

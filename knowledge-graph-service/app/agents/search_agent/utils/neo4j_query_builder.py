@@ -5,7 +5,7 @@ def build_time_filter_cypher(
     user_id: int,
     timespan: Optional[Dict[str, str]] = None,
     limit: int = 10,
-) -> tuple[str, Dict]:
+) -> Tuple[str, Dict]:
     """
     시간 필터 기반 Cypher 쿼리 생성
 
