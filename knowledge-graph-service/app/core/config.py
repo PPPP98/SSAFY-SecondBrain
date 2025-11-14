@@ -42,10 +42,8 @@ class Settings(BaseSettings):
     # Search_Agent 설정
     search_agent_model: str
     search_agent_temperature: float
-    final_top_k: int
-    top_k_candidates: int
-    similarity_threshold: float
-    graph_hops: int
+    top_k: int
+    search_limit: int
 
     # external_service 설정
     secondbrain_api_url: str

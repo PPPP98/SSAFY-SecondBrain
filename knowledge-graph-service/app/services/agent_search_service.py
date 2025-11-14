@@ -2,6 +2,9 @@ import logging
 from typing import List
 from app.agents.search_agent.graph import Graph
 from app.agents.search_agent.state import State
+from app.core.config import get_settings
+
+settings = get_settings()
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +15,7 @@ class AgentSearchService:
 
     def __init__(self):
         self.graph = Graph.create_search_graph()
+        self.TOP_K = settings.top_k
 
     async def search(
         self,
@@ -38,12 +42,12 @@ class AgentSearchService:
             initial_state: State = {
                 "user_id": user_id,
                 "original_query": query,
-                "documents": [],
             }
             result = await self.graph.ainvoke(initial_state)
+            documents: List[dict] = result.get("documents", [])
             return {
                 "response": result.get("response", ""),
-                "documents": result.get("documents", []),
+                "documents": documents[:self.TOP_K],
             }
         except Exception as e:
             logger.error(f"error : {e}")

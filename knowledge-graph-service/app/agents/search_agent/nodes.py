@@ -11,14 +11,17 @@ from app.db.neo4j_client import neo4j_client
 from app.services.embedding_service import embedding_service
 from typing import Any
 
+from app.core.config import get_settings
+
 import logging
 import asyncio
 import json
 import traceback
 
+settings = get_settings()
 logger = logging.getLogger(__name__)
-SEARCH_LIMIT = 10
-
+SEARCH_LIMIT = settings.search_limit
+TOP_K = settings.top_k
 
 class Nodes:
     """ 
@@ -28,7 +31,7 @@ class Nodes:
     Similarity Search
     Relevance Check
     Generate Response
-    
+
     """
 
     @staticmethod
@@ -54,14 +57,14 @@ class Nodes:
 
             # 프롬프트
             prompt_text = Prompts.PRE_FILTER_PROMPT.format(
-                query=state["query"],
+                query=state["original_query"],
                 current_datetime=time_context["current_datetime"],
                 weekday_korean=time_context["weekday_korean"],
                 week_number=time_context["week_number"],
             )
 
             # LLM 호출
-            logger.debug(f"💬 분석: {state['query']}")
+            logger.debug(f"💬 분석: {state['original_query']}")
             result = await llm.ainvoke(prompt_text)
 
             # 필터 구성
@@ -82,8 +85,8 @@ class Nodes:
             # State 업데이트
             return {
                 **state,
-                "original_query": state["query"],
-                "query": result.query if result.query else state["query"],
+                "original_query": state["original_query"],
+                "query": result.query if result.query else state["original_query"],
                 "filters": filters,
                 "search_type": result.search_type,
             }
@@ -97,7 +100,7 @@ class Nodes:
             # 기본값: similarity
             return {
                 **state,
-                "original_query": state.get("query", ""),
+                "original_query": state.get("original_query", ""),
                 "filters": {},
                 "search_type": "similarity",
             }
@@ -362,7 +365,7 @@ class Nodes:
             )
 
             if filtered_documents:
-                logger.info("📝 관련 문서:")
+                logger.debug("📝 관련 문서:")
                 for i, doc in enumerate(filtered_documents, 1):
                     logger.debug(f"  [{i}] {doc.get('title')}")
             else:
@@ -454,20 +457,9 @@ class Nodes:
             
             # 컨텍스트 구성
             context_parts = []
-            for i, doc in enumerate(documents, 1):
+            for i, doc in enumerate(documents[:TOP_K], 1):
                 title = doc.get("title", "제목 없음")
-                created_at = doc.get("created_at", "")
-                
-                # 날짜 포맷팅
-                if created_at:
-                    try:
-                        # YYYY-MM-DD만 추출
-                        date_only = created_at.split("T")[0]
-                        context_parts.append(f"[{i}] {title} ({date_only})")
-                    except:
-                        context_parts.append(f"[{i}] {title}")
-                else:
-                    context_parts.append(f"[{i}] {title}")
+                context_parts.append(f"{title}")
             
             context = "\n".join(context_parts)
             

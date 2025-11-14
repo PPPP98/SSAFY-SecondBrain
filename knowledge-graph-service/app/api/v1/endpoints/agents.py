@@ -3,8 +3,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import logging
 
 from app.services.note_summarize_service import note_summarize_service
-from app.schemas.agents import NoteSummarizeRequest
+from app.services.agent_search_service import agent_search_service
 from app.services.external_service import external_service
+
+from app.schemas.agents import NoteSummarizeRequest
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,3 +46,21 @@ async def note_summarize(
     # return result
     logger.debug("✅ Note saved to external service")
     return response
+
+
+@router.get(
+    "/search",
+    summary="에이전트 검색",
+    description="LLM을 활용하여 지식 그래프 내에서 검색 수행",
+)
+async def agent_search(
+    user_id: int,
+    query: str,
+):
+    result = await agent_search_service.search(
+        user_id=user_id,
+        query=query,
+    )
+
+    logger.debug("✅ Agent search completed")
+    return result
