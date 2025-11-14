@@ -1,7 +1,7 @@
 from langchain.chat_models import init_chat_model
 from app.core.config import get_settings
 
-# from app.schemas.agents import
+from app.schemas.agents import PreFilterOutput
 import os
 
 
@@ -19,24 +19,9 @@ class Models:
         os.environ["OPENAI_API_KEY"] = self.settings.openai_api_key
         os.environ["OPENAI_API_BASE"] = self.settings.openai_base_url
 
-    def get_rewrite_model(self):
+    def get_prefilter_node(self):
         model = init_chat_model(
             model=self.settings.search_agent_model,
             temperature=self.settings.search_agent_temperature,
         )
-        # structured_model = model.with_structured_output()
-        return model
-
-    def get_related_check_model(self):
-        model = init_chat_model(
-            model=self.settings.search_agent_model,
-            temperature=self.settings.search_agent_temperature,
-        )
-        return model
-
-    def get_result_model(self):
-        model = init_chat_model(
-            model=self.settings.search_agent_model,
-            temperature=self.settings.search_agent_temperature,
-        )
-        return model
+        structured_model = model.with_structured_output(PreFilterOutput)

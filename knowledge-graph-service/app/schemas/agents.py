@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from typing import List, Optional
 
 
 class LLMResponse(BaseModel):
@@ -32,3 +32,32 @@ class NoteSummarizeRequest(BaseModel):
             }
         }
     )
+
+
+class TimeFilter(BaseModel):
+    """
+    시간 필터 스키마
+    """
+
+    start: Optional[str] = Field(
+        default=None, description="시작 시간 (ISO 8601 형식: YYYY-MM-DDTHH:MM:SS+09:00)"
+    )
+    end: Optional[str] = Field(
+        default=None, description="종료 시간 (ISO 8601 형식: YYYY-MM-DDTHH:MM:SS+09:00)"
+    )
+    description: Optional[str] = Field(
+        default=None, description="시간 표현에 대한 설명"
+    )
+
+
+class PreFilterOutput(BaseModel):
+    """Pre-Filter 출력 스키마"""
+
+    timespan: Optional[TimeFilter] = Field(default=None, description="시간 범위 필터")
+    tags: List[str] = Field(default_factory=list, description="태그 리스트")
+    exact_title: Optional[str] = Field(default=None, description="정확한 제목")
+    note_id: Optional[str] = Field(default=None, description="노트 ID")
+    is_simple_lookup: bool = Field(
+        default=False, description="필터만으로 검색 가능한가"
+    )
+    cleaned_query: str = Field(description="필터를 제거한 순수 검색어")
