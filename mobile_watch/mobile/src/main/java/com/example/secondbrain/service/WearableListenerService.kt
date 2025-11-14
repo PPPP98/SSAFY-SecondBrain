@@ -3,8 +3,6 @@ package com.example.secondbrain.service
 import android.util.Log
 import com.example.secondbrain.communication.WearableConstants
 import com.example.secondbrain.data.local.TokenManager
-import com.example.secondbrain.data.model.ApiResponse
-import com.example.secondbrain.data.network.RetrofitClient
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
 import com.google.android.gms.wearable.WearableListenerService
@@ -13,8 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import retrofit2.http.Body
-import retrofit2.http.POST
 
 /**
  * Wear OS에서 전송된 메시지를 수신하는 서비스
@@ -31,13 +27,27 @@ class WearableListenerService : WearableListenerService() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    override fun onCreate() {
+        super.onCreate()
+        Log.i(TAG, "========================================")
+        Log.i(TAG, "WearableListenerService.onCreate() 호출됨")
+        Log.i(TAG, "Google Play Services가 이 서비스를 바인딩했습니다")
+        Log.i(TAG, "워치 메시지 수신 대기 중")
+        Log.i(TAG, "========================================")
+    }
+
     /**
      * 워치에서 메시지를 수신했을 때 호출됨
      */
     override fun onMessageReceived(messageEvent: MessageEvent) {
         super.onMessageReceived(messageEvent)
 
-        Log.d(TAG, "메시지 수신: ${messageEvent.path}")
+        Log.i(TAG, "========================================")
+        Log.i(TAG, "워치로부터 메시지 수신됨!")
+        Log.i(TAG, "경로: ${messageEvent.path}")
+        Log.i(TAG, "데이터 크기: ${messageEvent.data.size} bytes")
+        Log.i(TAG, "소스 노드 ID: ${messageEvent.sourceNodeId}")
+        Log.i(TAG, "========================================")
 
         when (messageEvent.path) {
             WearableConstants.PATH_VOICE_TEXT -> {
