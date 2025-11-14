@@ -18,10 +18,6 @@ class WearableMessageSender(private val context: Context) {
     companion object {
         private const val TAG = "WearableMessageSender"
 
-        // 메시지 경로 (모바일 앱과 동일한 경로를 사용해야 함)
-        const val PATH_VOICE_TEXT = "/voice_text"
-        const val PATH_VOICE_REQUEST = "/voice_request"
-
         // Wearable Data Layer 메시지 크기 제한 (공식 문서 권장: 100KB)
         private const val MAX_MESSAGE_SIZE = 100 * 1024 // 100KB in bytes
 
@@ -76,7 +72,7 @@ class WearableMessageSender(private val context: Context) {
                     try {
                         messageClient.sendMessage(
                             node.id,
-                            PATH_VOICE_TEXT,
+                            WearableConstants.PATH_VOICE_TEXT,
                             data
                         ).await()
 
