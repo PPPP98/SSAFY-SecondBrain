@@ -60,3 +60,4 @@ class Neo4jClient:
 
 # 싱글톤 인스턴스
 neo4j_client = Neo4jClient()
+

@@ -35,9 +35,15 @@ class Settings(BaseSettings):
     similarity_threshold: float
     max_relationships: int
 
-    # Summarize_agent 설정
+    # Summarize_Agent 설정
     summarize_model: str
     summarize_temperature: float
+
+    # Search_Agent 설정
+    search_agent_model: str
+    search_agent_temperature: float
+    top_k: int
+    search_limit: int
 
     # external_service 설정
     secondbrain_api_url: str
