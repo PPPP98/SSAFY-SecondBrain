@@ -35,9 +35,9 @@
         app:layout_constraintTop_toBottomOf="@id/tvTitle"
         android:layout_marginTop="16dp" />
 
-    <!-- 테스트 버튼들 -->
+    <!-- 검색 및 테스트 영역 -->
     <LinearLayout
-        android:id="@+id/testButtonsLayout"
+        android:id="@+id/searchLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -46,13 +46,93 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvStatus">
 
-        <Button
-            android:id="@+id/btnTestNote"
+        <!-- 노트 검색 -->
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="노트 상세 조회 테스트 (ID: 55)"
-            android:textSize="14sp"
-            android:backgroundTint="#007BFF" />
+            android:text="노트 검색"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/etSearchKeyword"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="검색어 입력"
+                android:inputType="text"
+                android:imeOptions="actionSearch"
+                android:maxLines="1"
+                android:padding="12dp"
+                android:background="@android:color/white"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnSearch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="검색"
+                android:textSize="14sp"
+                android:backgroundTint="#007BFF"
+                android:layout_marginStart="8dp" />
+
+        </LinearLayout>
+
+        <!-- 검색 결과 RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvSearchResults"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginTop="12dp"
+            android:background="@android:color/white"
+            android:visibility="gone" />
+
+        <!-- 노트 ID 직접 입력 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="노트 ID 조회"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/etNoteId"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="노트 ID 입력"
+                android:inputType="number"
+                android:padding="12dp"
+                android:background="@android:color/white"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnSearchNote"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="조회"
+                android:textSize="14sp"
+                android:backgroundTint="#28A745"
+                android:layout_marginStart="8dp" />
+
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvTestResult"
@@ -66,6 +146,46 @@
             android:scrollbars="vertical"
             android:layout_marginTop="8dp"
             android:background="@android:color/white" />
+
+        <!-- 워치 연결 확인 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="워치 연결 확인"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnCheckWearConnection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="워치 연결 상태 확인"
+            android:textSize="14sp"
+            android:backgroundTint="#007BFF" />
+
+        <TextView
+            android:id="@+id/tvWearStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="12sp"
+            android:textColor="#333333"
+            android:padding="16dp"
+            android:layout_marginTop="8dp"
+            android:background="@android:color/white" />
+
+        <!-- 앱 설정 열기 -->
+        <Button
+            android:id="@+id/btnOpenSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="앱 설정 열기 (권한/알림)"
+            android:textSize="14sp"
+            android:backgroundTint="#FF5722"
+            android:layout_marginTop="16dp" />
 
     </LinearLayout>
 

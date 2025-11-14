@@ -22,6 +22,11 @@ export function useSessionRestore() {
       // 1. Refresh Token으로 새 Access Token 발급
       const response = await refreshToken();
 
+      // response가 null이면 401 에러 (로그아웃 상태)
+      if (!response) {
+        throw new Error('No active session');
+      }
+
       if (response.success && response.data) {
         // 2. Access Token 저장
         setAccessToken(response.data.accessToken);

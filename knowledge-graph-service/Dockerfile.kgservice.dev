@@ -1,7 +1,7 @@
 # FastAPI Knowledge Graph Service 개발용 Dockerfile
-# Python 3.11 기반
+# Python 3.13 기반
 
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Python 환경 변수 설정 (Docker 공식 권장)
 ENV PYTHONDONTWRITEBYTECODE=1 \

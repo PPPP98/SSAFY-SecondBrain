@@ -1,0 +1,90 @@
+import { X, Trash2 } from 'lucide-react';
+import { Button } from '@/content-scripts/overlay/components/ui/button';
+
+/**
+ * URL List Modal (Organism)
+ * - 수집된 URL 목록 표시
+ * - 개별 URL 삭제 기능
+ * - 전체 삭제 기능
+ * - Shadow DOM 환경 최적화
+ */
+interface URLListModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  urls: string[];
+  onRemove: (url: string) => void;
+  onClearAll: () => void;
+}
+
+export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: URLListModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="absolute left-0 top-full z-10 mt-2 w-full rounded-lg border border-border bg-card shadow-xl"
+      style={{
+        maxHeight: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border p-3">
+        <h3 className="text-sm font-semibold text-card-foreground">
+          수집된 페이지 ({urls.length})
+        </h3>
+        <div className="flex items-center gap-1">
+          {urls.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 px-2 text-xs text-destructive hover:text-destructive"
+              onClick={onClearAll}
+            >
+              <Trash2 className="h-3 w-3" />
+              <span>전체 삭제</span>
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={onClose}
+            aria-label="닫기"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* URL List */}
+      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+        {urls.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            추가된 페이지가 없습니다
+          </div>
+        ) : (
+          urls.map((url) => (
+            <div
+              key={url}
+              className="flex items-center gap-2 rounded-md border border-border bg-background p-2 transition-colors hover:bg-accent"
+            >
+              <span className="flex-1 truncate text-xs text-foreground" title={url}>
+                {url}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => onRemove(url)}
+                aria-label={`${url} 삭제`}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

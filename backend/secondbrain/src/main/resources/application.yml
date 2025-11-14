@@ -71,7 +71,7 @@ jwt:
   secret: ${JWT_SECRET}
   algorithm: HS256
   expire-time:
-    access: 1h
+    access: 30d  # 개발 편의를 위해 1달로 설정 (프로덕션에서는 1h 권장)
     refresh: 7d
 
 secondbrain:

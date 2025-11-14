@@ -3,10 +3,12 @@ package com.example.secondbrain.data.network
 import com.example.secondbrain.data.model.ApiResponse
 import com.example.secondbrain.data.model.GoogleAuthRequest
 import com.example.secondbrain.data.model.Note
+import com.example.secondbrain.data.model.NoteSearchResponse
 import com.example.secondbrain.data.model.TokenResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 // Retrofit API 인터페이스 정의
 interface ApiService {
@@ -24,4 +26,12 @@ interface ApiService {
     // 노트 상세 조회 (JWT 인증 필요)
     @GET("/api/notes/{noteId}")
     suspend fun getNote(@retrofit2.http.Path("noteId") noteId: Long): ApiResponse<Note>
+
+    // 노트 검색 (JWT 인증 필요)
+    @GET("/api/notes/search")
+    suspend fun searchNotes(
+        @Query("keyword") keyword: String,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 10
+    ): ApiResponse<NoteSearchResponse>
 }

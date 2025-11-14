@@ -127,22 +127,50 @@ class WakeWordService : Service() {
     private fun onWakeWordDetected() {
         Log.i(TAG, "웨이크워드 처리 시작")
 
-        // 알림 업데이트
-        val notification = createNotification("헤이스비 감지됨!")
-        val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.notify(NOTIFICATION_ID, notification)
-
-        // 앱 실행 (SINGLE_TOP으로 중복 실행 방지)
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        // 1. 직접 액티비티 시작 (백그라운드에서 foreground로 가져오기)
+        val activityIntent = Intent(this, MainActivity::class.java).apply {
+            // 새 태스크로 시작하고, 기존 인스턴스가 있으면 재사용
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             putExtra("wake_word_detected", true)
         }
-        startActivity(intent)
+
+        // 액티비티 직접 시작
+        try {
+            startActivity(activityIntent)
+            Log.i(TAG, "✅ 액티비티 시작 성공")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 액티비티 시작 실패", e)
+        }
+
+        // 2. Full-Screen Intent 알림도 함께 표시 (화면 꺼져있을 때를 위해)
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            this,
+            100,
+            activityIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("헤이스비 감지됨!")
+            .setContentText("웨이크워드가 감지되었습니다")
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setAutoCancel(true)
+            .build()
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(NOTIFICATION_ID + 1, notification)
 
         // 3초 후 알림 원래대로
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             val normalNotification = createNotification("웨이크워드 감지 중...")
             notificationManager.notify(NOTIFICATION_ID, normalNotification)
+            // Full-Screen 알림 제거
+            notificationManager.cancel(NOTIFICATION_ID + 1)
         }, 3000)
     }
 
