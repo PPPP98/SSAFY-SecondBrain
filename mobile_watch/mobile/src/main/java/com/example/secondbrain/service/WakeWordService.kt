@@ -28,6 +28,7 @@ class WakeWordService : Service() {
     companion object {
         private const val TAG = "WakeWordService"
         private const val CHANNEL_ID = "wakeword_service_channel"
+        private const val ALERT_CHANNEL_ID = "wakeword_alert_channel"
         private const val NOTIFICATION_ID = 1001
         private const val COOLDOWN_PERIOD = 5000L // 5초 쿨다운
     }
@@ -87,7 +88,10 @@ class WakeWordService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
+            val notificationManager = getSystemService(NotificationManager::class.java)
+
+            // 1. Foreground Service용 낮은 우선순위 채널
+            val serviceChannel = NotificationChannel(
                 CHANNEL_ID,
                 "웨이크워드 감지 서비스",
                 NotificationManager.IMPORTANCE_LOW
@@ -95,9 +99,24 @@ class WakeWordService : Service() {
                 description = "헤이스비 웨이크워드를 감지합니다"
                 setShowBadge(false)
             }
+            notificationManager.createNotificationChannel(serviceChannel)
 
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
+            // 2. 웨이크워드 감지 알림용 높은 우선순위 채널
+            // Full-Screen Intent를 사용하려면 IMPORTANCE_HIGH 이상이 필요
+            val alertChannel = NotificationChannel(
+                ALERT_CHANNEL_ID,
+                "웨이크워드 감지 알림",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "웨이크워드가 감지되었을 때 알림을 표시합니다"
+                setShowBadge(true)
+                enableVibration(true)
+                // 잠금 화면에서도 표시
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                // 방해 금지 모드 무시 (선택적)
+                setBypassDnd(true)
+            }
+            notificationManager.createNotificationChannel(alertChannel)
         }
     }
 
@@ -127,24 +146,25 @@ class WakeWordService : Service() {
     private fun onWakeWordDetected() {
         Log.i(TAG, "웨이크워드 처리 시작")
 
-        // 1. 직접 액티비티 시작 (백그라운드에서 foreground로 가져오기)
+        // Android 15에서는 백그라운드에서 액티비티를 직접 시작할 수 없음
+        // Full-Screen Intent를 통해서만 가능
         val activityIntent = Intent(this, MainActivity::class.java).apply {
             // 새 태스크로 시작하고, 기존 인스턴스가 있으면 재사용
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("wake_word_detected", true)
+            putExtra("auto_opened", true) // 자동으로 열렸음을 표시
         }
 
-        // 액티비티 직접 시작
-        try {
-            startActivity(activityIntent)
-            Log.i(TAG, "✅ 액티비티 시작 성공")
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ 액티비티 시작 실패", e)
+        // 알림을 탭해서 열 때 사용할 Intent (자동 종료하지 않음)
+        val manualIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("wake_word_detected", true)
+            putExtra("auto_opened", false) // 수동으로 열렸음을 표시
         }
 
-        // 2. Full-Screen Intent 알림도 함께 표시 (화면 꺼져있을 때를 위해)
+        // Full-Screen Intent PendingIntent 생성
         val fullScreenPendingIntent = PendingIntent.getActivity(
             this,
             100,
@@ -152,14 +172,29 @@ class WakeWordService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        // 알림 클릭 시에도 앱이 열리도록 contentIntent 설정 (수동 Intent 사용)
+        val contentPendingIntent = PendingIntent.getActivity(
+            this,
+            101,
+            manualIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        // Full-Screen Intent를 가진 높은 우선순위 알림 생성
+        // Android 15에서는 화면이 꺼져있을 때만 Full-Screen Intent가 자동으로 앱을 열고,
+        // 화면이 켜져있을 때는 알림만 표시됨
+        val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             .setContentTitle("헤이스비 감지됨!")
-            .setContentText("웨이크워드가 감지되었습니다")
+            .setContentText("탭하여 열기")
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_CALL)
             .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setContentIntent(contentPendingIntent)
             .setAutoCancel(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            // Heads-up 알림으로 표시 (화면 상단에 팝업)
+            .setDefaults(android.app.Notification.DEFAULT_ALL)
             .build()
 
         val notificationManager = getSystemService(NotificationManager::class.java)

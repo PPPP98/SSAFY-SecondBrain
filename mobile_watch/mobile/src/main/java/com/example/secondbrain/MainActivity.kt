@@ -59,6 +59,18 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Full-Screen Intent로 열릴 때 화면 켜기 및 잠금 해제
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            )
+        }
+
         // TokenManager 초기화
         tokenManager = TokenManager(this)
 
@@ -104,15 +116,16 @@ class MainActivity : AppCompatActivity() {
 
         // 웨이크워드로 앱이 실행된 경우
         if (intent.getBooleanExtra("wake_word_detected", false)) {
+            // Intent 플래그 제거 (재사용 시 문제 방지)
+            intent.removeExtra("wake_word_detected")
+            intent.removeExtra("auto_opened")
+
             tvStatus.text = "헤이스비 감지!"
             tvStatus.setTextColor(getColor(android.R.color.holo_green_dark))
 
-            // 3초 후 자동으로 뒤로가기 (백그라운드로 전환)
-            Handler(Looper.getMainLooper()).postDelayed({
-                moveTaskToBack(true)
-                tvStatus.text = "대기 중..."
-                tvStatus.setTextColor(Color.parseColor("#666666"))
-            }, 3000)
+            // 자동 종료 없이 앱 유지
+            // 서비스가 실행 중이 아니면 시작
+            checkAndRequestPermission()
         } else {
             // 일반 실행 시 권한 확인 및 서비스 시작
             checkAndRequestPermission()
@@ -239,16 +252,34 @@ class MainActivity : AppCompatActivity() {
             val notificationManager = getSystemService(NotificationManager::class.java)
             if (!notificationManager.canUseFullScreenIntent()) {
                 android.util.Log.w("MainActivity", "Full-Screen Intent 권한 없음 - 설정으로 안내")
+
+                // UI에 안내 메시지 표시
+                tvStatus.text = "⚠️ 전체 화면 알림 권한 필요\n설정 화면으로 이동합니다..."
+                tvStatus.setTextColor(Color.parseColor("#FF9800"))
+
                 // 사용자를 설정 화면으로 안내
                 try {
                     val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
                         data = android.net.Uri.parse("package:$packageName")
                     }
-                    startActivity(intent)
+
+                    // 안내 다이얼로그 표시 (선택적)
+                    androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("권한 필요")
+                        .setMessage("웨이크워드 감지 시 자동으로 앱을 열기 위해서는 '전체 화면 알림' 권한이 필요합니다.\n\n설정 화면에서 허용해주세요.")
+                        .setPositiveButton("설정으로 이동") { _, _ ->
+                            startActivity(intent)
+                        }
+                        .setNegativeButton("나중에") { dialog, _ ->
+                            dialog.dismiss()
+                            startWakeWordService()
+                        }
+                        .show()
                 } catch (e: Exception) {
                     android.util.Log.e("MainActivity", "설정 화면 열기 실패", e)
                     // 설정 화면을 열 수 없으면 일반 설정으로 이동
                     startActivity(Intent(Settings.ACTION_SETTINGS))
+                    startWakeWordService()
                 }
             } else {
                 android.util.Log.i("MainActivity", "Full-Screen Intent 권한 있음")
@@ -378,17 +409,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent) // 새 Intent로 업데이트
 
         // 웨이크워드로 다시 실행된 경우
         if (intent.getBooleanExtra("wake_word_detected", false)) {
+            // Intent 플래그 제거
+            intent.removeExtra("wake_word_detected")
+            intent.removeExtra("auto_opened")
+
             tvStatus.text = "헤이스비 감지!"
             tvStatus.setTextColor(getColor(android.R.color.holo_green_dark))
 
-            Handler(Looper.getMainLooper()).postDelayed({
-                moveTaskToBack(true)
-                tvStatus.text = "대기 중..."
-                tvStatus.setTextColor(Color.parseColor("#666666"))
-            }, 3000)
+            // 자동 종료 없이 앱 유지
         }
     }
 }
