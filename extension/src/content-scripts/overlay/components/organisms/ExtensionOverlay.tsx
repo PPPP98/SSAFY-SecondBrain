@@ -5,6 +5,8 @@ import { ActionButtons } from '@/content-scripts/overlay/components/molecules/Ac
 import { FloatingButton } from '@/content-scripts/overlay/components/atoms/FloatingButton';
 import { useExtensionAuth } from '@/hooks/useExtensionAuth';
 import { useOverlayState } from '@/hooks/useOverlayState';
+import { usePageCollectionStore } from '@/stores/pageCollectionStore';
+import * as storage from '@/services/storageService';
 
 /**
  * Extension Overlay (Organism)
@@ -22,9 +24,34 @@ interface ExtensionOverlayProps {
 export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   const { loading, authenticated, user, logout } = useExtensionAuth();
   const { isExpanded, isCollapsed, isHidden, expand, collapse } = useOverlayState();
+  const { initialize, syncFromStorage } = usePageCollectionStore();
   const [isAnimating, setIsAnimating] = useState(false);
   const [animationPhase, setAnimationPhase] = useState<'idle' | 'expanding' | 'collapsing'>('idle');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Storage 초기화 (마운트 시 한 번만)
+  useEffect(() => {
+    void (async () => {
+      // 1. Storage 마이그레이션 및 초기화
+      await storage.initializeStorage();
+
+      // 2. Store 초기화
+      await initialize();
+    })();
+  }, [initialize]);
+
+  // Storage 변경 감지 → 탭 간 동기화
+  useEffect(() => {
+    const unwatch = storage.watchStorageChanges((key, newValue) => {
+      if (key === storage.STORAGE_KEYS.COLLECTED_PAGES) {
+        // 다른 탭에서 페이지 목록이 변경됨 → Store 동기화
+        syncFromStorage(newValue as string[]);
+      }
+    });
+
+    // Cleanup
+    return unwatch;
+  }, [syncFromStorage]);
 
   // Outside click 처리 - Shadow DOM에서는 비활성화
   // (Shadow DOM 내부/외부 클릭 감지가 복잡하므로 Escape 키로만 닫기)
@@ -54,7 +81,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   const handleExpand = () => {
     setAnimationPhase('expanding');
     setIsAnimating(true);
-    expand();
+    void expand();
     setTimeout(() => {
       setIsAnimating(false);
       setAnimationPhase('idle');
@@ -65,22 +92,24 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
     setAnimationPhase('collapsing');
     setIsAnimating(true);
     setTimeout(() => {
-      collapse();
+      void collapse();
       setIsAnimating(false);
       setAnimationPhase('idle');
     }, 300);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     setIsLoggingOut(true);
-    try {
-      await logout();
-    } finally {
-      // Keep showing animation for a bit longer for visual feedback
-      setTimeout(() => {
-        setIsLoggingOut(false);
-      }, 500);
-    }
+    void (async () => {
+      try {
+        await logout();
+      } finally {
+        // Keep showing animation for a bit longer for visual feedback
+        setTimeout(() => {
+          setIsLoggingOut(false);
+        }, 500);
+      }
+    })();
   };
 
   // Collapsed 상태: Floating 버튼만 표시 (with animation)
@@ -130,7 +159,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
           onClose={() => {
             onToggle(false);
           }}
-          onLogout={() => void handleLogout()}
+          onLogout={handleLogout}
         />
 
         <div className="p-4">

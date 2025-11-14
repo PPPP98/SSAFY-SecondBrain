@@ -38,7 +38,7 @@ export function ActionButtons() {
 
   const { pages, addPage, removePage, clearPages, getPageList } = usePageCollectionStore();
 
-  function handleAddPage(): void {
+  async function handleAddPage(): Promise<void> {
     const currentUrl = window.location.href;
 
     // URL 유효성 검증
@@ -47,8 +47,8 @@ export function ActionButtons() {
       return;
     }
 
-    // 중복 체크 및 추가
-    const success = addPage(currentUrl);
+    // 중복 체크 및 추가 (비동기)
+    const success = await addPage(currentUrl);
 
     if (success) {
       showToast('페이지가 추가되었습니다', 'success');
@@ -73,7 +73,7 @@ export function ActionButtons() {
       const finalUrls = urlsToSave.length > 0 ? urlsToSave : [currentUrl];
 
       // Background Service Worker에 메시지 전송 (URLs 배열 포함)
-      const rawResponse = await browser.runtime.sendMessage({
+      const rawResponse: unknown = await browser.runtime.sendMessage({
         type: 'SAVE_CURRENT_PAGE',
         urls: finalUrls,
       });
@@ -103,7 +103,7 @@ export function ActionButtons() {
 
       // 성공 시 수집 목록 초기화
       if (urlsToSave.length > 0) {
-        clearPages();
+        void clearPages();
         setShowURLList(false);
       }
 
@@ -138,7 +138,7 @@ export function ActionButtons() {
         <Button
           variant="outline"
           className="flex-1 justify-start gap-2 hover:bg-accent"
-          onClick={handleAddPage}
+          onClick={() => void handleAddPage()}
         >
           <Plus className="h-4 w-4" />
           <span>Add</span>
@@ -176,9 +176,9 @@ export function ActionButtons() {
         isOpen={showURLList}
         onClose={() => setShowURLList(false)}
         urls={getPageList()}
-        onRemove={removePage}
+        onRemove={(url: string) => void removePage(url)}
         onClearAll={() => {
-          clearPages();
+          void clearPages();
           setShowURLList(false);
         }}
       />
