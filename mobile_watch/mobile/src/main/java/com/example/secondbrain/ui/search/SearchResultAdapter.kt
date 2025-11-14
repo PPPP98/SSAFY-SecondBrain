@@ -1,5 +1,10 @@
 package com.example.secondbrain.ui.search
 
+import android.graphics.Typeface
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.BackgroundColorSpan
+import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +19,7 @@ class SearchResultAdapter(
 ) : RecyclerView.Adapter<SearchResultAdapter.SearchResultViewHolder>() {
 
     private var searchResults: List<NoteSearchResult> = emptyList()
+    private var searchKeyword: String = ""
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SearchResultViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -22,16 +28,17 @@ class SearchResultAdapter(
     }
 
     override fun onBindViewHolder(holder: SearchResultViewHolder, position: Int) {
-        holder.bind(searchResults[position])
+        holder.bind(searchResults[position], searchKeyword)
     }
 
     override fun getItemCount(): Int = searchResults.size
 
-    fun updateResults(newResults: List<NoteSearchResult>) {
+    fun updateResults(newResults: List<NoteSearchResult>, keyword: String = "") {
         val diffCallback = NoteSearchDiffCallback(searchResults, newResults)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
 
         searchResults = newResults
+        searchKeyword = keyword
         diffResult.dispatchUpdatesTo(this)
     }
 
@@ -62,14 +69,48 @@ class SearchResultAdapter(
         private val tvNotePreview: TextView = itemView.findViewById(R.id.tvNotePreview)
         private val tvUpdatedAt: TextView = itemView.findViewById(R.id.tvUpdatedAt)
 
-        fun bind(result: NoteSearchResult) {
-            tvNoteTitle.text = result.title
-            tvNotePreview.text = result.content.take(100) // 100자까지만 미리보기
+        fun bind(result: NoteSearchResult, keyword: String) {
+            // 제목에 하이라이트 적용
+            tvNoteTitle.text = highlightKeyword(result.title, keyword)
+
+            // 내용 미리보기에 하이라이트 적용
+            val preview = result.content.take(100)
+            tvNotePreview.text = highlightKeyword(preview, keyword)
+
             tvUpdatedAt.text = formatDateTime(result.updatedAt)
 
             itemView.setOnClickListener {
                 onItemClick(result.id)
             }
+        }
+
+        private fun highlightKeyword(text: String, keyword: String): SpannableString {
+            val spannableString = SpannableString(text)
+
+            if (keyword.isNotEmpty()) {
+                var startIndex = text.indexOf(keyword, ignoreCase = true)
+                while (startIndex >= 0) {
+                    val endIndex = startIndex + keyword.length
+
+                    // 노란색 배경 + 볼드체로 하이라이트
+                    spannableString.setSpan(
+                        BackgroundColorSpan(0xFFFFE082.toInt()), // 노란색 배경
+                        startIndex,
+                        endIndex,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    spannableString.setSpan(
+                        StyleSpan(Typeface.BOLD),
+                        startIndex,
+                        endIndex,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+
+                    startIndex = text.indexOf(keyword, endIndex, ignoreCase = true)
+                }
+            }
+
+            return spannableString
         }
 
         private fun formatDateTime(dateTime: String): String {
