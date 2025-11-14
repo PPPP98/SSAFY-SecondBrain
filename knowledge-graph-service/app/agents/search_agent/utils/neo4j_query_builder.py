@@ -62,27 +62,26 @@ def build_similarity_search_cypher(
         embedding: 쿼리 임베딩 벡터
         user_id: 사용자 ID
         timespan: 시간 필터 (선택)
-        limit: 반환할 노트 개수 (기본 3)
+        limit: 반환할 노트 개수 
     
     Returns:
         (cypher_query, parameters)
     """
+    
     params = {
         "embedding": embedding,
         "user_id": user_id,
         "limit": limit
     }
     
-    # ========================================
-    # 시간 필터가 있을 때
-    # ========================================
-    if timespan and (timespan.get("start") or timespan.get("end")):
-        cypher = """
-        // 1단계: user_id와 시간으로 선필터링
-        MATCH (n:Note)
-        WHERE n.user_id = $user_id
-        """
-        
+    cypher = """
+    // 1. user_id + 시간 필터 (인덱스 활용)
+    MATCH (n:Note)
+    WHERE n.user_id = $user_id
+    """
+    
+    # 시간 필터 추가
+    if timespan:
         if timespan.get("start"):
             cypher += "\n  AND n.created_at >= datetime($start)"
             params["start"] = timespan["start"]
@@ -90,46 +89,23 @@ def build_similarity_search_cypher(
         if timespan.get("end"):
             cypher += "\n  AND n.created_at <= datetime($end)"
             params["end"] = timespan["end"]
-        
-        cypher += """
-        // 2단계: 필터링된 노드만 수집
-        WITH collect(n) AS filtered_nodes
-        
-        // 3단계: 필터링된 노드 중에서만 벡터 검색
-        UNWIND filtered_nodes AS node
-        WITH node,
-             vector.similarity.cosine(node.embedding, $embedding) AS score
-        
-        // 4단계: 정렬 및 제한
-        ORDER BY score DESC
-        LIMIT $limit
-        
-        RETURN node.note_id AS note_id,
-               node.title AS title,
-               node.created_at AS created_at,
-               node.updated_at AS updated_at,
-               score AS similarity_score
-        """
     
-    # ========================================
-    # 시간 필터 없을 때
-    # ========================================
-    else:
-        cypher = """
-        CALL db.index.vector.queryNodes(
-            'note_embeddings',
-            $limit,
-            $embedding
-        )
-        YIELD node, score
-        WHERE node.user_id = $user_id
-        
-        RETURN node.note_id AS note_id,
-               node.title AS title,
-               node.created_at AS created_at,
-               node.updated_at AS updated_at,
-               score AS similarity_score
-        ORDER BY score DESC
-        """
+    # 벡터 계산 및 결과 반환
+    cypher += """
+    
+    // 2. 필터링된 노드에 대해 벡터 유사도 계산
+    WITH n,
+         vector.similarity.cosine(n.embedding, $embedding) AS score
+    
+    // 3. 정렬 및 제한
+    ORDER BY score DESC
+    LIMIT $limit
+    
+    RETURN n.note_id AS note_id,
+           n.title AS title,
+           n.created_at AS created_at,
+           n.updated_at AS updated_at,
+           score AS similarity_score
+    """
     
     return cypher, params

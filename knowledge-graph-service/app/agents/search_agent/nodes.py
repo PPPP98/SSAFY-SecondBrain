@@ -93,7 +93,6 @@ class Nodes:
 
         except Exception as e:
             logger.error(f"❌ Pre-filter 에러: {str(e)}")
-            import traceback
 
             traceback.print_exc()
 
@@ -102,7 +101,7 @@ class Nodes:
                 **state,
                 "original_query": state.get("original_query", ""),
                 "filters": {},
-                "search_type": "similarity",
+                "search_type": "direct_answer",
             }
 
     @staticmethod
