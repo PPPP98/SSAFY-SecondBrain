@@ -22,10 +22,20 @@ android {
         buildConfigField("String", "BASE_URL", "\"https://api.brainsecond.site/\"")
     }
 
+    signingConfigs {
+        create("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         debug {
             // 개발: localhost 직접 연결 (Traefik 우회)
             buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+            signingConfig = signingConfigs.getByName("debug")
         }
         release {
             // 프로덕션: Traefik 통과 (Traefik 설정 수정 필요)
