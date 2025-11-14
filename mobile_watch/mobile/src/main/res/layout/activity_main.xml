@@ -35,9 +35,9 @@
         app:layout_constraintTop_toBottomOf="@id/tvTitle"
         android:layout_marginTop="16dp" />
 
-    <!-- 테스트 버튼들 -->
+    <!-- 검색 및 테스트 영역 -->
     <LinearLayout
-        android:id="@+id/testButtonsLayout"
+        android:id="@+id/searchLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -46,14 +46,62 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvStatus">
 
-        <!-- 노트 ID 입력 -->
+        <!-- 노트 검색 -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="노트 조회"
+            android:text="노트 검색"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/etSearchKeyword"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="검색어 입력"
+                android:inputType="text"
+                android:padding="12dp"
+                android:background="@android:color/white"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnSearch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="검색"
+                android:textSize="14sp"
+                android:backgroundTint="#007BFF"
+                android:layout_marginStart="8dp" />
+
+        </LinearLayout>
+
+        <!-- 검색 결과 RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvSearchResults"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginTop="12dp"
+            android:background="@android:color/white"
+            android:visibility="gone" />
+
+        <!-- 노트 ID 직접 입력 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="노트 ID 조회"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginTop="24dp"
             android:layout_marginBottom="8dp" />
 
         <LinearLayout
