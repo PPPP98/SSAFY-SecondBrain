@@ -29,11 +29,7 @@ class WearableListenerService : WearableListenerService() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.i(TAG, "========================================")
-        Log.i(TAG, "WearableListenerService.onCreate() 호출됨")
-        Log.i(TAG, "Google Play Services가 이 서비스를 바인딩했습니다")
-        Log.i(TAG, "워치 메시지 수신 대기 중")
-        Log.i(TAG, "========================================")
+        Log.i(TAG, "WearableListenerService 시작 - 워치 메시지 수신 대기")
     }
 
     /**
@@ -42,37 +38,26 @@ class WearableListenerService : WearableListenerService() {
     override fun onMessageReceived(messageEvent: MessageEvent) {
         super.onMessageReceived(messageEvent)
 
-        Log.i(TAG, "========================================")
-        Log.i(TAG, "워치로부터 메시지 수신됨!")
-        Log.i(TAG, "경로: ${messageEvent.path}")
-        Log.i(TAG, "데이터 크기: ${messageEvent.data.size} bytes")
-        Log.i(TAG, "소스 노드 ID: ${messageEvent.sourceNodeId}")
-        Log.i(TAG, "========================================")
+        Log.i(TAG, "워치 메시지 수신 - 경로: ${messageEvent.path}, 크기: ${messageEvent.data.size}B")
 
         when (messageEvent.path) {
             WearableConstants.PATH_VOICE_TEXT -> {
                 val recognizedText = String(messageEvent.data, Charsets.UTF_8)
-                Log.i(TAG, "음성 텍스트 수신: '$recognizedText' (${messageEvent.data.size} bytes)")
-
-                // 백엔드 서버로 전송
+                Log.i(TAG, "음성 텍스트: '$recognizedText'")
                 scope.launch {
                     sendToBackend(recognizedText)
                 }
             }
             WearableConstants.PATH_VOICE_REQUEST -> {
                 val requestText = String(messageEvent.data, Charsets.UTF_8)
-                Log.i(TAG, "음성 요청 수신: '$requestText'")
-
-                // 음성 요청 처리
+                Log.i(TAG, "음성 요청: '$requestText'")
                 scope.launch {
                     handleVoiceRequest(requestText)
                 }
             }
             WearableConstants.PATH_STATUS_REQUEST -> {
                 val statusResponse = String(messageEvent.data, Charsets.UTF_8)
-                Log.i(TAG, "워치 상태 응답 수신: '$statusResponse'")
-
-                // 워치 상태 응답 처리
+                Log.i(TAG, "워치 상태: '$statusResponse'")
                 handleStatusResponse(statusResponse)
             }
             else -> {
@@ -100,37 +85,26 @@ class WearableListenerService : WearableListenerService() {
 
             if (accessToken == null) {
                 Log.w(TAG, "액세스 토큰이 없음 - 로그인 필요")
-                // 로그인이 필요하다는 메시지를 워치로 전송 → 워치에서 알림으로 표시
                 sendResponseToWear("로그인이 필요합니다.")
                 return
             }
 
-            // TODO: 백엔드 API 호출 구현
-            // 실제 구현 예시:
+            // 임시 응답: 실제 백엔드 API 연동 시 아래 코드로 대체하세요
             // val apiService = RetrofitClient.instance.create(VoiceApiService::class.java)
             // val response = apiService.sendVoiceQuestion(VoiceQuestionRequest(text))
-            //
-            // if (response.isSuccessful && response.body()?.success == true) {
-            //     val backendAnswer = response.body()?.data?.answer ?: "응답 없음"
-            //     Log.i(TAG, "백엔드 응답 성공: $backendAnswer")
-            //     // 백엔드 응답을 워치로 전송 → 워치에서 알림 표시
-            //     sendResponseToWear(backendAnswer)
+            // if (response.isSuccessful) {
+            //     sendResponseToWear(response.body()?.answer ?: "응답 없음")
             // } else {
-            //     Log.e(TAG, "백엔드 응답 실패: ${response.code()}")
-            //     sendResponseToWear("백엔드 응답 오류")
+            //     sendResponseToWear("백엔드 오류: ${response.code()}")
             // }
 
-            // 임시 응답 (실제 백엔드 API 연동 전까지 사용)
-            val responseText = "질문을 받았습니다: $text\n\n답변: 이것은 임시 응답입니다."
-            Log.i(TAG, "백엔드 전송 성공 (임시)")
-
-            // 백엔드 응답을 워치로 전송 → 워치에서 알림 표시
+            val responseText = "질문 받음: $text\n답변: 임시 응답입니다."
+            Log.i(TAG, "임시 응답 전송")
             sendResponseToWear(responseText)
 
         } catch (e: Exception) {
             Log.e(TAG, "백엔드 전송 실패", e)
-            // 오류 메시지를 워치로 전송 → 워치에서 알림 표시
-            sendResponseToWear("오류가 발생했습니다: ${e.message}")
+            sendResponseToWear("오류 발생: ${e.message}")
         }
     }
 
@@ -155,7 +129,7 @@ class WearableListenerService : WearableListenerService() {
      */
     private fun handleStatusResponse(statusResponse: String) {
         Log.i(TAG, "워치 상태: $statusResponse")
-        // TODO: 워치 상태 정보를 UI에 표시하거나 저장
+        // 필요 시 워치 상태 정보를 SharedPreferences나 Room DB에 저장하여 UI에 표시 가능
     }
 
     /**

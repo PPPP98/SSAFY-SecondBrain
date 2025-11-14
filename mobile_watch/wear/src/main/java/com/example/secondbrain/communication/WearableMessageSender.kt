@@ -36,9 +36,7 @@ class WearableMessageSender(private val context: Context) {
      */
     suspend fun sendVoiceText(recognizedText: String): Int {
         return try {
-            LogUtils.i(TAG, "========================================")
             LogUtils.i(TAG, "음성 텍스트 전송 시작")
-            LogUtils.i(TAG, "========================================")
 
             // 입력 검증: 빈 문자열 체크
             if (recognizedText.isBlank()) {
@@ -49,68 +47,55 @@ class WearableMessageSender(private val context: Context) {
             // 입력 검증: 메시지 크기 체크
             val data = recognizedText.toByteArray(Charsets.UTF_8)
             if (data.size > MAX_MESSAGE_SIZE) {
-                LogUtils.w(TAG, "텍스트가 너무 큼: ${data.size} bytes (최대: $MAX_MESSAGE_SIZE bytes)")
+                LogUtils.w(TAG, "텍스트가 너무 큼: ${data.size}B (최대: ${MAX_MESSAGE_SIZE}B)")
                 return 0
             }
 
-            LogUtils.i(TAG, "전송 텍스트: '$recognizedText'")
-            LogUtils.i(TAG, "데이터 크기: ${data.size} bytes")
-            LogUtils.i(TAG, "전송 경로: ${WearableConstants.PATH_VOICE_TEXT}")
+            LogUtils.i(TAG, "전송 내용: '$recognizedText' (${data.size}B)")
 
             // 연결된 모바일 기기 찾기
             val nodes = Wearable.getNodeClient(context)
                 .connectedNodes
                 .await()
 
-            LogUtils.i(TAG, "연결된 노드 수: ${nodes.size}")
-
             if (nodes.isEmpty()) {
-                LogUtils.w(TAG, "❌ 연결된 모바일 기기 없음")
+                LogUtils.w(TAG, "연결된 모바일 기기 없음")
                 return 0
             }
 
-            nodes.forEachIndexed { index, node ->
-                LogUtils.i(TAG, "노드 ${index + 1}: ${node.displayName} (${node.id})")
-            }
+            LogUtils.d(TAG, "연결된 노드: ${nodes.size}개")
 
-            // 모든 연결된 노드에 메시지 전송 및 성공 카운트 추적
+            // 모든 연결된 노드에 메시지 전송
             var successCount = 0
             for (node in nodes) {
                 var retryCount = 0
                 var sent = false
 
-                LogUtils.i(TAG, "노드 ${node.displayName}로 전송 시도 중...")
-
                 // 재시도 로직
                 while (retryCount <= MAX_RETRY_COUNT && !sent) {
                     try {
-                        LogUtils.d(TAG, "sendMessage 호출: nodeId=${node.id}, path=${WearableConstants.PATH_VOICE_TEXT}, dataSize=${data.size}")
-
                         messageClient.sendMessage(
                             node.id,
                             WearableConstants.PATH_VOICE_TEXT,
                             data
                         ).await()
 
-                        LogUtils.i(TAG, "✅ 전송 성공: ${node.displayName} (${node.id})${if (retryCount > 0) " - ${retryCount}회 재시도 후" else ""}")
+                        LogUtils.i(TAG, "전송 성공: ${node.displayName}${if (retryCount > 0) " (${retryCount}회 재시도)" else ""}")
                         successCount++
                         sent = true
                     } catch (e: Exception) {
                         retryCount++
                         if (retryCount <= MAX_RETRY_COUNT) {
-                            LogUtils.w(TAG, "❌ 전송 실패 (${retryCount}/${MAX_RETRY_COUNT}): ${node.displayName} - ${RETRY_DELAY_MS}ms 후 재시도")
-                            LogUtils.w(TAG, "에러: ${e.javaClass.simpleName}: ${e.message}")
+                            LogUtils.w(TAG, "전송 실패 (${retryCount}/${MAX_RETRY_COUNT}): ${node.displayName} - ${RETRY_DELAY_MS}ms 후 재시도")
                             delay(RETRY_DELAY_MS)
                         } else {
-                            LogUtils.e(TAG, "❌ 노드 전송 실패 (최종): ${node.displayName}", e)
+                            LogUtils.e(TAG, "전송 실패 (최종): ${node.displayName}", e)
                         }
                     }
                 }
             }
 
-            LogUtils.i(TAG, "========================================")
             LogUtils.i(TAG, "전송 완료: ${successCount}/${nodes.size} 성공")
-            LogUtils.i(TAG, "========================================")
             successCount
         } catch (e: Exception) {
             LogUtils.e(TAG, "메시지 전송 실패", e)
@@ -147,12 +132,12 @@ class WearableMessageSender(private val context: Context) {
                 .connectedNodes
                 .await()
 
-            LogUtils.d(TAG, "=== 연결된 기기 목록 ===")
             if (nodes.isEmpty()) {
                 LogUtils.d(TAG, "연결된 기기 없음")
             } else {
+                LogUtils.d(TAG, "연결된 기기: ${nodes.size}개")
                 nodes.forEach { node ->
-                    LogUtils.d(TAG, "- ${node.displayName} (ID: ${node.id}, Nearby: ${node.isNearby})")
+                    LogUtils.d(TAG, "- ${node.displayName} (${node.id})")
                 }
             }
         } catch (e: Exception) {
