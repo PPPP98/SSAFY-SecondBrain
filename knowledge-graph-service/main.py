@@ -6,6 +6,7 @@ import logging
 from app.core.config import get_settings
 from app.db.init_db import initialize_schema
 from app.db.neo4j_client import neo4j_client
+from app.services.external_service import external_service
 from app.api.v1.routers import router as v1_router
 
 # 로깅 설정
@@ -53,6 +54,7 @@ async def lifespan(app: FastAPI):
     yield  # 앱 실행
 
     # ===== 앱 종료 =====
+    await external_service.close()
     logger.info("🛑 애플리케이션 종료")
     try:
         neo4j_client.close()
