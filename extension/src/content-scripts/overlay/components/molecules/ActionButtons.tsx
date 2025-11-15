@@ -38,7 +38,7 @@ interface ActionButtonsProps {
   onTogglePanel: (panel: 'urlList' | 'saveStatus' | 'settings') => void;
 }
 
-export function ActionButtons({ onTogglePanel }: ActionButtonsProps) {
+export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps) {
   const { pages, addPage } = usePageCollectionStore();
   const { addSaveRequest, updateSaveStatus, getSavingCount } = useSaveStatusStore();
 
@@ -72,8 +72,10 @@ export function ActionButtons({ onTogglePanel }: ActionButtonsProps) {
       // 1. 각 URL을 Store에 'saving' 상태로 추가
       const requestIds = finalUrls.map((url) => addSaveRequest(url));
 
-      // 2. 패널 자동 열기
-      onTogglePanel('saveStatus');
+      // 2. 패널 자동 열기 (이미 열려있지 않으면)
+      if (activePanel !== 'saveStatus') {
+        onTogglePanel('saveStatus');
+      }
 
       // 3. Background Service Worker에 메시지 전송 (URLs 배열 포함)
       const rawResponse: unknown = await browser.runtime.sendMessage({

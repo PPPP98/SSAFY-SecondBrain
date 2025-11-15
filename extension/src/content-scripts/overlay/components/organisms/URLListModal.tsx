@@ -44,9 +44,9 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
         </div>
 
         {/* 정보 + 액션 - 별도 행 */}
-        <div className="flex items-center justify-between px-3 pb-3">
+        <div className="flex items-center justify-between px-4 pb-3">
           <h3 className="text-sm font-semibold text-card-foreground">
-            수집된 페이지 ({urls.length})
+            추가한 페이지 ({urls.length})
           </h3>
           {urls.length > 0 && (
             <Button
