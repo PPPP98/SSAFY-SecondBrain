@@ -60,6 +60,7 @@ export function Spinner({ size = 'md', duration = 3, className = '' }: SpinnerPr
         <img
           src={chrome.runtime.getURL('Logo_upscale.png')}
           alt="Loading"
+          draggable={false}
           style={{
             width: `${imageSize}px`,
             height: `${imageSize}px`,
@@ -80,6 +81,7 @@ export function Spinner({ size = 'md', duration = 3, className = '' }: SpinnerPr
       <img
         src={chrome.runtime.getURL('Logo_upscale.png')}
         alt="Loading"
+        draggable={false}
         className={`object-contain ${config.imageClass}`}
       />
     </div>

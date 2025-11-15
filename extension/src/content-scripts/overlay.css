@@ -91,6 +91,13 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* 이미지 드래그 방지 */
+  img {
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+  }
 }
 
 /* Extension-specific utilities */
