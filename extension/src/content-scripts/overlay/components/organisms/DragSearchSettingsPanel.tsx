@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Settings, Plus, X, ChevronLeft } from 'lucide-react';
+import { Button } from '@/content-scripts/overlay/components/ui/button';
 import type { DragSearchSettings } from '@/types/dragSearch';
 import browser from 'webextension-polyfill';
 
@@ -61,30 +62,26 @@ export const DragSearchSettingsPanel: React.FC<DragSearchSettingsPanelProps> = (
   };
 
   return (
-    <div className="flex flex-col gap-6 rounded-lg border border-gray-200 bg-white p-4 shadow-lg">
-      <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+    <div className="flex flex-col gap-6 rounded-lg border border-border bg-card p-4 shadow-lg max-h-[min(500px,80vh)] overflow-y-auto">
+      <div className="flex items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-2">
-          <Settings className="h-5 w-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-800">드래그 검색 설정</h3>
+          <Settings className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold text-card-foreground">드래그 검색 설정</h3>
         </div>
         {onClose && (
-          <button
-            onClick={onClose}
-            className="text-gray-400 transition-colors hover:text-gray-600"
-            title="닫기"
-          >
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onClose} aria-label="닫기">
             <ChevronLeft className="h-5 w-5" />
-          </button>
+          </Button>
         )}
       </div>
 
       {/* 자동 검색 활성화 */}
       <div className="flex items-center justify-between">
         <div>
-          <label htmlFor="drag-search-enabled" className="font-medium text-gray-700">
+          <label htmlFor="drag-search-enabled" className="font-medium text-foreground">
             자동 검색 활성화
           </label>
-          <p className="mt-1 text-xs text-gray-500">텍스트 드래그 시 자동으로 검색 버튼 표시</p>
+          <p className="mt-1 text-xs text-muted-foreground">텍스트 드래그 시 자동으로 검색 버튼 표시</p>
         </div>
         <label className="relative inline-flex cursor-pointer items-center">
           <input
@@ -100,7 +97,7 @@ export const DragSearchSettingsPanel: React.FC<DragSearchSettingsPanelProps> = (
 
       {/* 최소 텍스트 길이 */}
       <div className="flex flex-col gap-2">
-        <label htmlFor="min-text-length" className="font-medium text-gray-700">
+        <label htmlFor="min-text-length" className="font-medium text-foreground">
           최소 텍스트 길이
         </label>
         <div className="flex items-center gap-3">
@@ -111,9 +108,9 @@ export const DragSearchSettingsPanel: React.FC<DragSearchSettingsPanelProps> = (
             max={10}
             value={settings.minTextLength}
             onChange={(e) => void handleSettingChange('minTextLength', Number(e.target.value))}
-            className="w-20 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+            className="w-20 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-2 focus:ring-ring focus:outline-none"
           />
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-muted-foreground">
             {settings.minTextLength}자 이상 드래그 시 검색
           </span>
         </div>
@@ -121,7 +118,7 @@ export const DragSearchSettingsPanel: React.FC<DragSearchSettingsPanelProps> = (
 
       {/* 자동 숨김 시간 */}
       <div className="flex flex-col gap-2">
-        <label htmlFor="auto-hide-ms" className="font-medium text-gray-700">
+        <label htmlFor="auto-hide-ms" className="font-medium text-foreground">
           검색 버튼 표시 시간 (초)
         </label>
         <div className="flex items-center gap-3">
@@ -132,16 +129,16 @@ export const DragSearchSettingsPanel: React.FC<DragSearchSettingsPanelProps> = (
             max={10}
             value={settings.autoHideMs / 1000}
             onChange={(e) => void handleSettingChange('autoHideMs', Number(e.target.value) * 1000)}
-            className="w-20 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+            className="w-20 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-2 focus:ring-ring focus:outline-none"
           />
-          <span className="text-sm text-gray-600">{settings.autoHideMs / 1000}초 후 자동 숨김</span>
+          <span className="text-sm text-muted-foreground">{settings.autoHideMs / 1000}초 후 자동 숨김</span>
         </div>
       </div>
 
       {/* 제외 도메인 */}
       <div className="flex flex-col gap-3">
-        <label className="font-medium text-gray-700">제외할 웹사이트</label>
-        <p className="-mt-2 text-xs text-gray-500">
+        <label className="font-medium text-foreground">제외할 웹사이트</label>
+        <p className="-mt-2 text-xs text-muted-foreground">
           이 도메인에서는 드래그 검색이 작동하지 않습니다
         </p>
 
@@ -152,16 +149,12 @@ export const DragSearchSettingsPanel: React.FC<DragSearchSettingsPanelProps> = (
             value={newDomain}
             onChange={(e) => setNewDomain(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddDomain()}
-            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+            className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring focus:outline-none"
           />
-          <button
-            onClick={handleAddDomain}
-            disabled={!newDomain}
-            className="flex items-center gap-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-          >
+          <Button onClick={handleAddDomain} disabled={!newDomain} size="sm" className="gap-1">
             <Plus className="h-4 w-4" />
             추가
-          </button>
+          </Button>
         </div>
 
         {settings.excludedDomains.length > 0 && (
@@ -169,16 +162,18 @@ export const DragSearchSettingsPanel: React.FC<DragSearchSettingsPanelProps> = (
             {settings.excludedDomains.map((domain) => (
               <div
                 key={domain}
-                className="flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm"
+                className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm"
               >
-                <span className="text-gray-700">{domain}</span>
-                <button
+                <span className="text-foreground">{domain}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 w-5 p-0 hover:text-destructive"
                   onClick={() => handleRemoveDomain(domain)}
-                  className="text-gray-500 transition-colors hover:text-red-600"
-                  title={`${domain} 제거`}
+                  aria-label={`${domain} 제거`}
                 >
                   <X className="h-3 w-3" />
-                </button>
+                </Button>
               </div>
             ))}
           </div>

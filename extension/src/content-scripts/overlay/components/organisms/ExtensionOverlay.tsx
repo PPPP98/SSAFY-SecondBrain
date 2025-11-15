@@ -187,19 +187,21 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
           )}
 
           {/* Transition wrapper - 부드러운 크기 조절 애니메이션 */}
-          <div className="relative overflow-hidden">
-            {/* AuthCard - 위로 슬라이드 + 페이드 아웃 */}
-            <div
-              className={`transition-all duration-500 ease-in-out ${
-                loading || isLoggingOut || !authenticated
-                  ? 'translate-y-0 opacity-100'
-                  : '-translate-y-full opacity-0 absolute top-0 left-0 w-full pointer-events-none'
-              }`}
-            >
-              <AuthCard
-                state={loading || isLoggingOut ? 'loading' : 'login'}
-                message={isLoggingOut ? '로그아웃 중...' : '로딩 중...'}
-              />
+          <div className="relative">
+            {/* AuthCard wrapper - overflow-hidden 개별 적용 */}
+            <div className="overflow-hidden">
+              <div
+                className={`transition-all duration-500 ease-in-out ${
+                  loading || isLoggingOut || !authenticated
+                    ? 'translate-y-0 opacity-100'
+                    : '-translate-y-full opacity-0 absolute top-0 left-0 w-full pointer-events-none'
+                }`}
+              >
+                <AuthCard
+                  state={loading || isLoggingOut ? 'loading' : 'login'}
+                  message={isLoggingOut ? '로그아웃 중...' : '로딩 중...'}
+                />
+              </div>
             </div>
 
             {/* ActionButtons - 아래에서 슬라이드 + 페이드 인 */}
