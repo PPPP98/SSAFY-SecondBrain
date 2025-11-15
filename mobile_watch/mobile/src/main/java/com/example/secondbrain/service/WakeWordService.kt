@@ -162,6 +162,14 @@ class WakeWordService : Service() {
             Log.e(TAG, "❌ 액티비티 시작 실패", e)
         }
 
+        // 알림을 수동으로 클릭했을 때 사용할 Intent (STT 자동 시작 없음)
+        val manualIntent = Intent(this, com.example.secondbrain.ui.search.SearchActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            // auto_start_stt 플래그를 넣지 않음 (수동 클릭)
+        }
+
         // Full-Screen Intent PendingIntent 생성
         val fullScreenPendingIntent = PendingIntent.getActivity(
             this,
