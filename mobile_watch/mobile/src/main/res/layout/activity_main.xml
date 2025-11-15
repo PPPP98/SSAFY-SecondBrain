@@ -35,16 +35,33 @@
         app:layout_constraintTop_toBottomOf="@id/tvTitle"
         android:layout_marginTop="16dp" />
 
+    <!-- 음성 검색 페이지 이동 버튼 -->
+    <Button
+        android:id="@+id/btnGoToVoiceSearch"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="음성/텍스트 검색 페이지"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:paddingVertical="16dp"
+        android:backgroundTint="#007AFF"
+        android:drawableStart="@android:drawable/ic_btn_speak_now"
+        android:drawablePadding="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvStatus"
+        android:layout_marginTop="32dp" />
+
     <!-- 검색 및 테스트 영역 -->
     <LinearLayout
         android:id="@+id/searchLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="24dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvStatus">
+        app:layout_constraintTop_toBottomOf="@id/btnGoToVoiceSearch">
 
         <!-- 노트 검색 -->
         <TextView

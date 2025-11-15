@@ -57,6 +57,12 @@
             android:name=".ui.note.NoteDetailActivity"
             android:exported="false" />
 
+        <!-- 음성/텍스트 검색 액티비티 -->
+        <activity
+            android:name=".ui.search.SearchActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- 웨이크워드 감지 백그라운드 서비스 -->
         <service
             android:name=".service.WakeWordService"
