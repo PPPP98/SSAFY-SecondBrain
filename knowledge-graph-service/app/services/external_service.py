@@ -16,7 +16,7 @@ class ExternalService:
 
     async def get_client(self) -> httpx.AsyncClient:
         """singleton client"""
-        if self._client is None or self._client.is_clossed:
+        if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(timeout=180.0)
         return self._client
 
@@ -41,11 +41,18 @@ class ExternalService:
             response.raise_for_status()
             return response.json()
 
-        except Exception as e:
-            logger.error(f"External service call failed: {e}")
+        except httpx.RequestError as e:
+            logger.error(f"Network error : {e}")
             raise HTTPException(
-                status_code=500, detail=f"External service call failed: {e}"
+                status_code=503, detail=f"External service call failed: {e}"
             )
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error : {e}")
+            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+
+        except Exception as e:
+            logger.error(f"error : {e}")
+            raise HTTPException(status_code=500, detail=f"External service call error")
 
 
 external_service = ExternalService()
