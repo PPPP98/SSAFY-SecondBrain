@@ -2,7 +2,6 @@ package com.example.secondbrain
 
 import android.Manifest
 import android.app.NotificationManager
-import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -28,7 +27,6 @@ import com.example.secondbrain.service.WakeWordService
 import com.example.secondbrain.ui.login.LoginActivity
 import com.example.secondbrain.ui.note.NoteDetailActivity
 import com.example.secondbrain.ui.search.SearchResultAdapter
-import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
