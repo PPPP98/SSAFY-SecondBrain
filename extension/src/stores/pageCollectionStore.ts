@@ -45,7 +45,6 @@ export const usePageCollectionStore = create<PageCollectionStore>((set, get) => 
     try {
       const savedPages = await storage.loadCollectedPages();
       set({ pages: new Set(savedPages), isLoading: false });
-      console.log('[PageCollectionStore] Initialized with', savedPages.length, 'pages');
     } catch (error) {
       console.error('[PageCollectionStore] Failed to initialize:', error);
       set({
@@ -141,7 +140,6 @@ export const usePageCollectionStore = create<PageCollectionStore>((set, get) => 
    */
   syncFromStorage: (pages: string[]) => {
     set({ pages: new Set(pages) });
-    console.log('[PageCollectionStore] Synced from storage:', pages.length, 'pages');
   },
 
   /**

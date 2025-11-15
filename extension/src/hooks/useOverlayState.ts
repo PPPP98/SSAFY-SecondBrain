@@ -46,7 +46,6 @@ export function useOverlayState(): OverlayStateHook {
     const unwatch = storage.watchStorageChanges((key, newValue) => {
       if (key === storage.STORAGE_KEYS.OVERLAY_STATE) {
         setState(newValue as OverlayState);
-        console.log('[useOverlayState] Synced from storage:', newValue);
       }
     });
 

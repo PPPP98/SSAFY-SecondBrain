@@ -34,13 +34,13 @@ export function SaveBatchGroup({ requests, onRemove }: SaveBatchGroupProps) {
   const timestamp = requests[0]?.batchTimestamp || Date.now();
 
   return (
-    <div className="border border-border rounded-lg bg-card overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       {/* Header - 클릭하여 펼침/접힘 */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-3 hover:bg-accent transition-colors text-left"
+        className="flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-accent"
       >
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex flex-1 items-center gap-2">
           <ChevronDown
             className={`h-4 w-4 flex-shrink-0 transition-transform ${
               isExpanded ? '' : '-rotate-90'
@@ -48,7 +48,11 @@ export function SaveBatchGroup({ requests, onRemove }: SaveBatchGroupProps) {
           />
           <span className="text-sm font-medium text-card-foreground">
             {total}개 페이지{' '}
-            {batchStatus === 'completed' ? '저장 완료' : batchStatus === 'failed' ? '저장 실패' : '저장 중'}
+            {batchStatus === 'completed'
+              ? '저장 완료'
+              : batchStatus === 'failed'
+                ? '저장 실패'
+                : '저장 중'}
           </span>
           <span className="text-xs text-muted-foreground">
             {new Date(timestamp).toLocaleTimeString('ko-KR', {
@@ -60,7 +64,7 @@ export function SaveBatchGroup({ requests, onRemove }: SaveBatchGroupProps) {
         </div>
 
         {/* Status Badge */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-shrink-0 items-center gap-2">
           {failed > 0 && (
             <span className="text-xs font-medium text-destructive">{failed}개 실패</span>
           )}
@@ -69,7 +73,7 @@ export function SaveBatchGroup({ requests, onRemove }: SaveBatchGroupProps) {
 
       {/* Items - 펼쳐졌을 때만 표시 */}
       {isExpanded && (
-        <div className="border-t border-border p-2 space-y-2">
+        <div className="space-y-2 border-t border-border p-2">
           {requests.map((request) => (
             <SaveStatusItem key={request.id} request={request} onRemove={onRemove} />
           ))}

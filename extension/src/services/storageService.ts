@@ -213,8 +213,6 @@ export async function migrateFromLocalStorage(): Promise<void> {
       await browser.storage.local.set({
         [STORAGE_KEYS.OVERLAY_STATE]: oldOverlayState,
       });
-
-      console.log('[StorageService] Migrated overlay state from localStorage');
     }
 
     // 4. 마이그레이션 완료 후 localStorage 정리
@@ -255,8 +253,6 @@ export async function initializeStorage(): Promise<void> {
     if (Object.keys(updates).length > 0) {
       await browser.storage.local.set(updates);
     }
-
-    console.log('[StorageService] Initialization complete');
   } catch (error) {
     console.error('[StorageService] Initialization failed:', error);
     throw error;

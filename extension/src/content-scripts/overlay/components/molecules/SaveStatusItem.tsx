@@ -73,7 +73,7 @@ export function SaveStatusItem({ request, onRemove }: SaveStatusItemProps) {
     >
       <Icon className={cn('h-4 w-4 flex-shrink-0', config.iconClass)} />
       <span
-        className="flex-1 truncate text-xs text-foreground cursor-pointer hover:text-primary hover:underline"
+        className="flex-1 cursor-pointer truncate text-xs text-foreground hover:text-primary hover:underline"
         title={request.url}
         onClick={() => window.open(request.url, '_blank')}
       >

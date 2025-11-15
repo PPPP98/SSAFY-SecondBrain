@@ -63,7 +63,7 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
       </div>
 
       {/* URL List */}
-      <div className="flex-1 space-y-2 overflow-y-auto p-3 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
+      <div className="flex-1 space-y-2 overflow-y-auto p-3 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-transparent">
         {urls.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
             추가된 페이지가 없습니다
@@ -72,10 +72,10 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
           urls.map((url) => (
             <div
               key={url}
-              className="flex items-center gap-2 rounded-md border border-border bg-background p-2 transition-colors hover:bg-accent group"
+              className="group flex items-center gap-2 rounded-md border border-border bg-background p-2 transition-colors hover:bg-accent"
             >
               <span
-                className="flex-1 truncate text-xs text-foreground cursor-pointer hover:text-primary hover:underline"
+                className="flex-1 cursor-pointer truncate text-xs text-foreground hover:text-primary hover:underline"
                 title={url}
                 onClick={() => window.open(url, '_blank')}
               >
