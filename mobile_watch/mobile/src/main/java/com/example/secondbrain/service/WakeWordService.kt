@@ -127,19 +127,19 @@ class WakeWordService : Service() {
     private fun onWakeWordDetected() {
         Log.i(TAG, "웨이크워드 처리 시작")
 
-        // 1. 직접 액티비티 시작 (백그라운드에서 foreground로 가져오기)
-        val activityIntent = Intent(this, MainActivity::class.java).apply {
+        // 1. SearchActivity 직접 시작 (백그라운드에서 foreground로 가져오기)
+        val activityIntent = Intent(this, com.example.secondbrain.ui.search.SearchActivity::class.java).apply {
             // 새 태스크로 시작하고, 기존 인스턴스가 있으면 재사용
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or
                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-            putExtra("wake_word_detected", true)
+            putExtra("auto_start_stt", true)  // STT 자동 시작 플래그
         }
 
         // 액티비티 직접 시작
         try {
             startActivity(activityIntent)
-            Log.i(TAG, "✅ 액티비티 시작 성공")
+            Log.i(TAG, "✅ SearchActivity 시작 성공 (STT 자동 시작)")
         } catch (e: Exception) {
             Log.e(TAG, "❌ 액티비티 시작 실패", e)
         }

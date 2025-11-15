@@ -1,5 +1,6 @@
 package com.example.secondbrain.data.network
 
+import com.example.secondbrain.data.model.AgentSearchResponse
 import com.example.secondbrain.data.model.NeighborNodeResponse
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -16,4 +17,11 @@ interface FastApiService {
         @Query("depth") depth: Int = 1,
         @Header("X-User-ID") userId: Long
     ): NeighborNodeResponse
+
+    // AI 에이전트 검색 (노트 추천)
+    @GET("api/v1/agents/search")
+    suspend fun searchWithAgent(
+        @Query("query") query: String,
+        @Header("X-User-ID") userId: Long
+    ): AgentSearchResponse
 }

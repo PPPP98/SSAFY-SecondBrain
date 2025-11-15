@@ -52,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnCheckWearConnection: Button
     private lateinit var tvWearStatus: TextView
     private lateinit var btnOpenSettings: Button
+    private lateinit var btnGoToVoiceSearch: Button
     private lateinit var tokenManager: TokenManager
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -113,24 +114,18 @@ class MainActivity : AppCompatActivity() {
         btnCheckWearConnection = findViewById(R.id.btnCheckWearConnection)
         tvWearStatus = findViewById(R.id.tvWearStatus)
         btnOpenSettings = findViewById(R.id.btnOpenSettings)
+        btnGoToVoiceSearch = findViewById(R.id.btnGoToVoiceSearch)
 
         // RecyclerView 설정
         setupRecyclerView()
 
-        // 웨이크워드로 앱이 실행된 경우
-        if (intent.getBooleanExtra("wake_word_detected", false)) {
-            tvStatus.text = "헤이스비 감지!"
-            tvStatus.setTextColor(getColor(android.R.color.holo_green_dark))
+        // 일반 실행 시 권한 확인 및 서비스 시작
+        checkAndRequestPermission()
 
-            // 3초 후 자동으로 뒤로가기 (백그라운드로 전환)
-            Handler(Looper.getMainLooper()).postDelayed({
-                moveTaskToBack(true)
-                tvStatus.text = "대기 중..."
-                tvStatus.setTextColor(Color.parseColor("#666666"))
-            }, 3000)
-        } else {
-            // 일반 실행 시 권한 확인 및 서비스 시작
-            checkAndRequestPermission()
+        // 음성 검색 페이지 이동 버튼
+        btnGoToVoiceSearch.setOnClickListener {
+            val intent = Intent(this, com.example.secondbrain.ui.search.SearchActivity::class.java)
+            startActivity(intent)
         }
 
         // 로그아웃 버튼
