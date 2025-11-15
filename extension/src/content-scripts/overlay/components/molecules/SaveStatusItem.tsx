@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, X } from 'lucide-react';
+import { Button } from '@/content-scripts/overlay/components/ui/button';
 import { cn } from '@/lib/utils/utils';
 import type { SaveRequest } from '@/types/save';
 
@@ -65,19 +66,34 @@ export function SaveStatusItem({ request, onRemove }: SaveStatusItemProps) {
   return (
     <div
       className={cn(
-        'flex items-center gap-2 rounded-md border border-border p-2 transition-all duration-500',
+        'flex items-center gap-2 rounded-md border border-border p-2 transition-all duration-500 hover:bg-accent',
         config.bgClass,
         isRemoving && 'translate-x-4 opacity-0',
       )}
     >
       <Icon className={cn('h-4 w-4 flex-shrink-0', config.iconClass)} />
-      <span className="flex-1 truncate text-xs text-foreground" title={request.url}>
+      <span
+        className="flex-1 truncate text-xs text-foreground cursor-pointer hover:text-primary hover:underline"
+        title={request.url}
+        onClick={() => window.open(request.url, '_blank')}
+      >
         {request.url}
       </span>
       {request.error && (
         <span className="text-xs text-red-500" title={request.error}>
           ⚠
         </span>
+      )}
+      {request.status === 'error' && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => onRemove(request.id)}
+          aria-label="삭제"
+        >
+          <X className="h-3 w-3" />
+        </Button>
       )}
     </div>
   );

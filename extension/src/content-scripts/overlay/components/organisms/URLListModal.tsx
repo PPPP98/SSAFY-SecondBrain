@@ -63,7 +63,7 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
       </div>
 
       {/* URL List */}
-      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+      <div className="flex-1 space-y-2 overflow-y-auto p-3 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
         {urls.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
             추가된 페이지가 없습니다
@@ -72,16 +72,23 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
           urls.map((url) => (
             <div
               key={url}
-              className="flex items-center gap-2 rounded-md border border-border bg-background p-2 transition-colors hover:bg-accent"
+              className="flex items-center gap-2 rounded-md border border-border bg-background p-2 transition-colors hover:bg-accent group"
             >
-              <span className="flex-1 truncate text-xs text-foreground" title={url}>
+              <span
+                className="flex-1 truncate text-xs text-foreground cursor-pointer hover:text-primary hover:underline"
+                title={url}
+                onClick={() => window.open(url, '_blank')}
+              >
                 {url}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => onRemove(url)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(url);
+                }}
                 aria-label={`${url} 삭제`}
               >
                 <X className="h-3 w-3" />

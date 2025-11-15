@@ -43,7 +43,7 @@ export function SaveStatusPanel({ onClose }: SaveStatusPanelProps) {
       </div>
 
       {/* Status List */}
-      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+      <div className="flex-1 space-y-2 overflow-y-auto p-3 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
         {requests.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
             저장 중인 항목이 없습니다
