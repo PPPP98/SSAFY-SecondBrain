@@ -64,6 +64,21 @@ export class DragSearchListener {
     if (!this.settings.enabled) return;
     if (this.skipNextSearch) return;
 
+    // Chrome Extension 페이지에서는 작동 안 함
+    const currentUrl = window.location.href;
+    if (currentUrl.startsWith('chrome://') || currentUrl.startsWith('chrome-extension://')) {
+      return;
+    }
+
+    // Extension Overlay UI 내부에서는 작동 안 함
+    const target = e.target as HTMLElement;
+    if (
+      target?.closest('#secondbrain-extension-container') ||
+      target?.closest('#secondbrain-extension-root')
+    ) {
+      return;
+    }
+
     // 선택된 텍스트 추출
     const selection = window.getSelection();
     const selectedText = selection?.toString().trim();
@@ -74,14 +89,21 @@ export class DragSearchListener {
     if (selectedText === this.lastSearchKeyword) return; // 중복 방지
 
     // 패스워드 필드 체크 (보안)
-    const target = e.target as HTMLElement;
     if (target?.tagName === 'INPUT' && (target as HTMLInputElement).type === 'password') {
       return;
     }
 
-    // 제외 도메인 체크
+    // 제외 도메인 체크 (양방향 매칭)
     const currentDomain = window.location.hostname;
-    if (this.settings.excludedDomains.some((domain) => currentDomain.includes(domain))) {
+    const isExcluded = this.settings.excludedDomains.some((domain) => {
+      // 양방향 매칭: "velog.io"가 "www.velog.io"를 포함하거나, 그 반대
+      return currentDomain.includes(domain) || domain.includes(currentDomain);
+    });
+
+    if (isExcluded) {
+      console.log(
+        `[DragSearch] 제외 도메인 감지: ${currentDomain} (제외 목록: ${this.settings.excludedDomains.join(', ')})`,
+      );
       return;
     }
 

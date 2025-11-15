@@ -40,9 +40,7 @@ export const DragSearchSettingsPanel: React.FC<DragSearchSettingsPanelProps> = (
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     await browser.storage.local.set({ dragSearchSettings: newSettings });
-
-    // Content Script에 설정 변경 알림
-    window.postMessage({ type: 'DRAG_SEARCH_SETTINGS_UPDATED', settings: newSettings }, '*');
+    // storage.onChanged 이벤트가 자동으로 DragSearchManager에 전달됨
   };
 
   // 도메인 추가
@@ -92,16 +90,23 @@ export const DragSearchSettingsPanel: React.FC<DragSearchSettingsPanelProps> = (
               텍스트 드래그 시 자동으로 검색 버튼 표시
             </p>
           </div>
-          <label className="relative inline-flex cursor-pointer items-center">
-            <input
-              type="checkbox"
-              id="drag-search-enabled"
-              checked={settings.enabled}
-              onChange={(e) => void handleSettingChange('enabled', e.target.checked)}
-              className="peer sr-only"
+          <button
+            type="button"
+            role="switch"
+            aria-checked={settings.enabled}
+            onClick={() => void handleSettingChange('enabled', !settings.enabled)}
+            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+            style={{
+              backgroundColor: settings.enabled ? 'rgb(37, 99, 235)' : 'rgb(229, 231, 235)',
+            }}
+          >
+            <span
+              className="inline-block h-5 w-5 transform rounded-full bg-white transition-transform"
+              style={{
+                transform: settings.enabled ? 'translateX(22px)' : 'translateX(2px)',
+              }}
             />
-            <div className="peer h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-          </label>
+          </button>
         </div>
 
         {/* 최소 텍스트 길이 */}
