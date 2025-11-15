@@ -9,50 +9,26 @@
     android:background="#F5F5F5"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="헤이스비"
-        android:textSize="32sp"
-        android:textStyle="bold"
-        android:textColor="#333333"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintVertical_bias="0.4" />
-
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="대기 중..."
-        android:textSize="16sp"
-        android:textColor="#666666"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle"
-        android:layout_marginTop="16dp" />
-
     <!-- 음성 검색 페이지 이동 버튼 -->
+
+    <!-- 검색 및 테스트 영역 -->
+
     <Button
         android:id="@+id/btnGoToVoiceSearch"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="음성/텍스트 검색 페이지"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:paddingVertical="16dp"
         android:backgroundTint="#007AFF"
         android:drawableStart="@android:drawable/ic_btn_speak_now"
         android:drawablePadding="8dp"
-        app:layout_constraintStart_toStartOf="parent"
+        android:paddingVertical="16dp"
+        android:text="음성/텍스트 검색 페이지"
+        android:textSize="18sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvStatus"
-        android:layout_marginTop="32dp" />
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:layout_editor_absoluteY="34dp" />
 
-    <!-- 검색 및 테스트 영역 -->
     <LinearLayout
         android:id="@+id/searchLayout"
         android:layout_width="0dp"
@@ -207,32 +183,33 @@
     </LinearLayout>
 
     <!-- 하단 버튼들 -->
+
     <Button
         android:id="@+id/btnLogout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="4dp"
+        android:backgroundTint="#FFC107"
+        android:paddingVertical="12dp"
         android:text="로그아웃"
         android:textSize="16sp"
-        android:paddingVertical="12dp"
-        android:backgroundTint="#FFC107"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/btnExit"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="48dp" />
+        app:layout_constraintEnd_toStartOf="@id/btnExit"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/btnExit"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="8dp"
+        android:backgroundTint="#DC3545"
+        android:paddingVertical="12dp"
         android:text="앱 종료"
         android:textSize="16sp"
-        android:paddingVertical="12dp"
-        android:backgroundTint="#DC3545"
-        app:layout_constraintStart_toEndOf="@id/btnLogout"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginStart="8dp"
-        android:layout_marginBottom="48dp" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btnLogout" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
