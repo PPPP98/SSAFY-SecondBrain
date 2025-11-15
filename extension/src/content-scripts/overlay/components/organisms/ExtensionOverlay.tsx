@@ -3,6 +3,7 @@ import { Toolbar } from '@/content-scripts/overlay/components/molecules/Toolbar'
 import { LoginPrompt } from '@/content-scripts/overlay/components/molecules/LoginPrompt';
 import { ActionButtons } from '@/content-scripts/overlay/components/molecules/ActionButtons';
 import { FloatingButton } from '@/content-scripts/overlay/components/atoms/FloatingButton';
+import { Spinner } from '@/content-scripts/overlay/components/atoms/Spinner';
 import { DragSearchPanel } from '@/content-scripts/overlay/components/organisms/DragSearchPanel';
 import { useExtensionAuth } from '@/hooks/useExtensionAuth';
 import { useOverlayState } from '@/hooks/useOverlayState';
@@ -175,16 +176,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
         <div className="p-4">
           {(loading || isLoggingOut) && (
             <div className="flex flex-col items-center justify-center p-8">
-              <div
-                className="flex animate-spin items-center justify-center rounded-full bg-black p-4"
-                style={{ animationDuration: '1s' }}
-              >
-                <img
-                  src={chrome.runtime.getURL('Logo_upscale.png')}
-                  alt="Loading"
-                  className="h-16 w-16 object-contain"
-                />
-              </div>
+              <Spinner size="sm" duration={1} />
               <p className="mt-4 text-sm text-muted-foreground">
                 {isLoggingOut ? '로그아웃 중...' : '로딩 중...'}
               </p>

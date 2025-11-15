@@ -1,4 +1,5 @@
 import { GoogleLoginButton } from '@/content-scripts/overlay/GoogleLoginButton';
+import { Spinner } from '@/content-scripts/overlay/components/atoms/Spinner';
 
 /**
  * Login Prompt (Molecule)
@@ -10,16 +11,7 @@ export function LoginPrompt() {
     <div className="w-[320px] rounded-xl border border-border bg-card p-6 shadow-lg">
       {/* 로고 이미지 (회전 애니메이션) */}
       <div className="mb-6 flex justify-center">
-        <div
-          className="flex animate-spin items-center justify-center rounded-full bg-black p-6"
-          style={{ animationDuration: '6s' }}
-        >
-          <img
-            src={chrome.runtime.getURL('Logo_upscale.png')}
-            alt="Second Brain Logo"
-            className="h-[120px] w-[120px] object-contain"
-          />
-        </div>
+        <Spinner size="lg" duration={6} />
       </div>
 
       <h3 className="mb-2 text-center text-lg font-semibold text-card-foreground">Second Brain</h3>
