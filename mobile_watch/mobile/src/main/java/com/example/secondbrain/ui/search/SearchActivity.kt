@@ -105,6 +105,15 @@ class SearchActivity : AppCompatActivity() {
             initializeViews()
             setupRecyclerViews()
             setupListeners()
+
+            // 웨이크워드로 실행된 경우 자동으로 STT 시작
+            if (intent.getBooleanExtra("auto_start_stt", false)) {
+                android.util.Log.d("SearchActivity", "웨이크워드 감지로 실행됨 - STT 자동 시작")
+                // UI가 완전히 준비된 후 STT 시작
+                btnVoiceSearch.postDelayed({
+                    checkMicPermissionAndStartVoice()
+                }, 500)
+            }
         }
     }
 
@@ -189,7 +198,10 @@ class SearchActivity : AppCompatActivity() {
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.KOREAN)
+            // 한국어로 명시적 설정
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "ko-KR")
+            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "ko-KR")
             putExtra(RecognizerIntent.EXTRA_PROMPT, "검색어를 말씀하세요")
         }
 
