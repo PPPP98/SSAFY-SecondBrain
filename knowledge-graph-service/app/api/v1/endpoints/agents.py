@@ -45,7 +45,9 @@ async def note_summarize(
         "title": result.get("title", ""),
         "content": result.get("result", ""),
     }
-    response = external_service.post_call_external_service(authorization, payload)
+    response = await external_service.async_post_call_external_service(
+        authorization, payload
+    )
 
     if response.get("success") is not True:
         raise HTTPException(status_code=500, detail="Failed to save Create note")
@@ -76,14 +78,14 @@ async def agent_search(
 ) -> SearchResponse:
     """
     에이전트 검색 엔드포인트
-    
+
     Args:
         user_id: 사용자 ID (양수)
         query: 검색 쿼리 (1-500자)
-    
+
     Returns:
         SearchResponse: 검색 결과
-    
+
     Raises:
         HTTPException: 400 - 잘못된 요청
         HTTPException: 500 - 서버 오류
@@ -93,10 +95,9 @@ async def agent_search(
     if not query:
         logger.warning(f"⚠️  빈 쿼리 - user_id: {user_id}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="검색 쿼리가 비어있습니다."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="검색 쿼리가 비어있습니다."
         )
-    try:    
+    try:
         result = await agent_search_service.search(
             user_id=user_id,
             query=query,
@@ -106,12 +107,10 @@ async def agent_search(
             logger.error(f"❌ 검색 결과 None - user_id: {user_id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="검색 결과를 가져올 수 없습니다."
+                detail="검색 결과를 가져올 수 없습니다.",
             )
         # 응답 생성
-        documents = [
-            DocumentSchema(**doc) for doc in result.get("documents", [])
-        ]
+        documents = [DocumentSchema(**doc) for doc in result.get("documents", [])]
         response = SearchResponse(
             success=True,
             response=result.get("response", ""),
@@ -124,5 +123,5 @@ async def agent_search(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"검색 중 오류가 발생했습니다."
+            detail=f"검색 중 오류가 발생했습니다.",
         )
