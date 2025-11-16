@@ -180,13 +180,13 @@ class DragSearchManager {
       .text-muted-foreground { color: var(--muted-foreground); }
       .text-red-500 { color: rgb(239, 68, 68); }
 
-      .text-black { color: #000000 !important; }
-      .text-black\\/70 { color: rgba(0, 0, 0, 0.7) !important; }
+      .text-black { color: #000; }
+      .text-black\\/70 { color: #000; opacity: 0.7; }
 
-      .dark\\:text-white { color: #000000; }
-      .dark .dark\\:text-white { color: #ffffff !important; }
-      .dark\\:text-white\\/70 { color: rgba(0, 0, 0, 0.7); }
-      .dark .dark\\:text-white\\/70 { color: rgba(255, 255, 255, 0.7) !important; }
+      .dark\\:text-white { color: #000; }
+      .dark .dark\\:text-white { color: #fff; }
+      .dark\\:text-white\\/70 { color: #000; opacity: 0.7; }
+      .dark .dark\\:text-white\\/70 { color: #fff; opacity: 0.7; }
 
       .font-semibold { font-weight: 600; }
       .mt-1 { margin-top: 0.25rem; }
