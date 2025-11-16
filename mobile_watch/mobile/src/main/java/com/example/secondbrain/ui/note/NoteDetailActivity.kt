@@ -1,32 +1,28 @@
 package com.example.secondbrain.ui.note
 
-import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
-import android.util.TypedValue
-import android.widget.Button
-import android.widget.LinearLayout
+import android.view.View
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.cardview.widget.CardView
 import androidx.lifecycle.lifecycleScope
+import androidx.viewpager2.widget.ViewPager2
 import com.example.secondbrain.R
 import com.example.secondbrain.data.local.TokenManager
+import com.example.secondbrain.data.model.Note
 import com.example.secondbrain.data.network.RetrofitClient
 import kotlinx.coroutines.launch
 
 class NoteDetailActivity : AppCompatActivity() {
 
-    private lateinit var btnBack: Button
-    private lateinit var tvNoteTitle: TextView
-    private lateinit var tvNoteContent: TextView
-    private lateinit var tvNoteDate: TextView
-    private lateinit var tvLoadingNeighbors: TextView
-    private lateinit var layoutNeighborNotes: LinearLayout
-    private lateinit var tvNoNeighbors: TextView
+    private lateinit var btnBack: TextView
+    private lateinit var viewPager: ViewPager2
+    private lateinit var progressBar: ProgressBar
     private lateinit var tokenManager: TokenManager
+    private lateinit var pagerAdapter: NotePagerAdapter
 
     private var noteId: Long = 0
+    private val allNotes = mutableListOf<Note>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,21 +43,14 @@ class NoteDetailActivity : AppCompatActivity() {
         // View 초기화
         initViews()
 
-        // 노트 상세 정보 로드
-        loadNoteDetail()
-
-        // 연결된 노트 로드
-        loadNeighborNotes()
+        // 노트 데이터 로드
+        loadAllNotes()
     }
 
     private fun initViews() {
         btnBack = findViewById(R.id.btnBack)
-        tvNoteTitle = findViewById(R.id.tvNoteTitle)
-        tvNoteContent = findViewById(R.id.tvNoteContent)
-        tvNoteDate = findViewById(R.id.tvNoteDate)
-        tvLoadingNeighbors = findViewById(R.id.tvLoadingNeighbors)
-        layoutNeighborNotes = findViewById(R.id.layoutNeighborNotes)
-        tvNoNeighbors = findViewById(R.id.tvNoNeighbors)
+        viewPager = findViewById(R.id.viewPager)
+        progressBar = findViewById(R.id.progressBar)
 
         // 뒤로가기 버튼
         btnBack.setOnClickListener {
@@ -69,137 +58,85 @@ class NoteDetailActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadNoteDetail() {
-        lifecycleScope.launch {
-            try {
-                // API 서비스 생성
-                val apiService = RetrofitClient.createApiService {
-                    tokenManager.getAccessToken()
-                }
+    private fun loadAllNotes() {
+        progressBar.visibility = View.VISIBLE
+        viewPager.visibility = View.GONE
 
-                // 노트 상세 조회
-                val response = apiService.getNote(noteId)
-
-                if (response.code == 200 && response.data != null) {
-                    val note = response.data
-                    tvNoteTitle.text = note.title
-                    tvNoteContent.text = note.content
-                    tvNoteDate.text = "생성일: ${note.createdAt}"
-                } else {
-                    tvNoteTitle.text = "오류"
-                    tvNoteContent.text = response.message ?: "노트를 불러올 수 없습니다."
-                }
-            } catch (e: Exception) {
-                tvNoteTitle.text = "오류"
-                tvNoteContent.text = "네트워크 오류: ${e.message}"
-                android.util.Log.e("NoteDetailActivity", "Failed to load note", e)
-            }
-        }
-    }
-
-    private fun loadNeighborNotes() {
         lifecycleScope.launch {
             try {
                 // JWT 토큰에서 userId 추출
                 val userId = tokenManager.getUserId()
                 if (userId == null) {
-                    tvLoadingNeighbors.visibility = TextView.GONE
-                    tvNoNeighbors.text = "사용자 ID를 확인할 수 없습니다.\n다시 로그인해주세요."
-                    tvNoNeighbors.visibility = TextView.VISIBLE
                     android.util.Log.e("NoteDetailActivity", "Failed to get userId from token")
+                    progressBar.visibility = View.GONE
+                    finish()
                     return@launch
                 }
 
-                android.util.Log.d("NoteDetailActivity", "Extracted userId: $userId")
+                // API 서비스 생성
+                val apiService = RetrofitClient.createApiService {
+                    tokenManager.getAccessToken()
+                }
 
                 // FastAPI 서비스 생성
                 val fastApiService = RetrofitClient.createFastApiService {
                     tokenManager.getAccessToken()
                 }
 
-                // 연결된 노트 조회 (depth=1)
-                val response = fastApiService.getNeighborNodes(
+                // 1. 현재 노트 상세 조회
+                val noteResponse = apiService.getNote(noteId)
+
+                // 2. 연결된 노트 조회 (depth=1)
+                val neighborsResponse = fastApiService.getNeighborNodes(
                     noteId = noteId,
                     depth = 1,
                     userId = userId
                 )
 
-                // 로딩 메시지 숨기기
-                tvLoadingNeighbors.visibility = TextView.GONE
+                // 노트 리스트 구성: 현재 노트를 중심으로, 연결된 노트들을 추가
+                allNotes.clear()
 
-                if (response.neighbors.isNotEmpty()) {
-                    // 연결된 노트가 있으면 표시
-                    layoutNeighborNotes.visibility = LinearLayout.VISIBLE
-                    layoutNeighborNotes.removeAllViews()
+                if (noteResponse.code == 200 && noteResponse.data != null) {
+                    // 현재 노트 추가
+                    allNotes.add(noteResponse.data)
 
-                    response.neighbors.forEach { neighbor ->
-                        val noteCard = createNeighborNoteCard(neighbor.neighborId, neighbor.neighborTitle)
-                        layoutNeighborNotes.addView(noteCard)
+                    // 연결된 노트들 추가 (각 노트의 상세 정보 조회)
+                    if (neighborsResponse.neighbors.isNotEmpty()) {
+                        neighborsResponse.neighbors.forEach { neighbor ->
+                            try {
+                                val neighborDetail = apiService.getNote(neighbor.neighborId)
+                                if (neighborDetail.code == 200 && neighborDetail.data != null) {
+                                    allNotes.add(neighborDetail.data)
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("NoteDetailActivity", "Failed to load neighbor: ${neighbor.neighborId}", e)
+                            }
+                        }
                     }
+
+                    // ViewPager2 설정
+                    setupViewPager()
                 } else {
-                    // 연결된 노트가 없으면 메시지 표시
-                    tvNoNeighbors.visibility = TextView.VISIBLE
+                    android.util.Log.e("NoteDetailActivity", "Failed to load note: ${noteResponse.message}")
+                    finish()
                 }
+
+                progressBar.visibility = View.GONE
+                viewPager.visibility = View.VISIBLE
+
             } catch (e: Exception) {
-                // 오류 발생 시 (서버 에러, 네트워크 오류 등)
-                tvLoadingNeighbors.visibility = TextView.GONE
-                tvNoNeighbors.text = "연결된 노트가 없습니다."
-                tvNoNeighbors.visibility = TextView.VISIBLE
-                android.util.Log.e("NoteDetailActivity", "Failed to load neighbors (showing as empty)", e)
+                android.util.Log.e("NoteDetailActivity", "Failed to load notes", e)
+                progressBar.visibility = View.GONE
+                finish()
             }
         }
     }
 
-    private fun createNeighborNoteCard(neighborId: Long, neighborTitle: String): CardView {
-        val cardView = CardView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 0, 0, dpToPx(12))
-            }
-            radius = dpToPx(8).toFloat()
-            cardElevation = dpToPx(2).toFloat()
-            setCardBackgroundColor(Color.WHITE)
-        }
+    private fun setupViewPager() {
+        pagerAdapter = NotePagerAdapter(this, allNotes)
+        viewPager.adapter = pagerAdapter
 
-        val contentLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dpToPx(16), dpToPx(16), dpToPx(16), dpToPx(16))
-        }
-
-        val titleTextView = TextView(this).apply {
-            text = neighborTitle
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            setTextColor(Color.parseColor("#333333"))
-        }
-
-        val clickHintTextView = TextView(this).apply {
-            text = "탭하여 노트 보기 →"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setTextColor(Color.parseColor("#007BFF"))
-            setPadding(0, dpToPx(8), 0, 0)
-        }
-
-        contentLayout.addView(titleTextView)
-        contentLayout.addView(clickHintTextView)
-        cardView.addView(contentLayout)
-
-        // 클릭 시 해당 노트로 이동
-        cardView.setOnClickListener {
-            val intent = Intent(this, NoteDetailActivity::class.java)
-            intent.putExtra("NOTE_ID", neighborId)
-            startActivity(intent)
-        }
-
-        return cardView
-    }
-
-    private fun dpToPx(dp: Int): Int {
-        return TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP,
-            dp.toFloat(),
-            resources.displayMetrics
-        ).toInt()
+        // 현재 노트를 첫 번째 페이지로 설정 (이미 첫 번째에 추가했으므로 position 0)
+        viewPager.setCurrentItem(0, false)
     }
 }
