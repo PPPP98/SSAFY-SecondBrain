@@ -25,4 +25,9 @@ object WearableConstants {
      * 상태 요청
      */
     const val PATH_STATUS_REQUEST = "/status_request"
+
+    /**
+     * Wear → Mobile: 폰에서 열기 요청 (워치 알림의 "폰에서 보기" 버튼)
+     */
+    const val PATH_OPEN_ON_PHONE = "/open_on_phone"
 }

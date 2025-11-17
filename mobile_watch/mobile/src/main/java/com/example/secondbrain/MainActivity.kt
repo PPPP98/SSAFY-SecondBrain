@@ -2,14 +2,11 @@ package com.example.secondbrain
 
 import android.Manifest
 import android.app.NotificationManager
-import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.view.KeyEvent
 import android.view.View
@@ -30,8 +27,10 @@ import com.example.secondbrain.service.WakeWordService
 import com.example.secondbrain.ui.login.LoginActivity
 import com.example.secondbrain.ui.note.NoteDetailActivity
 import com.example.secondbrain.ui.search.SearchResultAdapter
-import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.Wearable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -68,6 +67,26 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Application 클래스 확인
+        android.util.Log.e("MainActivity", "Application 클래스: ${application.javaClass.name}")
+        if (application is SecondBrainApplication) {
+            android.util.Log.i("MainActivity", "✓ SecondBrainApplication 사용 중")
+        } else {
+            android.util.Log.e("MainActivity", "❌ SecondBrainApplication이 아님! 기본 Application 사용 중")
+        }
+
+        // Full-Screen Intent로 열릴 때 화면 켜기 및 잠금 해제
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            )
+        }
 
         // TokenManager 초기화
         tokenManager = TokenManager(this)
@@ -126,6 +145,14 @@ class MainActivity : AppCompatActivity() {
 
         // RecyclerView 설정
         setupRecyclerView()
+
+        // 웨이크워드로 앱이 실행된 경우 표시
+        if (intent.getBooleanExtra("wake_word_detected", false)) {
+            intent.removeExtra("wake_word_detected")
+            intent.removeExtra("auto_opened")
+            tvStatus.text = "헤이스비 감지!"
+            tvStatus.setTextColor(getColor(android.R.color.holo_green_dark))
+        }
 
         // 일반 실행 시 권한 확인 및 서비스 시작
         checkAndRequestPermission()
@@ -383,16 +410,34 @@ class MainActivity : AppCompatActivity() {
             val notificationManager = getSystemService(NotificationManager::class.java)
             if (!notificationManager.canUseFullScreenIntent()) {
                 android.util.Log.w("MainActivity", "Full-Screen Intent 권한 없음 - 설정으로 안내")
+
+                // UI에 안내 메시지 표시
+                tvStatus.text = "⚠️ 전체 화면 알림 권한 필요\n설정 화면으로 이동합니다..."
+                tvStatus.setTextColor(Color.parseColor("#FF9800"))
+
                 // 사용자를 설정 화면으로 안내
                 try {
                     val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
                         data = android.net.Uri.parse("package:$packageName")
                     }
-                    startActivity(intent)
+
+                    // 안내 다이얼로그 표시 (선택적)
+                    androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("권한 필요")
+                        .setMessage("웨이크워드 감지 시 자동으로 앱을 열기 위해서는 '전체 화면 알림' 권한이 필요합니다.\n\n설정 화면에서 허용해주세요.")
+                        .setPositiveButton("설정으로 이동") { _, _ ->
+                            startActivity(intent)
+                        }
+                        .setNegativeButton("나중에") { dialog, _ ->
+                            dialog.dismiss()
+                            startWakeWordService()
+                        }
+                        .show()
                 } catch (e: Exception) {
                     android.util.Log.e("MainActivity", "설정 화면 열기 실패", e)
                     // 설정 화면을 열 수 없으면 일반 설정으로 이동
                     startActivity(Intent(Settings.ACTION_SETTINGS))
+                    startWakeWordService()
                 }
             } else {
                 android.util.Log.i("MainActivity", "Full-Screen Intent 권한 있음")
@@ -426,41 +471,56 @@ class MainActivity : AppCompatActivity() {
      * Google Play Services가 WearableListenerService를 자동으로 바인딩하도록 합니다.
      */
     private fun enableWearableListenerService() {
-        lifecycleScope.launch {
+        try {
+            android.util.Log.i("MainActivity", "WearableListenerService 활성화 시작")
+
+            // PackageManager를 통해 서비스 컴포넌트 강제 활성화
             try {
-                android.util.Log.i("MainActivity", "WearableListenerService 활성화 시작")
-
-                // CapabilityClient를 통해 Wearable API 초기화
-                // Google Play Services가 WearableListenerService를 자동 발견하고 바인딩
-                val capabilityClient = Wearable.getCapabilityClient(this@MainActivity)
-                try {
-                    val capability = capabilityClient.getCapability("voice_recognition", CapabilityClient.FILTER_REACHABLE).await()
-                    android.util.Log.i("MainActivity", "Capability 확인: ${capability.nodes.size}개 노드")
-                } catch (e: Exception) {
-                    android.util.Log.w("MainActivity", "Capability 확인 실패 (정상): ${e.message}")
-                }
-
-                // ComponentName을 통해 WearableListenerService 상태 확인
-                val pm = packageManager
-                val componentName = ComponentName(this@MainActivity, com.example.secondbrain.service.WearableListenerService::class.java)
-                val componentEnabledSetting = pm.getComponentEnabledSetting(componentName)
-
-                android.util.Log.i("MainActivity", "WearableListenerService 상태: $componentEnabledSetting")
-
-                if (componentEnabledSetting == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
-                    android.util.Log.w("MainActivity", "WearableListenerService 비활성화 상태 - 활성화")
-                    pm.setComponentEnabledSetting(
-                        componentName,
-                        android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                        android.content.pm.PackageManager.DONT_KILL_APP
-                    )
-                }
-
-                android.util.Log.i("MainActivity", "WearableListenerService 활성화 완료")
-
+                val componentName = android.content.ComponentName(
+                    this,
+                    com.example.secondbrain.service.MobileWearableListenerService::class.java
+                )
+                packageManager.setComponentEnabledSetting(
+                    componentName,
+                    android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    android.content.pm.PackageManager.DONT_KILL_APP
+                )
+                android.util.Log.i("MainActivity", "서비스 컴포넌트 활성화 완료")
             } catch (e: Exception) {
-                android.util.Log.e("MainActivity", "WearableListenerService 활성화 실패", e)
+                android.util.Log.e("MainActivity", "서비스 컴포넌트 활성화 실패", e)
             }
+
+            // Activity 생명주기와 무관하게 실행되도록 독립적인 CoroutineScope 사용
+            CoroutineScope(SupervisorJob() + Dispatchers.Main).launch {
+                try {
+                    // Google Play Services Wearable API 초기화
+                    val dataClient = Wearable.getDataClient(this@MainActivity)
+                    val nodeClient = Wearable.getNodeClient(this@MainActivity)
+
+                    android.util.Log.i("MainActivity", "Wearable API 클라이언트 초기화 완료")
+
+                    // DataClient 리스너 등록 (이것이 서비스 바인딩 트리거)
+                    val testDataReq = com.google.android.gms.wearable.PutDataMapRequest.create("/test_trigger").apply {
+                        dataMap.putLong("timestamp", System.currentTimeMillis())
+                    }
+                    dataClient.putDataItem(testDataReq.asPutDataRequest()).await()
+                    android.util.Log.i("MainActivity", "테스트 DataItem 전송 - 서비스 바인딩 트리거")
+
+                    // 연결된 노드 확인
+                    val nodes = nodeClient.connectedNodes.await()
+                    android.util.Log.i("MainActivity", "연결된 노드: ${nodes.size}개")
+
+                    kotlinx.coroutines.delay(500) // 서비스 바인딩 대기
+                    android.util.Log.i("MainActivity", "WearableListenerService 바인딩 트리거 완료")
+                    android.util.Log.i("MainActivity", "만약 'MobileWearableListenerService onCreate()' 로그가 안 보이면 앱 재설치 필요")
+
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "Wearable API 초기화 실패", e)
+                }
+            }
+
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "WearableListenerService 활성화 실패", e)
         }
     }
 
@@ -522,17 +582,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
 
-        // 웨이크워드로 다시 실행된 경우
+        // 웨이크워드로 다시 실행된 경우 표시
         if (intent.getBooleanExtra("wake_word_detected", false)) {
+            intent.removeExtra("wake_word_detected")
+            intent.removeExtra("auto_opened")
             tvStatus.text = "헤이스비 감지!"
             tvStatus.setTextColor(getColor(android.R.color.holo_green_dark))
-
-            Handler(Looper.getMainLooper()).postDelayed({
-                moveTaskToBack(true)
-                tvStatus.text = "대기 중..."
-                tvStatus.setTextColor(Color.parseColor("#666666"))
-            }, 3000)
         }
     }
 }

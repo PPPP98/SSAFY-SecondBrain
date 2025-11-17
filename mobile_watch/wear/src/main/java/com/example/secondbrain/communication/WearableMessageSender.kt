@@ -2,10 +2,10 @@ package com.example.secondbrain.communication
 
 import android.content.Context
 import com.example.secondbrain.utils.LogUtils
-import com.google.android.gms.wearable.MessageClient
+import com.google.android.gms.wearable.DataClient
+import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.delay
 
 /**
  * Wear OS에서 모바일 앱으로 메시지를 전송하는 클래스
@@ -26,7 +26,7 @@ class WearableMessageSender(private val context: Context) {
         private const val RETRY_DELAY_MS = 300L // 재시도 간 대기 시간
     }
 
-    private val messageClient: MessageClient = Wearable.getMessageClient(context)
+    private val dataClient: DataClient = Wearable.getDataClient(context)
 
     /**
      * 음성 인식 결과를 모바일 앱으로 전송
@@ -65,38 +65,18 @@ class WearableMessageSender(private val context: Context) {
 
             LogUtils.d(TAG, "연결된 노드: ${nodes.size}개")
 
-            // 모든 연결된 노드에 메시지 전송
-            var successCount = 0
-            for (node in nodes) {
-                var retryCount = 0
-                var sent = false
-
-                // 재시도 로직
-                while (retryCount <= MAX_RETRY_COUNT && !sent) {
-                    try {
-                        messageClient.sendMessage(
-                            node.id,
-                            WearableConstants.PATH_VOICE_TEXT,
-                            data
-                        ).await()
-
-                        LogUtils.i(TAG, "전송 성공: ${node.displayName}${if (retryCount > 0) " (${retryCount}회 재시도)" else ""}")
-                        successCount++
-                        sent = true
-                    } catch (e: Exception) {
-                        retryCount++
-                        if (retryCount <= MAX_RETRY_COUNT) {
-                            LogUtils.w(TAG, "전송 실패 (${retryCount}/${MAX_RETRY_COUNT}): ${node.displayName} - ${RETRY_DELAY_MS}ms 후 재시도")
-                            delay(RETRY_DELAY_MS)
-                        } else {
-                            LogUtils.e(TAG, "전송 실패 (최종): ${node.displayName}", e)
-                        }
-                    }
-                }
+            // DataItem으로 전송 (백그라운드에서도 동작)
+            // 타임스탬프를 포함하여 매번 새로운 데이터로 인식되도록 함
+            val putDataReq = PutDataMapRequest.create(WearableConstants.PATH_VOICE_TEXT).apply {
+                dataMap.putString("text", recognizedText)
+                dataMap.putLong("timestamp", System.currentTimeMillis())
             }
 
-            LogUtils.i(TAG, "전송 완료: ${successCount}/${nodes.size} 성공")
-            successCount
+            val putDataTask = dataClient.putDataItem(putDataReq.asPutDataRequest().setUrgent())
+            putDataTask.await()
+
+            LogUtils.i(TAG, "DataItem 전송 성공: '$recognizedText'")
+            1 // 성공
         } catch (e: Exception) {
             LogUtils.e(TAG, "메시지 전송 실패", e)
             0
