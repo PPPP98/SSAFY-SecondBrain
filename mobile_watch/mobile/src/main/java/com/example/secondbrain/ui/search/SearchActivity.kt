@@ -16,11 +16,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.secondbrain.R
+import com.example.secondbrain.data.model.AgentSearchResponse
 
 /**
  * 검색 입력 화면
  * - 텍스트 검색 및 STT(음성) 검색 지원
- * - 검색어 입력 후 SearchResultActivity로 이동
+ * - 워치 검색 결과 처리 및 SearchResultActivity로 전달
  */
 class SearchActivity : AppCompatActivity() {
 
@@ -66,8 +67,16 @@ class SearchActivity : AppCompatActivity() {
         initializeViews()
         setupListeners()
 
+        // 워치에서 전달된 검색 결과 처리
+        if (intent.getBooleanExtra("FROM_WEARABLE", false)) {
+            handleWearableSearchResult()
+        }
+        // 워치 알림에서 Deep Link로 실행된 경우
+        else if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
+            handleDeepLink()
+        }
         // 웨이크워드로 실행된 경우 자동으로 STT 시작
-        if (intent.getBooleanExtra("auto_start_stt", false)) {
+        else if (intent.getBooleanExtra("auto_start_stt", false)) {
             android.util.Log.d("SearchActivity", "웨이크워드 감지로 실행됨 - STT 자동 시작")
             // UI가 완전히 준비된 후 STT 시작
             btnVoiceSearch.postDelayed({
@@ -151,5 +160,98 @@ class SearchActivity : AppCompatActivity() {
             putExtra("SEARCH_QUERY", query)
         }
         startActivity(intent)
+    }
+
+    /**
+     * 워치에서 전달된 검색 결과 처리
+     * SearchResultActivity로 데이터 전달
+     */
+    private fun handleWearableSearchResult() {
+        try {
+            // 화면 켜기 및 잠금 화면 위에 표시
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                setShowWhenLocked(true)
+                setTurnScreenOn(true)
+            } else {
+                @Suppress("DEPRECATION")
+                window.addFlags(
+                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                )
+            }
+
+            val query = intent.getStringExtra("SEARCH_QUERY") ?: ""
+            val responseMessage = intent.getStringExtra("SEARCH_RESPONSE") ?: ""
+            val searchResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getSerializableExtra("SEARCH_RESULT", AgentSearchResponse::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getSerializableExtra("SEARCH_RESULT") as? AgentSearchResponse
+            }
+
+            android.util.Log.d("SearchActivity", "워치 검색 결과 수신: query='$query', response='$responseMessage'")
+
+            // SearchResultActivity로 이동하여 결과 표시
+            val resultIntent = Intent(this, SearchResultActivity::class.java).apply {
+                putExtra("SEARCH_QUERY", query)
+                putExtra("FROM_WEARABLE", true)
+                putExtra("SEARCH_RESPONSE", responseMessage)
+                if (searchResult != null) {
+                    putExtra("SEARCH_RESULT", searchResult)
+                }
+            }
+            startActivity(resultIntent)
+            finish() // SearchActivity 종료
+
+        } catch (e: Exception) {
+            android.util.Log.e("SearchActivity", "워치 검색 결과 처리 실패", e)
+            Toast.makeText(this, "검색 결과를 표시할 수 없습니다", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * 워치 알림에서 Deep Link로 열렸을 때 처리
+     * URI: secondbrain://search?message=<응답 메시지>
+     */
+    private fun handleDeepLink() {
+        try {
+            val uri = intent.data
+            android.util.Log.d("SearchActivity", "Deep Link 수신: $uri")
+
+            // 화면 켜기 및 잠금 화면 위에 표시
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                setShowWhenLocked(true)
+                setTurnScreenOn(true)
+            } else {
+                @Suppress("DEPRECATION")
+                window.addFlags(
+                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                )
+            }
+
+            if (uri?.scheme == "secondbrain" && uri.host == "search") {
+                val message = uri.getQueryParameter("message")
+                android.util.Log.d("SearchActivity", "Deep Link 메시지: '$message'")
+
+                // SearchResultActivity로 이동하여 메시지 표시
+                if (!message.isNullOrBlank()) {
+                    val resultIntent = Intent(this, SearchResultActivity::class.java).apply {
+                        putExtra("FROM_WEARABLE", true)
+                        putExtra("SEARCH_RESPONSE", message)
+                    }
+                    startActivity(resultIntent)
+                    finish() // SearchActivity 종료
+                }
+            } else {
+                android.util.Log.w("SearchActivity", "알 수 없는 Deep Link: $uri")
+            }
+
+        } catch (e: Exception) {
+            android.util.Log.e("SearchActivity", "Deep Link 처리 실패", e)
+            Toast.makeText(this, "알림을 열 수 없습니다", Toast.LENGTH_SHORT).show()
+        }
     }
 }
