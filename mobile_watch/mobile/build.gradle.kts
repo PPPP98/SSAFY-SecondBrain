@@ -95,6 +95,10 @@ dependencies {
     // ExoPlayer (고급 미디어 재생, TTS 오디오용)
     implementation("androidx.media3:media3-exoplayer:1.2.0")
     implementation("androidx.media3:media3-common:1.2.0")
+    
+    // Markwon (마크다운 파싱)
+    implementation("io.noties.markwon:core:4.6.2")
+    implementation("io.noties.markwon:image:4.6.2")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
