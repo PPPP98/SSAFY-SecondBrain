@@ -115,7 +115,13 @@ public enum BaseResponseStatus {
 	 * -11000 ~ -11009 : Google OAuth 관련 에러
 	 */
 	GOOGLE_TOKEN_EXCHANGE_FAILED(false, HttpStatus.BAD_REQUEST, -11000, "Google 로그인 중 오류가 발생했습니다. 다시 시도해주세요."),
-	GOOGLE_USER_INFO_FAILED(false, HttpStatus.BAD_REQUEST, -11001, "Google 사용자 정보를 가져올 수 없습니다. 다시 시도해주세요.");
+	GOOGLE_USER_INFO_FAILED(false, HttpStatus.BAD_REQUEST, -11001, "Google 사용자 정보를 가져올 수 없습니다. 다시 시도해주세요."),
+
+	/**
+	 * -11100 ~ -11109 : API Key 관련 에러
+	 */
+	INVALID_API_KEY(false, HttpStatus.UNAUTHORIZED, -11100, "유효하지 않은 API Key입니다."),
+	API_KEY_NOT_FOUND(false, HttpStatus.NOT_FOUND, -11101, "API Key를 찾을 수 없습니다.");
 
 	private final boolean isSuccess;
 	private final HttpStatus httpStatus;
