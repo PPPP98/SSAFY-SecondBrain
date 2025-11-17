@@ -81,6 +81,10 @@ public class SecurityConfig {
 				// TODO: 프로덕션 배포 시 인증 추가
 				.requestMatchers("/ai/api/v1/**").permitAll()
 
+				// MCP API (API Key 기반 인증 - 별도 검증)
+				.requestMatchers("/api/apikey/validate").permitAll() // API Key 검증 API
+				.requestMatchers("/api/mcp/**").permitAll() // MCP용 Note API
+
 				// 보호된 엔드포인트 (인증 필수)
 				.requestMatchers("/api/**").authenticated()
 
