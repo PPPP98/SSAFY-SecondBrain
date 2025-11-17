@@ -81,18 +81,15 @@ dependencies {
 	// 환경변수
 	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
+	// OpenAI Java SDK (FastAPI와 동일한 방식)
+	implementation 'com.openai:openai-java:0.10.0'
+
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
-
-dependencyManagement {
-	imports {
-		mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
-	}
 }
 
 tasks.named('test') {
