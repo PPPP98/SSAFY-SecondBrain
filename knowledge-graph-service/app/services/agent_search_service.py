@@ -64,7 +64,15 @@ class AgentSearchService:
         timespan: Optional[Dict[str, str]] = None,
         query: Optional[str] = None,
     ) -> Dict:
-        """ """
+        """
+        mcp 유사도 검색
+        Args:
+            user_id: 사용자 ID
+            timespan: 시간 필터
+            query: 검색 쿼리  
+        Returns:
+            dict: 검색 결과 및 응답
+        """
         if not user_id: 
             logger.error("user_id is required")
             return {"documents": [], "error": "missing_user_id"}
