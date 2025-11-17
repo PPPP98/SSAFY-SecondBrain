@@ -92,6 +92,10 @@ dependencies {
     // DataStore (토큰 저장용, SharedPreferences의 현대적 대체)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
+    // ExoPlayer (고급 미디어 재생, TTS 오디오용)
+    implementation("androidx.media3:media3-exoplayer:1.2.0")
+    implementation("androidx.media3:media3-common:1.2.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

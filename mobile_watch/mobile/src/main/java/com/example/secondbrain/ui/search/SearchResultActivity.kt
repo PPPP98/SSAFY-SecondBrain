@@ -3,10 +3,14 @@ package com.example.secondbrain.ui.search
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.secondbrain.R
@@ -14,8 +18,13 @@ import com.example.secondbrain.data.local.TokenManager
 import com.example.secondbrain.data.model.AgentNoteResult
 import com.example.secondbrain.data.model.NoteSearchResult
 import com.example.secondbrain.data.network.RetrofitClient
+import com.example.secondbrain.data.network.TtsRequest
 import com.example.secondbrain.ui.note.NoteDetailActivity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 
 /**
  * 검색 결과 표시 화면
@@ -39,6 +48,7 @@ class SearchResultActivity : AppCompatActivity() {
     private lateinit var tvError: TextView
     private lateinit var divider1: View
     private lateinit var divider2: View
+    private lateinit var btnPlayTts: ImageButton
 
     // 어댑터
     private lateinit var elasticAdapter: SearchResultAdapter
@@ -47,6 +57,11 @@ class SearchResultActivity : AppCompatActivity() {
     // 데이터
     private lateinit var tokenManager: TokenManager
     private var userId: Long = -1
+
+    // TTS 재생 (ExoPlayer 사용)
+    private var exoPlayer: ExoPlayer? = null
+    private var agentResponseText: String = ""
+    private var currentTempFile: File? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,6 +107,7 @@ class SearchResultActivity : AppCompatActivity() {
         tvError = findViewById(R.id.tvError)
         divider1 = findViewById(R.id.divider1)
         divider2 = findViewById(R.id.divider2)
+        btnPlayTts = findViewById(R.id.btnPlayTts)
 
         // 검색어 표시
         val query = intent.getStringExtra("SEARCH_QUERY") ?: ""
@@ -100,6 +116,11 @@ class SearchResultActivity : AppCompatActivity() {
         // 뒤로가기 버튼 클릭 리스너
         btnBack.setOnClickListener {
             finish()
+        }
+
+        // TTS 재생 버튼 클릭 리스너
+        btnPlayTts.setOnClickListener {
+            toggleTtsPlayback()
         }
     }
 
@@ -225,6 +246,13 @@ class SearchResultActivity : AppCompatActivity() {
                 tvAgentResponse.visibility = View.VISIBLE
                 tvAgentResponse.text = responseMessage
                 divider2.visibility = View.VISIBLE
+
+                // 응답 텍스트 저장 및 TTS 버튼 표시
+                agentResponseText = responseMessage
+                btnPlayTts.visibility = View.VISIBLE
+
+                // TTS 자동 재생
+                playTts(responseMessage)
             }
 
             // 노트 결과가 있으면 RecyclerView 표시
@@ -254,5 +282,160 @@ class SearchResultActivity : AppCompatActivity() {
             putExtra("NOTE_ID", noteId)
         }
         startActivity(intent)
+    }
+
+    /**
+     * TTS 재생/일시정지 토글
+     */
+    private fun toggleTtsPlayback() {
+        try {
+            exoPlayer?.let { player ->
+                android.util.Log.d("SearchResultActivity", "현재 상태: isPlaying=${player.isPlaying}, playbackState=${player.playbackState}")
+
+                when {
+                    player.isPlaying -> {
+                        // 재생 중 → 일시정지
+                        player.pause()
+                        updatePlayButton()
+                        android.util.Log.d("SearchResultActivity", "TTS 일시정지")
+                    }
+                    player.playbackState == Player.STATE_ENDED || player.playbackState == Player.STATE_IDLE -> {
+                        // 재생 완료 또는 초기 상태 → 처음부터 다시 재생
+                        player.seekTo(0)
+                        player.prepare()  // 다시 prepare 필요
+                        player.play()
+                        updatePlayButton()
+                        android.util.Log.d("SearchResultActivity", "TTS 처음부터 재생 (prepare + play)")
+                    }
+                    else -> {
+                        // 일시정지 상태 또는 준비 완료 → 재개
+                        player.play()
+                        updatePlayButton()
+                        android.util.Log.d("SearchResultActivity", "TTS 재개")
+                    }
+                }
+            } ?: run {
+                // ExoPlayer가 없으면 처음부터 재생
+                android.util.Log.d("SearchResultActivity", "ExoPlayer 없음 → 새로 생성")
+                playTts(agentResponseText)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SearchResultActivity", "TTS 토글 실패", e)
+            updatePlayButton()
+        }
+    }
+
+    /**
+     * TTS 재생 (ExoPlayer 사용 - ID3 태그 건너뛰기)
+     */
+    private fun playTts(text: String) {
+        if (text.isEmpty()) {
+            android.util.Log.w("SearchResultActivity", "TTS 텍스트가 비어있음")
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("SearchResultActivity", "TTS 요청 시작: $text")
+                btnPlayTts.isEnabled = false
+
+                // API 서비스 생성
+                val apiService = RetrofitClient.createApiService { tokenManager.getAccessToken() }
+
+                // TTS API 호출 (IO 스레드) - JSON Request Body 전송
+                val responseBody = withContext(Dispatchers.IO) {
+                    apiService.textToSpeech(TtsRequest(text))
+                }
+
+                // InputStream으로 직접 읽어서 바이너리 손상 방지
+                val tempFile = File.createTempFile("tts_", ".mp3", cacheDir)
+                withContext(Dispatchers.IO) {
+                    // 직접 InputStream에서 파일로 복사 (바이트 배열 변환 없이)
+                    responseBody.byteStream().use { inputStream ->
+                        FileOutputStream(tempFile).use { outputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+                    }
+                }
+
+                android.util.Log.d("SearchResultActivity", "TTS 파일 저장 완료: ${tempFile.absolutePath}, 크기: ${tempFile.length()} bytes")
+
+                // ExoPlayer로 재생
+                withContext(Dispatchers.Main) {
+                    // 기존 플레이어와 임시 파일 정리
+                    currentTempFile?.delete()
+                    exoPlayer?.release()
+
+                    // 새 임시 파일 저장
+                    currentTempFile = tempFile
+
+                    // ExoPlayer 생성 및 설정
+                    exoPlayer = ExoPlayer.Builder(this@SearchResultActivity).build().apply {
+                        // 재생 완료/에러 리스너 설정
+                        addListener(object : Player.Listener {
+                            override fun onPlaybackStateChanged(playbackState: Int) {
+                                when (playbackState) {
+                                    Player.STATE_READY -> {
+                                        android.util.Log.d("SearchResultActivity", "ExoPlayer 준비 완료")
+                                    }
+                                    Player.STATE_ENDED -> {
+                                        android.util.Log.d("SearchResultActivity", "TTS 재생 완료 (파일 유지)")
+                                        updatePlayButton()
+                                        // 파일 삭제하지 않음 (다시 재생 가능하도록)
+                                    }
+                                }
+                            }
+
+                            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                                android.util.Log.e("SearchResultActivity", "ExoPlayer 에러: ${error.message}", error)
+                                updatePlayButton()
+                                // 에러 시에도 파일 유지 (재시도 가능)
+                            }
+
+                            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                                updatePlayButton()
+                            }
+                        })
+
+                        // 미디어 아이템 설정 및 재생
+                        val mediaItem = MediaItem.fromUri(android.net.Uri.fromFile(tempFile))
+                        setMediaItem(mediaItem)
+                        prepare()
+                        play()
+                        android.util.Log.d("SearchResultActivity", "ExoPlayer 재생 시작")
+                    }
+                }
+
+            } catch (e: Exception) {
+                android.util.Log.e("SearchResultActivity", "TTS 재생 실패", e)
+                withContext(Dispatchers.Main) {
+                    updatePlayButton()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    btnPlayTts.isEnabled = true
+                }
+            }
+        }
+    }
+
+    /**
+     * 재생 버튼 아이콘 업데이트
+     */
+    private fun updatePlayButton() {
+        val isPlaying = exoPlayer?.isPlaying == true
+        btnPlayTts.setImageResource(
+            if (isPlaying) android.R.drawable.ic_media_pause
+            else android.R.drawable.ic_media_play
+        )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // ExoPlayer 해제 및 임시 파일 삭제
+        exoPlayer?.release()
+        exoPlayer = null
+        currentTempFile?.delete()
+        currentTempFile = null
     }
 }

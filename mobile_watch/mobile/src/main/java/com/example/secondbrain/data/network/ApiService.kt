@@ -5,10 +5,17 @@ import com.example.secondbrain.data.model.GoogleAuthRequest
 import com.example.secondbrain.data.model.Note
 import com.example.secondbrain.data.model.NoteSearchResponse
 import com.example.secondbrain.data.model.TokenResponse
+import okhttp3.ResponseBody
+import retrofit2.http.Query
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
-import retrofit2.http.Query
+import retrofit2.http.Streaming
+
+// TTS 요청 데이터 모델
+data class TtsRequest(
+    val text: String
+)
 
 // Retrofit API 인터페이스 정의
 interface ApiService {
@@ -34,4 +41,11 @@ interface ApiService {
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 10
     ): ApiResponse<NoteSearchResponse>
+
+    // TTS API - MP3 바이너리 데이터 반환 (Request Body: JSON, Response: application/octet-stream)
+    @Streaming
+    @POST("/api/tts")
+    suspend fun textToSpeech(
+        @Body request: TtsRequest
+    ): ResponseBody
 }
