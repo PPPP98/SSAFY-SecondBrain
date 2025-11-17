@@ -9,11 +9,11 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.secondbrain.MainActivity
 import com.example.secondbrain.R
 import com.example.secondbrain.data.local.TokenManager
 import com.example.secondbrain.data.model.GoogleAuthRequest
 import com.example.secondbrain.data.network.RetrofitClient
+import com.example.secondbrain.ui.search.SearchActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -132,10 +132,10 @@ class LoginActivity : AppCompatActivity() {
                         token = response.data.accessToken,
                         tokenType = response.data.tokenType
                     )
-                    android.util.Log.d("LoginActivity", "로그인 성공! MainActivity로 이동")
+                    android.util.Log.d("LoginActivity", "로그인 성공! SearchActivity로 이동")
 
-                    // MainActivity로 이동
-                    navigateToMain()
+                    // 검색 페이지로 이동
+                    navigateToSearch()
                 } else {
                     android.util.Log.e("LoginActivity", "인증 실패: ${response.message}")
                     showError("인증 실패: ${response.message}")
@@ -152,9 +152,9 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    // MainActivity로 이동
-    private fun navigateToMain() {
-        val intent = Intent(this, MainActivity::class.java)
+    // 검색 페이지로 이동
+    private fun navigateToSearch() {
+        val intent = Intent(this, SearchActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()

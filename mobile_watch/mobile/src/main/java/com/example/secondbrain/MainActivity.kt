@@ -100,14 +100,22 @@ class MainActivity : AppCompatActivity() {
                 return@launch
             }
 
-            // 로그인 되어있으면 메인 화면 표시
-            initializeMainScreen()
+            // 로그인 되어있으면 SearchActivity로 바로 이동
+            navigateToSearch()
         }
     }
 
     // 로그인 화면으로 이동
     private fun navigateToLogin() {
         val intent = Intent(this, LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
+    }
+
+    // 검색 화면으로 이동
+    private fun navigateToSearch() {
+        val intent = Intent(this, com.example.secondbrain.ui.search.SearchActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
