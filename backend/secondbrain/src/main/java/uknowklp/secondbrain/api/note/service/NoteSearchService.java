@@ -46,32 +46,43 @@ public class NoteSearchService {
 		}
 
 		try {
-			// 1. 검색어 임베딩 벡터 생성
-			List<Double> queryEmbedding = embeddingService.generateEmbedding(keyword);
-
-			// 2. Elasticsearch와 Neo4j 병렬 검색 실행
+			// 1. Elasticsearch 검색 (항상 실행)
 			CompletableFuture<List<NoteDocument>> elasticFuture = CompletableFuture.supplyAsync(() ->
 				searchByElasticsearch(keyword, userId, 100)
 			);
 
-			CompletableFuture<List<VectorSearchResult>> vectorFuture = CompletableFuture.supplyAsync(() ->
-				vectorSearchService.searchSimilarNotes(userId, queryEmbedding, 100)
-			);
+			// 2. 임베딩 벡터 생성 및 Neo4j 검색 (실패 시 빈 리스트 반환)
+			CompletableFuture<List<VectorSearchResult>> vectorFuture = CompletableFuture.supplyAsync(() -> {
+				try {
+					List<Double> queryEmbedding = embeddingService.generateEmbedding(keyword);
+					return vectorSearchService.searchSimilarNotes(userId, queryEmbedding, 100);
+				} catch (Exception e) {
+					log.warn("벡터 검색 실패, Elasticsearch만 사용 - 키워드: {}, 오류: {}", keyword, e.getMessage());
+					return Collections.emptyList();
+				}
+			});
 
 			// 3. 두 검색 결과 대기
 			List<NoteDocument> elasticResults = elasticFuture.join();
 			List<VectorSearchResult> vectorResults = vectorFuture.join();
 
-			// 4. RRF로 검색 결과 병합 및 재정렬
-			List<NoteDocument> mergedResults = mergeAndRerank(elasticResults, vectorResults);
+			// 4. RRF로 검색 결과 병합 및 재정렬 (벡터 결과가 없으면 Elasticsearch만 반환)
+			List<NoteDocument> mergedResults = vectorResults.isEmpty()
+				? elasticResults
+				: mergeAndRerank(elasticResults, vectorResults);
 
 			// 5. 페이징 적용
 			int start = (int) pageable.getOffset();
 			int end = Math.min(start + pageable.getPageSize(), mergedResults.size());
 			List<NoteDocument> pagedResults = mergedResults.subList(start, end);
 
-			log.info("하이브리드 검색 완료 - 키워드: '{}', Elastic: {}건, Vector: {}건, 최종: {}건",
-				keyword, elasticResults.size(), vectorResults.size(), mergedResults.size());
+			if (vectorResults.isEmpty()) {
+				log.info("Elasticsearch 전용 검색 완료 - 키워드: '{}', 결과: {}건",
+					keyword, elasticResults.size());
+			} else {
+				log.info("하이브리드 검색 완료 - 키워드: '{}', Elastic: {}건, Vector: {}건, 최종: {}건",
+					keyword, elasticResults.size(), vectorResults.size(), mergedResults.size());
+			}
 
 			return new PageImpl<>(pagedResults, pageable, mergedResults.size());
 		} catch (BaseException e) {
