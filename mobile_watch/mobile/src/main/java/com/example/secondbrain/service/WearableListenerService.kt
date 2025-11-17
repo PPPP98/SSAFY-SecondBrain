@@ -64,15 +64,9 @@ class MobileWearableListenerService : WearableListenerService() {
 
                 when (dataItem.uri.path) {
                     WearableConstants.PATH_VOICE_TEXT -> {
-                        val dataMap = DataMapItem.fromDataItem(dataItem).dataMap
-                        val recognizedText = dataMap.getString("text") ?: ""
-                        val timestamp = dataMap.getLong("timestamp", 0L)
-
-                        Log.i(TAG, "음성 텍스트 수신: '$recognizedText' (timestamp: $timestamp)")
-                        Log.i(TAG, "⚠️ SecondBrainApplication에서 처리 중 - WearableListenerService는 건너뜀 (중복 방지)")
-
-                        // SecondBrainApplication의 수동 리스너에서 이미 처리하므로 여기서는 건너뜀
-                        // (중복 알림 방지)
+                        // SecondBrainApplication의 수동 리스너에서 처리하므로 중복 방지를 위해 건너뜀
+                        Log.i(TAG, "음성 텍스트 수신 - SecondBrainApplication에서 처리 중 (중복 방지)")
+                        return@forEach
                     }
                     else -> {
                         Log.w(TAG, "알 수 없는 경로: ${dataItem.uri.path}")
@@ -104,12 +98,9 @@ class MobileWearableListenerService : WearableListenerService() {
                 handleStatusResponse(statusResponse)
             }
             WearableConstants.PATH_OPEN_ON_PHONE -> {
-                val responseText = String(messageEvent.data, Charsets.UTF_8)
-                Log.i(TAG, "폰에서 열기 요청 수신: '$responseText'")
-                Log.i(TAG, "⚠️ SecondBrainApplication에서 처리 중 - WearableListenerService는 건너뜀 (중복 방지)")
-
-                // SecondBrainApplication의 MessageListener에서 이미 처리하므로 여기서는 건너뜀
-                // (중복 알림 방지)
+                // SecondBrainApplication의 MessageListener에서 처리하므로 중복 방지를 위해 건너뜀
+                Log.i(TAG, "폰에서 열기 요청 수신 - SecondBrainApplication에서 처리 중 (중복 방지)")
+                return
             }
             else -> {
                 Log.w(TAG, "알 수 없는 경로: ${messageEvent.path}")
@@ -150,12 +141,10 @@ class MobileWearableListenerService : WearableListenerService() {
 
             // 폰에 알림 전송 (검색어, 응답 메시지, 검색 결과)
             sendNotificationToPhone(text, searchResponse.response, searchResponse)
-            // 워치로 응답 전송은 SecondBrainApplication에서 이미 처리함 (중복 방지)
 
         } catch (e: Exception) {
             Log.e(TAG, "FastAPI 검색 실패", e)
             sendNotificationToPhone(text, "검색 중 오류가 발생했습니다: ${e.message}", null)
-            // 워치로 응답 전송은 SecondBrainApplication에서 이미 처리함 (중복 방지)
         }
     }
 
@@ -270,7 +259,6 @@ class MobileWearableListenerService : WearableListenerService() {
             notificationManager.notify(NOTIFICATION_ID, notification)
 
             Log.i(TAG, "폰에 알림 표시 완료 (워치 응답은 SecondBrainApplication에서 처리)")
-            // 워치로 응답 전송은 SecondBrainApplication에서 이미 처리함 (중복 방지)
 
         } catch (e: Exception) {
             Log.e(TAG, "폰 알림 표시 실패", e)
