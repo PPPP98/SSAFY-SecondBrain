@@ -92,6 +92,10 @@ dependencies {
     // DataStore (토큰 저장용, SharedPreferences의 현대적 대체)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
+    // Markwon (마크다운 파싱)
+    implementation("io.noties.markwon:core:4.6.2")
+    implementation("io.noties.markwon:image:4.6.2")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.example.secondbrain.R
 import com.example.secondbrain.data.model.Note
+import io.noties.markwon.Markwon
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -20,6 +21,7 @@ class NoteContentFragment : Fragment() {
     private lateinit var tvTitle: TextView
     private lateinit var tvDate: TextView
     private lateinit var tvContent: TextView
+    private lateinit var markwon: Markwon
 
     companion object {
         private const val ARG_NOTE_ID = "note_id"
@@ -58,12 +60,18 @@ class NoteContentFragment : Fragment() {
         tvTitle = view.findViewById(R.id.tvTitle)
         tvDate = view.findViewById(R.id.tvDate)
         tvContent = view.findViewById(R.id.tvContent)
+
+        // Markwon 초기화
+        markwon = Markwon.create(requireContext())
     }
 
     private fun displayNoteContent() {
         arguments?.let { args ->
             tvTitle.text = args.getString(ARG_NOTE_TITLE, "제목 없음")
-            tvContent.text = args.getString(ARG_NOTE_CONTENT, "내용 없음")
+
+            // 마크다운 파싱하여 표시
+            val content = args.getString(ARG_NOTE_CONTENT, "내용 없음")
+            markwon.setMarkdown(tvContent, content)
 
             val createdAt = args.getString(ARG_NOTE_DATE, "")
             tvDate.text = formatDate(createdAt)
