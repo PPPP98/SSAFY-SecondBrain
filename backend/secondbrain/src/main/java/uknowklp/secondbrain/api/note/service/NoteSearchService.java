@@ -1,6 +1,7 @@
 package uknowklp.secondbrain.api.note.service;
 
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -22,6 +23,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uknowklp.secondbrain.api.note.domain.NoteDocument;
+import uknowklp.secondbrain.api.note.dto.VectorSearchResult;
 import uknowklp.secondbrain.api.note.repository.NoteSearchRepository;
 import uknowklp.secondbrain.global.exception.BaseException;
 import uknowklp.secondbrain.global.response.BaseResponseStatus;
@@ -33,8 +35,10 @@ public class NoteSearchService {
 
 	private final NoteSearchRepository noteSearchRepository;
 	private final ElasticsearchOperations elasticsearchOperations;
+	private final VectorSearchService vectorSearchService;
+	private final EmbeddingService embeddingService;
 
-	// 키워드로 노트 검색 (제목 + 내용, 유사도 기반)
+	// 하이브리드 검색: Elasticsearch BM25 (70%) + Neo4j 벡터 유사도 (30%)
 	public Page<NoteDocument> searchByKeyword(String keyword, Long userId, Pageable pageable) {
 		// 키워드 검증
 		if (keyword == null || keyword.trim().isEmpty()) {
@@ -42,21 +46,60 @@ public class NoteSearchService {
 		}
 
 		try {
-			// 1. Multi-match 쿼리 생성 (제목 5배 가중치, 엄격한 점수 필터링)
+			// 1. 검색어 임베딩 벡터 생성
+			List<Double> queryEmbedding = embeddingService.generateEmbedding(keyword);
+
+			// 2. Elasticsearch와 Neo4j 병렬 검색 실행
+			CompletableFuture<List<NoteDocument>> elasticFuture = CompletableFuture.supplyAsync(() ->
+				searchByElasticsearch(keyword, userId, 100)
+			);
+
+			CompletableFuture<List<VectorSearchResult>> vectorFuture = CompletableFuture.supplyAsync(() ->
+				vectorSearchService.searchSimilarNotes(userId, queryEmbedding, 100)
+			);
+
+			// 3. 두 검색 결과 대기
+			List<NoteDocument> elasticResults = elasticFuture.join();
+			List<VectorSearchResult> vectorResults = vectorFuture.join();
+
+			// 4. RRF로 검색 결과 병합 및 재정렬
+			List<NoteDocument> mergedResults = mergeAndRerank(elasticResults, vectorResults);
+
+			// 5. 페이징 적용
+			int start = (int) pageable.getOffset();
+			int end = Math.min(start + pageable.getPageSize(), mergedResults.size());
+			List<NoteDocument> pagedResults = mergedResults.subList(start, end);
+
+			log.info("하이브리드 검색 완료 - 키워드: '{}', Elastic: {}건, Vector: {}건, 최종: {}건",
+				keyword, elasticResults.size(), vectorResults.size(), mergedResults.size());
+
+			return new PageImpl<>(pagedResults, pageable, mergedResults.size());
+		} catch (BaseException e) {
+			throw e;
+		} catch (Exception e) {
+			log.error("하이브리드 검색 오류 - 키워드: {}, 예외: {}", keyword, e.getMessage(), e);
+			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_ERROR);
+		}
+	}
+
+	// Elasticsearch 전용 검색 (BM25 키워드 매칭)
+	private List<NoteDocument> searchByElasticsearch(String keyword, Long userId, int limit) {
+		try {
+			// Multi-match 쿼리 생성 (제목 5배 가중치)
 			Query multiMatchQuery = MultiMatchQuery.of(m -> m
 				.query(keyword)
-				.fields("title^5", "content")      // 제목 가중치 5배
+				.fields("title^5", "content")
 				.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.BestFields)
-				.fuzziness("AUTO")                  // 단어 길이 기반 자동 조정
-				.prefixLength(1)                    // 첫 글자 고정 (성능 + 정확도)
-				.maxExpansions(30)                  // 검색 범위 축소
+				.fuzziness("AUTO")
+				.prefixLength(1)
+				.maxExpansions(30)
 			)._toQuery();
 
-			// 2. Bool 쿼리 생성
+			// Bool 쿼리 생성
 			BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder()
 				.must(multiMatchQuery);
 
-			// 3. userId 필터 추가 (특정 사용자의 노트만 검색)
+			// userId 필터 추가
 			if (userId != null) {
 				Query userFilter = TermQuery.of(t -> t
 					.field("userId")
@@ -65,50 +108,67 @@ public class NoteSearchService {
 				boolQueryBuilder.filter(userFilter);
 			}
 
-			// 4. Native Query 생성 (최소 점수 5 이상만 반환)
+			// Native Query 생성 (최소 점수 5 이상만 반환)
 			NativeQuery searchQuery = NativeQuery.builder()
 				.withQuery(boolQueryBuilder.build()._toQuery())
-				.withMinScore(5.0f)                 // 점수 5 미만 결과 제외
-				.withPageable(pageable)
+				.withMinScore(5.0f)
+				.withMaxResults(limit)
 				.build();
 
-			// 5. 검색 실행
+			// 검색 실행
 			SearchHits<NoteDocument> searchHits = elasticsearchOperations.search(
 				searchQuery,
 				NoteDocument.class
 			);
 
-			// 6. 결과 변환 및 유사도 점수 로깅
-			List<NoteDocument> content = searchHits.getSearchHits().stream()
-				.peek(hit -> log.info("검색 결과 - ID: {}, 제목: '{}', 유사도 점수: {}",
-					hit.getContent().getId(),
-					hit.getContent().getTitle(),
-					String.format("%.2f", hit.getScore())))
+			// 결과 변환
+			return searchHits.getSearchHits().stream()
 				.map(SearchHit::getContent)
-				.collect(Collectors.toList());
-
-			log.info("키워드 검색 완료 - 키워드: '{}', 총 {}건 발견", keyword, searchHits.getTotalHits());
-
-			return new PageImpl<>(content, pageable, searchHits.getTotalHits());
-		} catch (BaseException e) {
-			throw e;
-		} catch (ElasticsearchException e) {
-			log.error("Elasticsearch 서버 오류 - 키워드: {}, 오류: {}", keyword, e.getMessage(), e);
-			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_CONNECTION_ERROR);
-		} catch (UncategorizedElasticsearchException e) {
-			if (e.getMessage() != null && e.getMessage().contains("index_not_found")) {
-				log.error("Elasticsearch 인덱스 없음 - 키워드: {}", keyword, e);
-				throw new BaseException(BaseResponseStatus.ELASTICSEARCH_INDEX_NOT_FOUND);
-			}
-			log.error("Elasticsearch 연결 오류 - 키워드: {}", keyword, e);
-			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_CONNECTION_ERROR);
-		} catch (MappingConversionException e) {
-			log.error("Elasticsearch 매핑 오류 - 키워드: {}, 필드 변환 실패", keyword, e);
-			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_MAPPING_ERROR);
+				.toList();
 		} catch (Exception e) {
-			log.error("예상치 못한 검색 오류 - 키워드: {}, 예외 타입: {}", keyword, e.getClass().getSimpleName(), e);
-			throw new BaseException(BaseResponseStatus.ELASTICSEARCH_ERROR);
+			log.error("Elasticsearch 검색 실패 - 키워드: {}", keyword, e);
+			return Collections.emptyList();
 		}
+	}
+
+	// RRF (Reciprocal Rank Fusion) 알고리즘으로 검색 결과 병합
+	private List<NoteDocument> mergeAndRerank(
+		List<NoteDocument> elasticResults,
+		List<VectorSearchResult> vectorResults
+	) {
+		final int k = 60; // RRF 상수
+		Map<Long, Double> scoreMap = new HashMap<>();
+		Map<Long, NoteDocument> documentMap = new HashMap<>();
+
+		// Elasticsearch 결과 점수 계산 (가중치 70%)
+		for (int i = 0; i < elasticResults.size(); i++) {
+			NoteDocument doc = elasticResults.get(i);
+			Long noteId = doc.getId();
+			double rrfScore = 0.7 / (k + i + 1); // rank는 0부터 시작하므로 +1
+			scoreMap.put(noteId, scoreMap.getOrDefault(noteId, 0.0) + rrfScore);
+			documentMap.put(noteId, doc);
+		}
+
+		// Vector 검색 결과 점수 계산 (가중치 30%)
+		for (int i = 0; i < vectorResults.size(); i++) {
+			VectorSearchResult result = vectorResults.get(i);
+			Long noteId = result.noteId();
+			double rrfScore = 0.3 / (k + i + 1);
+			scoreMap.put(noteId, scoreMap.getOrDefault(noteId, 0.0) + rrfScore);
+
+			// Vector 결과에만 있는 문서는 Elasticsearch에서 조회
+			if (!documentMap.containsKey(noteId)) {
+				noteSearchRepository.findById(noteId.toString())
+					.ifPresent(doc -> documentMap.put(noteId, doc));
+			}
+		}
+
+		// 최종 점수 기준으로 정렬
+		return scoreMap.entrySet().stream()
+			.sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
+			.map(entry -> documentMap.get(entry.getKey()))
+			.filter(Objects::nonNull)
+			.toList();
 	}
 
 	// 특정 노트와 유사한 노트 찾기 (연관 높은 노트 추천)

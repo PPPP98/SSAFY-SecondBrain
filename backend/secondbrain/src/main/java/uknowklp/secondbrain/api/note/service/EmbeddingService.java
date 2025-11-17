@@ -49,7 +49,7 @@ public class EmbeddingService {
 			HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
 			// GMS API 호출 (OpenAI 호환 엔드포인트)
-			String url = baseUrl.replace("api.anthropic.com", "api.openai.com") + "/embeddings";
+			String url = "https://gms.ssafy.io/gmsapi/api.openai.com/v1/embeddings";
 
 			log.debug("임베딩 API 호출 - 모델: {}, 텍스트 길이: {}", embeddingModel, text.length());
 
