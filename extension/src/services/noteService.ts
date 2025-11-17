@@ -31,13 +31,6 @@ export async function saveCurrentPage(urls: string[], token: string): Promise<Sa
       data: urls, // URL 배열로 전송
     };
 
-    console.log('📤 Request to backend:', {
-      url: `${env.kgApiBaseUrl}/ai/api/v1/agents/summarize`,
-      body: requestBody,
-      urlCount: urls.length,
-      urls: urls,
-    });
-
     const response = await fetch(`${env.kgApiBaseUrl}/ai/api/v1/agents/summarize`, {
       method: 'POST',
       headers: {
