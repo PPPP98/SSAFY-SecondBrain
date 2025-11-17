@@ -57,3 +57,34 @@ export interface SavePageError {
    */
   status?: number;
 }
+
+/**
+ * 노트 검색 결과 아이템
+ * GET /api/notes/search 응답
+ */
+export interface NoteSearchResult {
+  id: number;
+  title: string;
+  content: string;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+  remindCount: number;
+}
+
+/**
+ * 노트 검색 API 응답
+ * GET /api/notes/search
+ */
+export interface NoteSearchApiResponse {
+  success: boolean;
+  code: number;
+  message: string;
+  data: {
+    results: NoteSearchResult[];
+    totalCount: number;
+    currentPage: number;
+    totalPages: number;
+    pageSize: number;
+  };
+}

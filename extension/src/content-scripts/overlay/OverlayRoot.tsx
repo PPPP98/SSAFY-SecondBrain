@@ -3,6 +3,9 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ShadowRootProvider } from '@/contexts/ShadowRootContext';
 import { SimpleToastContainer } from '@/content-scripts/overlay/components/molecules/SimpleToast';
 import { useEffect } from 'react';
+import { useDragSearchStore } from '@/stores/dragSearchStore';
+import { useSaveStatusStore } from '@/stores/saveStatusStore';
+import type { NoteSearchResult } from '@/types/note';
 
 /**
  * Shadow DOM 내부에 렌더링되는 React 루트 컴포넌트
@@ -19,6 +22,10 @@ interface OverlayRootProps {
 }
 
 export function OverlayRoot({ isOpen, onToggle, shadowRoot }: OverlayRootProps) {
+  const { setSearchResults, setError, loadHistory } = useDragSearchStore();
+  const { addSaveRequestsFromBroadcast, updateSaveStatusByUrls } =
+    useSaveStatusStore.getState();
+
   // Inject animation keyframes into Shadow DOM
   useEffect(() => {
     if (shadowRoot instanceof ShadowRoot) {
@@ -62,6 +69,85 @@ export function OverlayRoot({ isOpen, onToggle, shadowRoot }: OverlayRootProps) 
       }
     }
   }, [shadowRoot]);
+
+  // 드래그 검색 메시지 리스너 + 저장 진행상황 브로드캐스트 리스너
+  useEffect(() => {
+    const handleMessage = (
+      event: MessageEvent<{
+        type: string;
+        payload?: { keyword?: string; results?: unknown; totalCount?: number; error?: string };
+        urls?: string[];
+        batchId?: string;
+        batchTimestamp?: number;
+        success?: boolean;
+        error?: string;
+      }>,
+    ) => {
+      // dragSearchStore에 결과 저장 (Compact Popup과 Overlay 공유)
+      if (event.data?.type === 'SECONDBRAIN_SAVE_SEARCH_RESULT' && event.data.payload) {
+        const { keyword, results, totalCount } = event.data.payload;
+        if (keyword && Array.isArray(results) && typeof totalCount === 'number') {
+          setSearchResults(keyword, results as NoteSearchResult[], totalCount);
+        }
+      }
+      // Compact Popup에서 "전체 보기" 클릭 시
+      else if (event.data?.type === 'SECONDBRAIN_OPEN_OVERLAY_WITH_SEARCH') {
+        // Overlay 열기 (검색 결과는 이미 store에 저장됨)
+        if (!isOpen) {
+          onToggle(true);
+        }
+      }
+      // 기존 로직 (deprecated, Compact Popup으로 대체됨)
+      else if (event.data?.type === 'SECONDBRAIN_DRAG_SEARCH_RESULT' && event.data.payload) {
+        const { keyword, results, totalCount } = event.data.payload;
+        if (keyword && Array.isArray(results) && typeof totalCount === 'number') {
+          setSearchResults(keyword, results as NoteSearchResult[], totalCount);
+
+          // Overlay 자동 열기
+          if (!isOpen) {
+            onToggle(true);
+          }
+        }
+      } else if (event.data?.type === 'SECONDBRAIN_DRAG_SEARCH_ERROR' && event.data.payload) {
+        const { keyword, error } = event.data.payload;
+        if (keyword && error) {
+          setError(`"${keyword}" 검색 실패: ${error}`);
+
+          // Overlay 자동 열기
+          if (!isOpen) {
+            onToggle(true);
+          }
+        }
+      }
+      // 저장 시작 브로드캐스트 (다른 탭에서 Save 클릭)
+      else if (event.data?.type === 'SAVE_STATUS_STARTED') {
+        const { urls, batchId, batchTimestamp } = event.data;
+        if (urls && batchId && batchTimestamp) {
+          addSaveRequestsFromBroadcast(urls, batchId, batchTimestamp);
+        }
+      }
+      // 저장 완료 브로드캐스트
+      else if (event.data?.type === 'SAVE_STATUS_COMPLETED') {
+        const { urls, batchId, success, error } = event.data;
+        if (urls && batchId && typeof success === 'boolean') {
+          updateSaveStatusByUrls(urls, batchId, success, error);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Zustand 함수(setSearchResults, setError, onToggle, isOpen)는 안정적이므로 빈 배열 사용
+
+  // 히스토리 로드 (분리된 Effect)
+  useEffect(() => {
+    void loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // loadHistory는 Zustand 함수로 안정적, 마운트 시 1번만 실행
 
   return (
     <ShadowRootProvider shadowRoot={shadowRoot}>

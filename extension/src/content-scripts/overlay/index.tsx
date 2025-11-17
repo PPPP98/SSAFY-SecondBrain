@@ -55,19 +55,32 @@ export function onExecute() {
     renderOverlay(false);
 
     // Background로부터 메시지 수신 (Content Script 레벨)
-    browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+    // TOGGLE_OVERLAY, PING, SAVE_STATUS 브로드캐스트 처리
+    browser.runtime.onMessage.addListener(((message: unknown, _sender, sendResponse) => {
       const msg = message as { type: string };
 
       if (msg.type === 'TOGGLE_OVERLAY') {
         renderOverlay(!isOverlayVisible);
         sendResponse({ success: true });
-      } else if (msg.type === 'PING') {
-        // Content Script가 활성화되어 있음을 알리는 응답
-        sendResponse({ pong: true });
+        return true;
       }
 
-      return true; // 비동기 응답을 위해 true 반환
-    });
+      if (msg.type === 'PING') {
+        sendResponse({ pong: true });
+        return true;
+      }
+
+      // 저장 진행상황 브로드캐스트 → React로 전달 (window.postMessage)
+      if (msg.type === 'SAVE_STATUS_STARTED' || msg.type === 'SAVE_STATUS_COMPLETED') {
+        // browser.runtime.onMessage → window.postMessage 브리지
+        // OverlayRoot의 window.addEventListener('message')로 전달됨
+        window.postMessage(msg, '*');
+        sendResponse({ success: true });
+        return true;
+      }
+
+      // 처리하지 않은 메시지는 다른 리스너에게 위임
+    }) as browser.Runtime.OnMessageListener);
   } catch (error) {
     console.error('❌ [Content Script] Fatal error:', error);
     console.error('Stack trace:', (error as Error).stack);

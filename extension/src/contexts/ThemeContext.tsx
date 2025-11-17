@@ -38,26 +38,19 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   };
 
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
-    return theme === 'system' ? getSystemTheme() : theme;
-  });
+  // resolvedTheme을 렌더링 중 계산 (파생 상태)
+  const resolvedTheme: ResolvedTheme = theme === 'system' ? getSystemTheme() : theme;
 
   // Apply theme to container ref (works in Shadow DOM)
   useEffect(() => {
-    const applyTheme = (resolved: ResolvedTheme) => {
-      if (containerRef.current) {
-        if (resolved === 'dark') {
-          containerRef.current.classList.add('dark');
-        } else {
-          containerRef.current.classList.remove('dark');
-        }
+    if (containerRef.current) {
+      if (resolvedTheme === 'dark') {
+        containerRef.current.classList.add('dark');
+      } else {
+        containerRef.current.classList.remove('dark');
       }
-    };
-
-    const newResolvedTheme = theme === 'system' ? getSystemTheme() : theme;
-    setResolvedTheme(newResolvedTheme);
-    applyTheme(newResolvedTheme);
-  }, [theme]);
+    }
+  }, [resolvedTheme]);
 
   // Listen to system preference changes
   useEffect(() => {
@@ -65,18 +58,10 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-    const handleChange = (e: MediaQueryListEvent) => {
-      const newResolvedTheme = e.matches ? 'dark' : 'light';
-      setResolvedTheme(newResolvedTheme);
-
-      // Apply theme to container ref
-      if (containerRef.current) {
-        if (newResolvedTheme === 'dark') {
-          containerRef.current.classList.add('dark');
-        } else {
-          containerRef.current.classList.remove('dark');
-        }
-      }
+    const handleChange = () => {
+      // theme이 'system'이므로 강제 리렌더링으로 resolvedTheme 재계산
+      // DOM 조작은 위의 useEffect에서 자동으로 처리됨
+      setTheme('system');
     };
 
     mediaQuery.addEventListener('change', handleChange);
@@ -86,12 +71,35 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
     };
   }, [theme]);
 
+  // localStorage 변경 감지 (다른 ThemeProvider 인스턴스와 동기화)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        setTheme(e.newValue as Theme);
+      }
+    };
+
+    const handleThemeChange = ((e: CustomEvent<Theme>) => {
+      setTheme(e.detail);
+    }) as EventListener;
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('theme-change', handleThemeChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('theme-change', handleThemeChange);
+    };
+  }, []);
+
   const value = {
     theme,
     resolvedTheme,
     setTheme: (newTheme: Theme) => {
       localStorage.setItem(STORAGE_KEY, newTheme);
       setTheme(newTheme);
+      // 다른 ThemeProvider 인스턴스에 알림
+      window.dispatchEvent(new CustomEvent('theme-change', { detail: newTheme }));
     },
   };
 

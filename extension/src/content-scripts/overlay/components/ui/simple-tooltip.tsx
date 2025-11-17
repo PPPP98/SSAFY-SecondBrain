@@ -34,7 +34,7 @@ export function SimpleTooltip({ children, content, side = 'bottom' }: SimpleTool
             side === 'bottom' && 'top-full left-0 mt-2',
             side === 'left' && 'top-1/2 right-full mr-2 -translate-y-1/2',
             side === 'right' && 'top-1/2 left-full ml-2 -translate-y-1/2',
-            side === 'left-bottom' && 'right-full -bottom-10 mr-2',
+            side === 'left-bottom' && 'top-full right-0 mt-2 translate-x-1/2',
           )}
         >
           {content}
