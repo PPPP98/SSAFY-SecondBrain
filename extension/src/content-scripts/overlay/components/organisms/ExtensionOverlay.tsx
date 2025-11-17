@@ -5,15 +5,18 @@ import { ActionButtons } from '@/content-scripts/overlay/components/molecules/Ac
 import { FloatingButton } from '@/content-scripts/overlay/components/atoms/FloatingButton';
 import { DragSearchPanel } from '@/content-scripts/overlay/components/organisms/DragSearchPanel';
 import { URLListModal } from '@/content-scripts/overlay/components/organisms/URLListModal';
+import { PendingTextSnippetsPanel } from '@/content-scripts/overlay/components/organisms/PendingTextSnippetsPanel';
 import { SaveStatusPanel } from '@/content-scripts/overlay/components/organisms/SaveStatusPanel';
 import { DragSearchSettingsPanel } from '@/content-scripts/overlay/components/organisms/DragSearchSettingsPanel';
 import { useExtensionAuth } from '@/hooks/useExtensionAuth';
 import { useOverlayState } from '@/hooks/useOverlayState';
 import { usePageCollectionStore } from '@/stores/pageCollectionStore';
+import { usePendingTextSnippetsStore } from '@/stores/pendingTextSnippetsStore';
 import { useDragSearchStore } from '@/stores/dragSearchStore';
 import * as storage from '@/services/storageService';
+import type { PendingTextSnippet } from '@/types/pendingTextSnippet';
 
-type ActivePanel = null | 'urlList' | 'saveStatus' | 'settings';
+type ActivePanel = null | 'urlList' | 'snippetsList' | 'saveStatus' | 'settings';
 
 /**
  * Extension Overlay (Organism)
@@ -33,6 +36,13 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   const { isExpanded, isCollapsed, isHidden, expand, collapse } = useOverlayState();
   const { initialize, syncFromStorage, getPageList, removePage, clearPages } =
     usePageCollectionStore();
+  const {
+    initialize: initializeSnippets,
+    syncFromStorage: syncSnippetsFromStorage,
+    getSnippetList,
+    removeSnippet,
+    clearSnippets,
+  } = usePendingTextSnippetsStore();
   const {
     keyword,
     results,
@@ -54,8 +64,9 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
 
       // 2. Store 초기화
       await initialize();
+      await initializeSnippets();
     })();
-  }, [initialize]);
+  }, [initialize, initializeSnippets]);
 
   // Storage 변경 감지 → 탭 간 동기화
   useEffect(() => {
@@ -63,12 +74,15 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
       if (key === storage.STORAGE_KEYS.COLLECTED_PAGES) {
         // 다른 탭에서 페이지 목록이 변경됨 → Store 동기화
         syncFromStorage(newValue as string[]);
+      } else if (key === storage.STORAGE_KEYS.PENDING_TEXT_SNIPPETS) {
+        // 다른 탭에서 텍스트 조각이 변경됨 → Store 동기화
+        syncSnippetsFromStorage(newValue as PendingTextSnippet[]);
       }
     });
 
     // Cleanup
     return unwatch;
-  }, [syncFromStorage]);
+  }, [syncFromStorage, syncSnippetsFromStorage]);
 
   // Escape 키로 닫기
   useEffect(() => {
@@ -123,7 +137,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
     })();
   };
 
-  function handleTogglePanel(panel: 'urlList' | 'saveStatus' | 'settings'): void {
+  function handleTogglePanel(panel: 'urlList' | 'snippetsList' | 'saveStatus' | 'settings'): void {
     setActivePanel((prev) => (prev === panel ? null : panel));
   }
 
@@ -252,6 +266,28 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
                         }}
                         onClearAll={() => {
                           void clearPages();
+                          setActivePanel(null);
+                        }}
+                      />
+                    </div>
+
+                    {/* PendingTextSnippetsPanel */}
+                    <div
+                      className={`transition-opacity duration-150 ${
+                        activePanel === 'snippetsList'
+                          ? 'opacity-100'
+                          : 'pointer-events-none absolute inset-0 opacity-0'
+                      }`}
+                    >
+                      <PendingTextSnippetsPanel
+                        isOpen={activePanel === 'snippetsList'}
+                        onClose={() => setActivePanel(null)}
+                        snippets={getSnippetList()}
+                        onRemove={(id: string) => {
+                          void removeSnippet(id);
+                        }}
+                        onClearAll={() => {
+                          void clearSnippets();
                           setActivePanel(null);
                         }}
                       />

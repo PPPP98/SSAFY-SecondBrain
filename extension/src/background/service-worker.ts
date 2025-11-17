@@ -8,6 +8,7 @@ import * as storage from '@/services/storageService';
 import type { UserInfo } from '@/types/auth';
 import type { SavePageResponse, SavePageError } from '@/types/note';
 import type { DragSearchMessage } from '@/types/dragSearch';
+import type { AddTextSnippetMessage, AddTextSnippetResponse } from '@/types/pendingTextSnippet';
 
 /**
  * Background Service Worker
@@ -24,6 +25,7 @@ type ExtensionMessage =
   | { type: 'OPEN_TAB'; url: string }
   | { type: 'AUTH_CHANGED' }
   | { type: 'ADD_PAGE_TO_COLLECTION'; url: string }
+  | AddTextSnippetMessage
   | {
       type: 'SAVE_CURRENT_PAGE';
       url?: string;
@@ -344,6 +346,7 @@ browser.runtime.onMessage.addListener(
       response:
         | AuthResponse
         | AddPageResponse
+        | AddTextSnippetResponse
         | { success: boolean }
         | SavePageResponse
         | SavePageError,
@@ -389,6 +392,32 @@ browser.runtime.onMessage.addListener(
             } catch (error) {
               console.error('ADD_PAGE_TO_COLLECTION failed:', error);
               sendResponse({ success: false, error: 'Failed to add page' });
+            }
+            break;
+          }
+
+          case 'ADD_TEXT_SNIPPET': {
+            try {
+              const snippets = await storage.loadPendingSnippets();
+
+              // 중복 체크 (텍스트 + URL 기반)
+              const duplicate = snippets.some(
+                (s) => s.text === msg.snippet.text && s.sourceUrl === msg.snippet.sourceUrl,
+              );
+
+              if (duplicate) {
+                sendResponse({ success: false, duplicate: true, count: snippets.length });
+                break;
+              }
+
+              // 추가
+              const updated = await storage.addPendingSnippet(msg.snippet);
+
+              // 성공 응답
+              sendResponse({ success: true, duplicate: false, count: updated.length });
+            } catch (error) {
+              console.error('ADD_TEXT_SNIPPET failed:', error);
+              sendResponse({ success: false, error: 'Failed to add text snippet' });
             }
             break;
           }

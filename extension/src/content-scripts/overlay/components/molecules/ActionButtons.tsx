@@ -1,7 +1,8 @@
-import { Plus, Download, Settings } from 'lucide-react';
+import { Plus, Download, Settings, FileText } from 'lucide-react';
 import { Button } from '@/content-scripts/overlay/components/ui/button';
 import { CounterBadge } from '@/content-scripts/overlay/components/atoms/CounterBadge';
 import { usePageCollectionStore } from '@/stores/pageCollectionStore';
+import { usePendingTextSnippetsStore } from '@/stores/pendingTextSnippetsStore';
 import { useSaveStatusStore } from '@/stores/saveStatusStore';
 import browser from 'webextension-polyfill';
 import { showToast } from '@/content-scripts/overlay/components/molecules/SimpleToast';
@@ -31,15 +32,16 @@ function getErrorMessage(errorCode: string): string {
  * - Shadcn UI + Tailwind CSS 기반
  */
 
-type ActivePanel = null | 'urlList' | 'saveStatus' | 'settings';
+type ActivePanel = null | 'urlList' | 'snippetsList' | 'saveStatus' | 'settings';
 
 interface ActionButtonsProps {
   activePanel: ActivePanel;
-  onTogglePanel: (panel: 'urlList' | 'saveStatus' | 'settings') => void;
+  onTogglePanel: (panel: 'urlList' | 'snippetsList' | 'saveStatus' | 'settings') => void;
 }
 
 export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps) {
   const { pages, addPage, clearPages } = usePageCollectionStore();
+  const { getSnippetCount } = usePendingTextSnippetsStore();
   const { getSavingCount } = useSaveStatusStore();
 
   async function handleAddPage(): Promise<void> {
@@ -63,12 +65,29 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
 
   async function handleSave(): Promise<void> {
     try {
-      const MAX_SAVE_COUNT = 6;
+      const MAX_SAVE_COUNT = 20;
       const urlsToSave = Array.from(pages);
+      const snippets = usePendingTextSnippetsStore.getState().snippets;
       const currentUrl = window.location.href;
 
-      // 수집된 페이지가 있으면 전체 저장, 없으면 현재 페이지만 저장
-      let finalUrls = urlsToSave.length > 0 ? urlsToSave : [currentUrl];
+      // 텍스트 조각을 메타데이터 포맷으로 변환
+      const formattedSnippets = snippets.map((snippet) => {
+        return `=== 출처 정보 ===
+URL: ${snippet.sourceUrl}
+제목: ${snippet.pageTitle}
+추가 시간: ${new Date(snippet.timestamp).toLocaleString('ko-KR')}
+
+=== 선택된 텍스트 ===
+${snippet.text}`;
+      });
+
+      // URL 목록과 텍스트 조각 합치기
+      let finalUrls = [...urlsToSave, ...formattedSnippets];
+
+      // 수집된 것이 없으면 현재 페이지만 저장
+      if (finalUrls.length === 0) {
+        finalUrls = [currentUrl];
+      }
 
       // 최대 개수 제한
       if (finalUrls.length > MAX_SAVE_COUNT) {
@@ -104,12 +123,13 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
       } else {
         const savedCount = finalUrls.length;
         showToast(
-          savedCount > 1 ? `${savedCount}개 페이지가 저장되었습니다` : '페이지가 저장되었습니다',
+          savedCount > 1 ? `${savedCount}개 항목이 저장되었습니다` : '저장되었습니다',
           'success',
         );
 
-        // ✅ 성공 시 수집 목록 초기화
+        // ✅ 성공 시 수집 목록 및 텍스트 조각 모두 초기화
         await clearPages();
+        await usePendingTextSnippetsStore.getState().clearSnippets();
       }
     } catch (error) {
       // 예외 처리 (Background 통신 실패)
@@ -120,6 +140,7 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
 
   const savingCount = getSavingCount();
   const pageCount = pages.size;
+  const snippetCount = getSnippetCount();
 
   return (
     <div className="relative w-[320px] space-y-2 rounded-xl border border-border bg-card p-4 shadow-lg">
@@ -131,10 +152,24 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
           onClick={() => void handleAddPage()}
         >
           <Plus className="h-4 w-4" />
-          <span>Add</span>
+          <span>Add URL</span>
         </Button>
 
         <CounterBadge count={pageCount} onClick={() => onTogglePanel('urlList')} />
+      </div>
+
+      {/* Snippets Button + Counter Badge */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          className="flex-1 justify-start gap-2 hover:bg-accent"
+          onClick={() => onTogglePanel('snippetsList')}
+        >
+          <FileText className="h-4 w-4" />
+          <span>임시 노트</span>
+        </Button>
+
+        <CounterBadge count={snippetCount} onClick={() => onTogglePanel('snippetsList')} />
       </div>
 
       {/* Save Button + Status Toggle */}

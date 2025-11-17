@@ -464,7 +464,7 @@ class DragSearchManager {
 
   /**
    * Add 버튼 클릭 핸들러
-   * 출처 URL을 pageCollectionStore에 추가
+   * 드래그한 텍스트 조각을 임시 저장소에 추가
    */
   private handleAddClick = (): void => {
     void (async () => {
@@ -478,16 +478,27 @@ class DragSearchManager {
           return;
         }
 
+        // 텍스트 조각 생성
+        const snippet = {
+          id: crypto.randomUUID(),
+          text: this.currentKeyword,
+          sourceUrl: this.currentSourceUrl,
+          pageTitle: this.currentPageTitle,
+          timestamp: Date.now(),
+        };
+
         // Background에 메시지 전송
-        const response = (await browser.runtime.sendMessage({
-          type: 'ADD_PAGE_TO_COLLECTION',
-          url: this.currentSourceUrl,
-        })) as { success: boolean; duplicate?: boolean; error?: string };
+        const rawResponse = await browser.runtime.sendMessage({
+          type: 'ADD_TEXT_SNIPPET',
+          snippet,
+        });
+        const response = rawResponse as { success: boolean; duplicate?: boolean; error?: string; count?: number };
 
         if (response.success) {
-          this.showToast('페이지가 추가되었습니다', 'success');
+          const count = response.count || 1;
+          this.showToast(`임시 노트에 추가됨 (총 ${count}개)`, 'success');
         } else if (response.duplicate) {
-          this.showToast('이미 추가된 페이지입니다', 'info');
+          this.showToast('이미 추가된 텍스트입니다', 'info');
         } else {
           this.showToast('추가 실패', 'error');
         }
@@ -518,12 +529,13 @@ class DragSearchManager {
         const batchTimestamp = Date.now();
 
         // Background Service Worker에 저장 요청
-        const response = (await browser.runtime.sendMessage({
+        const rawSaveResponse = await browser.runtime.sendMessage({
           type: 'SAVE_CURRENT_PAGE',
           urls: [formattedData],
           batchId,
           batchTimestamp,
-        })) as { success?: boolean; error?: string; message?: string };
+        });
+        const response = rawSaveResponse as { success?: boolean; error?: string; message?: string };
 
         if ('error' in response && response.error) {
           this.showToast(`저장 실패: ${this.getErrorMessage(response.error)}`, 'error');
