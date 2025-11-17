@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     음성 및 텍스트 검색 화면 레이아웃
-    임시 UI - 추후 프론트엔드 팀원이 디자인 적용 예정
 -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5"
+    android:background="@drawable/search_background_gradient"
     tools:context=".ui.search.SearchActivity">
 
-    <!-- 상단 타이틀 바 -->
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="노트 검색"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#333333"
-        android:padding="16dp"
+    <!-- 로고 이미지 -->
+    <ImageView
+        android:id="@+id/ivLogo"
+        android:layout_width="216dp"
+        android:layout_height="216dp"
+        android:src="@drawable/logo"
+        android:contentDescription="Second Brain Logo"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/searchInputLayout"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_chainStyle="packed"
+        app:layout_constraintVertical_bias="0.42"
+        android:layout_marginBottom="2dp" />
 
     <!-- 검색 입력 영역 -->
     <LinearLayout
@@ -31,11 +31,16 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="#FFFFFF"
-        android:layout_margin="16dp"
-        android:elevation="2dp"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="11dp"
+        android:paddingBottom="11dp"
+        android:background="@drawable/search_box_background"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/ivLogo"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -45,34 +50,37 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="검색어를 입력하세요"
+            android:hint="질문 내용을 입력하세요"
+            android:textColorHint="#9090A0"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
             android:padding="12dp"
             android:background="@android:color/transparent"
-            android:textSize="16sp"
-            android:maxLines="3"
-            android:inputType="textMultiLine" />
+            android:maxLines="1"
+            android:inputType="text"
+            android:imeOptions="actionSearch" />
+
+        <!-- 검색 아이콘 -->
+        <ImageButton
+            android:id="@+id/btnSearch"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_search"
+            android:contentDescription="검색"
+            android:tint="#9090A0"
+            android:padding="8dp" />
 
         <!-- 음성 인식 버튼 -->
         <ImageButton
             android:id="@+id/btnVoiceSearch"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center_vertical"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_btn_speak_now"
             android:contentDescription="음성 검색"
-            android:tint="#007AFF" />
-
-        <!-- 검색 버튼 -->
-        <ImageButton
-            android:id="@+id/btnSearch"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center_vertical"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_search"
-            android:contentDescription="검색"
-            android:tint="#007AFF" />
+            android:tint="#9090A0"
+            android:padding="8dp" />
     </LinearLayout>
 
     <!-- 음성 인식 상태 표시 -->
@@ -81,152 +89,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="음성을 듣고 있습니다..."
-        android:textColor="#007AFF"
+        android:textColor="#9090A0"
         android:textSize="14sp"
         android:visibility="gone"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         app:layout_constraintTop_toBottomOf="@id/searchInputLayout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- 로딩 인디케이터 -->
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/tvVoiceStatus"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp" />
-
-    <!-- 스크롤 가능한 결과 영역 -->
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/scrollView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:fillViewport="true"
-        app:layout_constraintTop_toBottomOf="@id/progressBar"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <!-- 검색 결과 제목 -->
-            <TextView
-                android:id="@+id/tvResultsTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="검색 결과"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="#333333"
-                android:padding="16dp"
-                android:visibility="gone" />
-
-            <!-- ElasticSearch 결과 섹션 -->
-            <TextView
-                android:id="@+id/tvElasticTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="전체 검색 결과"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#666666"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="8dp"
-                android:visibility="gone" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvElasticResults"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:nestedScrollingEnabled="false"
-                android:visibility="gone" />
-
-            <!-- AI 에이전트 결과 섹션 -->
-            <TextView
-                android:id="@+id/tvAgentTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="AI 추천 결과"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#666666"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="16dp"
-                android:visibility="gone" />
-
-            <!-- AI 에이전트 로딩 상태 -->
-            <TextView
-                android:id="@+id/tvAgentLoading"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="AI 추천 검색 중..."
-                android:textSize="14sp"
-                android:textColor="#007AFF"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:visibility="gone" />
-
-            <!-- AI 에이전트 응답 메시지 -->
-            <TextView
-                android:id="@+id/tvAgentResponse"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:textColor="#555555"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:visibility="gone" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvAgentResults"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:nestedScrollingEnabled="false"
-                android:visibility="gone" />
-
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
-
-    <!-- 결과 없음 메시지 -->
-    <TextView
-        android:id="@+id/tvNoResults"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="검색 결과가 없습니다"
-        android:textSize="16sp"
-        android:textColor="#999999"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- 에러 메시지 -->
-    <TextView
-        android:id="@+id/tvError"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="#DC3545"
-        android:textSize="14sp"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/searchInputLayout"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
