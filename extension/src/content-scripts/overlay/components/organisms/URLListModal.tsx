@@ -21,7 +21,7 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
 
   return (
     <div
-      className="absolute left-0 top-full z-10 mt-2 w-full rounded-lg border border-border bg-card shadow-xl"
+      className="w-[320px] rounded-lg border border-border bg-card shadow-xl"
       style={{
         maxHeight: '400px',
         display: 'flex',
@@ -29,11 +29,25 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-3">
-        <h3 className="text-sm font-semibold text-card-foreground">
-          수집된 페이지 ({urls.length})
-        </h3>
-        <div className="flex items-center gap-1">
+      <div className="border-b border-border">
+        {/* 닫기 버튼 - 우측 상단 고정 */}
+        <div className="flex justify-end p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={onClose}
+            aria-label="닫기"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* 정보 + 액션 - 별도 행 */}
+        <div className="flex items-center justify-between px-4 pb-3">
+          <h3 className="text-sm font-semibold text-card-foreground">
+            추가한 페이지 ({urls.length})
+          </h3>
           {urls.length > 0 && (
             <Button
               variant="ghost"
@@ -45,20 +59,11 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
               <span>전체 삭제</span>
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={onClose}
-            aria-label="닫기"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
       {/* URL List */}
-      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+      <div className="flex-1 space-y-2 overflow-y-auto p-3 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-transparent">
         {urls.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
             추가된 페이지가 없습니다
@@ -67,16 +72,23 @@ export function URLListModal({ isOpen, onClose, urls, onRemove, onClearAll }: UR
           urls.map((url) => (
             <div
               key={url}
-              className="flex items-center gap-2 rounded-md border border-border bg-background p-2 transition-colors hover:bg-accent"
+              className="group flex items-center gap-2 rounded-md border border-border bg-background p-2 transition-colors hover:bg-accent"
             >
-              <span className="flex-1 truncate text-xs text-foreground" title={url}>
+              <span
+                className="flex-1 cursor-pointer truncate text-xs text-foreground hover:text-primary hover:underline"
+                title={url}
+                onClick={() => window.open(url, '_blank')}
+              >
                 {url}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => onRemove(url)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(url);
+                }}
                 aria-label={`${url} 삭제`}
               >
                 <X className="h-3 w-3" />

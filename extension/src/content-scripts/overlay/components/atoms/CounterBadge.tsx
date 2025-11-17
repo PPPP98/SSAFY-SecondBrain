@@ -15,12 +15,11 @@ export function CounterBadge({ count, onClick }: CounterBadgeProps) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+      className="flex h-8 min-w-[2rem] cursor-pointer items-center justify-center rounded-md bg-primary px-2.5 py-1.5 text-sm font-semibold text-primary-foreground transition-all hover:scale-105 hover:bg-primary/90 active:scale-95"
       type="button"
-      aria-label={`${count}개 페이지 수집됨`}
+      aria-label={`${count}개 항목`}
     >
-      <span className="font-semibold">{count}</span>
-      <span className="text-xs">페이지</span>
+      {count}
     </button>
   );
 }

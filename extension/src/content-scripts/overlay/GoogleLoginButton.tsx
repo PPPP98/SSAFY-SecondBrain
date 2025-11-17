@@ -5,7 +5,9 @@
  * https://developers.google.com/identity/branding-guidelines
  */
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
+import { ThemeContext } from '@/contexts/ThemeContext';
+import { useExtensionAuth } from '@/hooks/useExtensionAuth';
 
 interface GoogleLoginButtonProps {
   text?: 'signin' | 'signup' | 'continue';
@@ -14,6 +16,8 @@ interface GoogleLoginButtonProps {
 export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
+  const { resolvedTheme } = useContext(ThemeContext);
+  const { login } = useExtensionAuth();
 
   const buttonText = {
     signin: 'Sign in with Google',
@@ -22,17 +26,29 @@ export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
   };
 
   async function handleLogin() {
-    try {
-      const { default: browser } = await import('webextension-polyfill');
-      await browser.runtime.sendMessage({
-        type: 'LOGIN',
-      });
-    } catch (error) {
-      console.error('❌ Extension login failed:', error);
-    }
+    await login();
   }
 
-  // Shadow DOM 호환 inline styles with Neumorphism 3D effects
+  // Theme-specific color palettes for Neumorphism
+  const lightModeColors = {
+    background: '#f0f0f3',
+    text: '#1F1F1F',
+    shadowDark: 'rgba(0, 0, 0, 0.1)',
+    shadowDarkHover: 'rgba(0, 0, 0, 0.15)',
+    shadowLight: 'rgba(255, 255, 255, 0.5)',
+    shadowLightHover: 'rgba(255, 255, 255, 0.7)',
+  };
+
+  const darkModeColors = {
+    background: '#2a2a2e',
+    text: '#ECEEEF',
+    shadowDark: 'rgba(0, 0, 0, 0.4)',
+    shadowLight: 'rgba(255, 255, 255, 0.05)',
+  };
+
+  const colors = resolvedTheme === 'dark' ? darkModeColors : lightModeColors;
+
+  // Shadow DOM 호환 inline styles with Neumorphism 3D effects (Light & Dark mode support)
   const buttonStyle: React.CSSProperties = {
     display: 'flex',
     minWidth: '200px',
@@ -41,20 +57,27 @@ export function GoogleLoginButton({ text = 'signin' }: GoogleLoginButtonProps) {
     justifyContent: 'center',
     borderRadius: '8px',
     border: 'none',
-    backgroundColor: '#f0f0f3',
+    backgroundColor: colors.background,
     padding: '10px 12px',
     fontSize: '14px',
     fontWeight: '500',
     lineHeight: '20px',
-    color: '#1F1F1F',
+    color: colors.text,
     transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     // Neumorphism 3D Effect - box-shadow only, no transform
-    boxShadow: isPressed
-      ? 'inset 4px 4px 8px rgba(0, 0, 0, 0.15), inset -4px -4px 8px rgba(255, 255, 255, 0.7)'
-      : isHovered
-        ? '8px 8px 16px rgba(0, 0, 0, 0.15), -8px -8px 16px rgba(255, 255, 255, 0.7)'
-        : '6px 6px 12px rgba(0, 0, 0, 0.1), -6px -6px 12px rgba(255, 255, 255, 0.5)',
+    boxShadow:
+      resolvedTheme === 'dark'
+        ? isPressed
+          ? `inset 4px 4px 8px ${colors.shadowDark}, inset -4px -4px 8px ${colors.shadowLight}`
+          : isHovered
+            ? `8px 8px 16px ${colors.shadowDark}, -8px -8px 16px ${colors.shadowLight}`
+            : `6px 6px 12px ${colors.shadowDark}, -6px -6px 12px ${colors.shadowLight}`
+        : isPressed
+          ? `inset 4px 4px 8px ${lightModeColors.shadowDarkHover}, inset -4px -4px 8px ${lightModeColors.shadowLightHover}`
+          : isHovered
+            ? `8px 8px 16px ${lightModeColors.shadowDarkHover}, -8px -8px 16px ${lightModeColors.shadowLightHover}`
+            : `6px 6px 12px ${lightModeColors.shadowDark}, -6px -6px 12px ${lightModeColors.shadowLight}`,
   };
 
   const svgStyle: React.CSSProperties = {

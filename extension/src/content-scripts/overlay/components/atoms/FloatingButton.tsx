@@ -14,7 +14,7 @@ interface FloatingButtonProps {
 
 export function FloatingButton({ onClick }: FloatingButtonProps) {
   return (
-    <SimpleTooltip content="SecondBrain 열기" side="bottom">
+    <SimpleTooltip content="Second Brain" side="left-bottom">
       <button
         onClick={onClick}
         className="inline-flex size-10 items-center justify-center rounded-full border-2 border-foreground/20 shadow-lg transition-transform hover:scale-110 dark:border-white"
