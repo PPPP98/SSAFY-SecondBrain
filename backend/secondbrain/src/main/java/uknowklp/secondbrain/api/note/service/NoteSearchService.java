@@ -148,23 +148,24 @@ public class NoteSearchService {
 		List<VectorSearchResult> vectorResults
 	) {
 		final int k = 60; // RRF 상수
+		final double MIN_SCORE_THRESHOLD = 0.007; // 최소 점수 임계값 (70% 기준)
 		Map<Long, Double> scoreMap = new HashMap<>();
 		Map<Long, NoteDocument> documentMap = new HashMap<>();
 
-		// Elasticsearch 결과 점수 계산 (가중치 70%)
+		// Elasticsearch 결과 점수 계산 (가중치 30%)
 		for (int i = 0; i < elasticResults.size(); i++) {
 			NoteDocument doc = elasticResults.get(i);
 			Long noteId = doc.getId();
-			double rrfScore = 0.7 / (k + i + 1); // rank는 0부터 시작하므로 +1
+			double rrfScore = 0.3 / (k + i + 1); // rank는 0부터 시작하므로 +1
 			scoreMap.put(noteId, scoreMap.getOrDefault(noteId, 0.0) + rrfScore);
 			documentMap.put(noteId, doc);
 		}
 
-		// Vector 검색 결과 점수 계산 (가중치 30%)
+		// Vector 검색 결과 점수 계산 (가중치 70%)
 		for (int i = 0; i < vectorResults.size(); i++) {
 			VectorSearchResult result = vectorResults.get(i);
 			Long noteId = result.noteId();
-			double rrfScore = 0.3 / (k + i + 1);
+			double rrfScore = 0.7 / (k + i + 1);
 			scoreMap.put(noteId, scoreMap.getOrDefault(noteId, 0.0) + rrfScore);
 
 			// Vector 결과에만 있는 문서는 Elasticsearch에서 조회
@@ -174,12 +175,18 @@ public class NoteSearchService {
 			}
 		}
 
-		// 최종 점수 기준으로 정렬
-		return scoreMap.entrySet().stream()
+		// 최소 점수 이상만 필터링하고 점수 기준 정렬
+		List<NoteDocument> filteredResults = scoreMap.entrySet().stream()
+			.filter(entry -> entry.getValue() >= MIN_SCORE_THRESHOLD)
 			.sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
 			.map(entry -> documentMap.get(entry.getKey()))
 			.filter(Objects::nonNull)
 			.toList();
+
+		log.debug("RRF 병합 완료 - 전체: {}건, 임계값({}) 이상: {}건",
+			scoreMap.size(), MIN_SCORE_THRESHOLD, filteredResults.size());
+
+		return filteredResults;
 	}
 
 	// 특정 노트와 유사한 노트 찾기 (연관 높은 노트 추천)
