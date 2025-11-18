@@ -1,11 +1,13 @@
 import browser from 'webextension-polyfill';
 import type { PendingTextSnippet } from '@/types/pendingTextSnippet';
+import type { SaveRequest } from '@/types/save';
 
 /**
  * Storage Service
  * - chrome.storage.local API 래퍼
  * - 페이지 수집 목록 및 Overlay 상태 관리
  * - 임시 텍스트 조각 관리
+ * - 저장 상태 관리 (Save Status)
  * - 탭 간 상태 동기화를 위한 리스너 제공
  */
 
@@ -14,6 +16,7 @@ export const STORAGE_KEYS = {
   COLLECTED_PAGES: 'secondbrain-collected-pages',
   OVERLAY_STATE: 'secondbrain-overlay-state',
   PENDING_TEXT_SNIPPETS: 'secondbrain-pending-text-snippets',
+  SAVE_STATUS_REQUESTS: 'secondbrain-save-status-requests',
 } as const;
 
 // Overlay State 타입
@@ -202,6 +205,58 @@ export async function clearPendingSnippets(): Promise<void> {
 }
 
 // ============================================================================
+// Save Status Functions
+// ============================================================================
+
+/**
+ * 저장 요청 목록을 Storage에 저장
+ * @param requests - SaveRequest 배열
+ */
+export async function saveSaveStatusRequests(requests: SaveRequest[]): Promise<void> {
+  try {
+    await browser.storage.local.set({
+      [STORAGE_KEYS.SAVE_STATUS_REQUESTS]: requests,
+    });
+  } catch (error) {
+    console.error('[StorageService] Failed to save status requests:', error);
+    throw error;
+  }
+}
+
+/**
+ * Storage에서 저장 요청 목록 불러오기
+ * @returns SaveRequest 배열 (없으면 빈 배열)
+ */
+export async function loadSaveStatusRequests(): Promise<SaveRequest[]> {
+  try {
+    const result = await browser.storage.local.get([STORAGE_KEYS.SAVE_STATUS_REQUESTS]);
+    const requests = result[STORAGE_KEYS.SAVE_STATUS_REQUESTS];
+
+    // 타입 가드: 배열인지 검증
+    if (Array.isArray(requests)) {
+      return requests as SaveRequest[];
+    }
+
+    return []; // 기본값
+  } catch (error) {
+    console.error('[StorageService] Failed to load status requests:', error);
+    return []; // 기본값 반환
+  }
+}
+
+/**
+ * 모든 저장 요청 삭제
+ */
+export async function clearSaveStatusRequests(): Promise<void> {
+  try {
+    await saveSaveStatusRequests([]);
+  } catch (error) {
+    console.error('[StorageService] Failed to clear status requests:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
 // Overlay State Functions
 // ============================================================================
 
@@ -329,6 +384,7 @@ export async function initializeStorage(): Promise<void> {
       STORAGE_KEYS.COLLECTED_PAGES,
       STORAGE_KEYS.OVERLAY_STATE,
       STORAGE_KEYS.PENDING_TEXT_SNIPPETS,
+      STORAGE_KEYS.SAVE_STATUS_REQUESTS,
     ]);
 
     const updates: Record<string, unknown> = {};
@@ -343,6 +399,10 @@ export async function initializeStorage(): Promise<void> {
 
     if (!result[STORAGE_KEYS.PENDING_TEXT_SNIPPETS]) {
       updates[STORAGE_KEYS.PENDING_TEXT_SNIPPETS] = [];
+    }
+
+    if (!result[STORAGE_KEYS.SAVE_STATUS_REQUESTS]) {
+      updates[STORAGE_KEYS.SAVE_STATUS_REQUESTS] = [];
     }
 
     // 업데이트할 내용이 있으면 저장
