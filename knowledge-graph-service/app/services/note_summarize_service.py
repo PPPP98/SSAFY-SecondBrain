@@ -50,6 +50,16 @@ class NoteSummarizeService:
         except Exception as e:
             logger.error(f"error : {e}")
             return {}
+    
+    def image_graph(self, filename="summarize_graph.png"):
+        """그래프를 PNG 파일로 저장"""
+        png_bytes = self.graph.get_graph().draw_mermaid_png()
+        
+        with open(filename, "wb") as f:
+            f.write(png_bytes)
+        
+        print(f"✅ 그래프가 '{filename}'으로 저장되었습니다.")
+        return filename
 
 
 note_summarize_service = NoteSummarizeService()

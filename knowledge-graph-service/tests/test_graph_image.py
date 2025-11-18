@@ -1,0 +1,5 @@
+from app.services.agent_search_service import agent_search_service
+from app.services.note_summarize_service import note_summarize_service
+
+#agent_search_service.image_graph()
+note_summarize_service.image_graph()

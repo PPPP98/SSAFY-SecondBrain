@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from app.core.config import get_settings
 import logging
 import httpx
-from contextlib import asynccontextmanager
+from typing import Dict
 
 settings = get_settings()
 
@@ -28,8 +28,8 @@ class ExternalService:
     async def async_post_call_external_service(
         self,
         auth_token: str,
-        payload: dict,
-    ) -> dict:
+        payload: Dict,
+    ) -> Dict:
         URL: str = f"{self.api_url}notes"
         headers = {
             "Authorization": f"Bearer {auth_token}",
@@ -53,6 +53,72 @@ class ExternalService:
         except Exception as e:
             logger.error(f"error : {e}")
             raise HTTPException(status_code=500, detail=f"External service call error")
+
+    async def get_user_id(
+        self,
+        api_key: str,
+    ) -> Dict:
+        URL: str = f"{self.api_url}apikey/validate"
+        payload = {"apiKey": api_key}
+        try:
+            client = await self.get_client()
+            response = await client.post(URL, json=payload)
+            response.raise_for_status()
+            return response.json()
+
+        except httpx.RequestError as e:
+            logger.error(f"Network error : {e}")
+            raise HTTPException(
+                status_code=503, detail=f"External service call failed: {e}"
+            )
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error : {e}")
+            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+
+        except Exception as e:
+            logger.error(f"error : {e}")
+            raise HTTPException(status_code=500, detail=f"External service call error")
+
+    async def get_note_data(
+        self,
+        api_key: str,
+        note_id: int,
+    ) -> Dict:
+        URL: str = f"{self.api_url}mcp/notes/{note_id}"
+        try:
+            client = await self.get_client()
+            response = await client.get(URL, headers={"X-API-Key": api_key})
+            response.raise_for_status()
+            return response.json()
+
+        except httpx.RequestError as e:
+            logger.error(f"Network error while fetching note {note_id}: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail=f"External service call failed: {e}",
+            )
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error while fetching note {note_id}: {e}")
+
+            # 404 처리
+            if e.response.status_code == 404:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Note {note_id} not found",
+                )
+
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=str(e),
+            )
+
+        except Exception as e:
+            logger.error(f"Error fetching note {note_id}: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail="External service call error",
+            )
 
 
 external_service = ExternalService()
