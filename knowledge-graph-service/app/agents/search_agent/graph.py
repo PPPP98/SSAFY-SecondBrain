@@ -147,3 +147,4 @@ class Graph:
         graph = builder.compile()
 
         return graph
+
