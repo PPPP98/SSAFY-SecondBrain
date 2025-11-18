@@ -66,7 +66,7 @@ class MobileWearableListenerService : WearableListenerService() {
                     WearableConstants.PATH_VOICE_TEXT -> {
                         // SecondBrainApplication의 수동 리스너에서 처리하므로 중복 방지를 위해 건너뜀
                         Log.i(TAG, "음성 텍스트 수신 - SecondBrainApplication에서 처리 중 (중복 방지)")
-                        return@forEach
+                        continue
                     }
                     else -> {
                         Log.w(TAG, "알 수 없는 경로: ${dataItem.uri.path}")
@@ -100,7 +100,7 @@ class MobileWearableListenerService : WearableListenerService() {
             WearableConstants.PATH_OPEN_ON_PHONE -> {
                 // SecondBrainApplication의 MessageListener에서 처리하므로 중복 방지를 위해 건너뜀
                 Log.i(TAG, "폰에서 열기 요청 수신 - SecondBrainApplication에서 처리 중 (중복 방지)")
-                return
+                return@onMessageReceived
             }
             else -> {
                 Log.w(TAG, "알 수 없는 경로: ${messageEvent.path}")

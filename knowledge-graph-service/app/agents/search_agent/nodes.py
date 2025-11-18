@@ -23,8 +23,9 @@ logger = logging.getLogger(__name__)
 SEARCH_LIMIT = settings.search_limit
 TOP_K = settings.top_k
 
+
 class Nodes:
-    """ 
+    """
     검색 Agent Graph 노드 정의
     Pre-Filter
     Simple Lookup
@@ -386,130 +387,155 @@ class Nodes:
     async def generate_response_node(state: State) -> State:
         """
         응답 생성 노드: 검색 결과 정리 (1-2문장)
-        
+
         케이스:
         1. direct_answer: 검색 유도 메시지
         2. 문서 없음: 검색 실패 안내
         3. 문서 있음: 검색 결과 요약
-        
+
         Returns:
             response: 1-2문장 짧은 응답
         """
-        
+
         try:
             logger.debug("📝 응답 생성 시작")
-            
+
             # 파라미터
             documents = state.get("documents", [])
             original_query = state.get("original_query", "")
             search_type = state.get("search_type", "")
-            
+
             logger.debug(f"💬 질문: {original_query}")
             logger.debug(f"🔀 타입: {search_type}")
             logger.debug(f"📚 문서: {len(documents)}개")
-            
+
             # LLM 모델
             models = Models()
             llm = models.get_response_model()
-            
+
             # ========================================
             # Case 1: Direct Answer (검색 유도)
             # ========================================
             if search_type == "direct_answer":
                 logger.debug("🎯 케이스: 검색 유도")
-                
+
                 prompt = Prompts.GENERATE_DIRECT_ANSWER_PROMPT.format(
                     query=original_query
                 )
-                
+
                 logger.debug(f"📄 프롬프트:\n{prompt}")
-                
+
                 response = await llm.ainvoke(prompt)
-                response_text = response.content if hasattr(response, 'content') else str(response)
-                
+                response_text = (
+                    response.content if hasattr(response, "content") else str(response)
+                )
+
                 logger.debug(f"✅ 검색 유도 완료: {response_text}")
-                
-                return {
-                    **state,
-                    "response": response_text
-                }
-            
+
+                return {**state, "response": response_text}
+
             # ========================================
             # Case 2: 검색 결과 없음
             # ========================================
             if not documents:
                 logger.debug("⚠️  케이스: 검색 결과 없음")
-                
+
                 response_text = Prompts.GENERATE_NO_RESULT_RESPONSE
-                
+
                 logger.debug(f"✅ 안내 메시지: {response_text}")
-                
-                return {
-                    **state,
-                    "response": response_text
-                }
-            
+
+                return {**state, "response": response_text}
+
             # ========================================
             # Case 3: 검색 결과 정리
             # ========================================
             logger.debug("📄 케이스: 검색 결과 정리")
-            
+
             # 컨텍스트 구성
             context_parts = []
             for i, doc in enumerate(documents[:TOP_K], 1):
                 title = doc.get("title", "제목 없음")
                 context_parts.append(f"{title}")
-            
+
             context = "\n".join(context_parts)
-            
+
             logger.debug(f"📋 컨텍스트:\n{context}")
-            
+
             # 프롬프트 생성
             prompt = Prompts.GENERATE_RESPONSE_PROMPT.format(
-                query=original_query,
-                context=context
+                query=original_query, context=context
             )
-            
+
             logger.debug(f"📄 프롬프트:\n{prompt}")
-            
+
             # LLM 호출
             logger.debug("🤖 LLM 호출 중...")
             response = await llm.ainvoke(prompt)
-            response_text = response.content if hasattr(response, 'content') else str(response)
-            
+            response_text = (
+                response.content if hasattr(response, "content") else str(response)
+            )
+
             logger.debug(f"✅ 검색 결과 정리 완료")
             logger.debug(f"📤 응답 ({len(response_text)}자): {response_text}")
-            
-            return {
-                **state,
-                "response": response_text
-            }
-        
+
+            return {**state, "response": response_text}
+
         except Exception as e:
             logger.error(f"❌ 응답 생성 에러: {str(e)}")
             traceback.print_exc()
-            
+
             # ========================================
             # Fallback: 단순 리스트
             # ========================================
             documents = state.get("documents", [])
-            
+
             if documents:
                 # 간단한 폴백 메시지
-                titles = [doc.get('title', '제목 없음') for doc in documents]
-                
+                titles = [doc.get("title", "제목 없음") for doc in documents]
+
                 if len(documents) == 1:
                     fallback = f"노트 1개를 찾았습니다: {titles[0]}"
                 elif len(documents) <= 3:
-                    fallback = f"노트 {len(documents)}개를 찾았습니다: {', '.join(titles)}"
+                    fallback = (
+                        f"노트 {len(documents)}개를 찾았습니다: {', '.join(titles)}"
+                    )
                 else:
                     fallback = f"노트 {len(documents)}개를 찾았습니다: {', '.join(titles[:3])} 외 {len(documents)-3}개"
-                
+
                 logger.warning(f"⚠️  폴백 응답: {fallback}")
-                
+
                 return {**state, "response": fallback}
             else:
                 fallback = "검색 결과가 없습니다."
                 logger.warning(f"⚠️  폴백 응답: {fallback}")
-                
+
                 return {**state, "response": fallback}
+
+    @staticmethod
+    async def check_search_type(state: State) -> State:
+        """
+        MCP agent node
+
+        1. 입력 쿼리가 있을 때
+        유사도 검색
+        2. timespan만 존재할 때
+        기간 검색
+        """
+        query = state.get("query")
+        timespan = state.get("filters", {}).get("timespan")
+
+        if query:
+            return {
+                **state,
+                "search_type": "similarity",
+            }
+        elif timespan:
+            return {
+                **state,
+                "search_type": "simple_lookup",
+            }
+        else:
+            return {
+                **state,
+                "search_type": "end",
+            }

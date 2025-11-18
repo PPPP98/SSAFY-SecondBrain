@@ -148,7 +148,10 @@ class WakeWordService : Service() {
         Log.i(TAG, "웨이크워드 처리 시작")
 
         // 화면 켜기 (WakeLock 사용)
+        // 참고: SCREEN_BRIGHT_WAKE_LOCK은 deprecated되었지만, 대안으로 PROXIMITY_SCREEN_OFF_WAKE_LOCK 또는
+        // PARTIAL_WAKE_LOCK + WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON을 사용할 수 있습니다.
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        @Suppress("DEPRECATION")
         val wakeLock = powerManager.newWakeLock(
             PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
                     PowerManager.ACQUIRE_CAUSES_WAKEUP or
