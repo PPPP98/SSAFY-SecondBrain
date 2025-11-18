@@ -202,6 +202,11 @@ class SearchResultActivity : AppCompatActivity() {
             performSearchFromInput()
         }
 
+        // 음성 검색 버튼 클릭 리스너
+        btnVoiceSearch.setOnClickListener {
+            checkMicPermissionAndStartVoice()
+        }
+
         // 키보드 엔터키로 검색
         etSearchQuery.setOnEditorActionListener { _, actionId, event ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH ||
@@ -216,6 +221,46 @@ class SearchResultActivity : AppCompatActivity() {
         // TTS 재생 버튼 클릭 리스너
         btnPlayTts.setOnClickListener {
             toggleTtsPlayback()
+        }
+    }
+
+    /**
+     * 마이크 권한 확인 후 음성 인식 시작
+     */
+    private fun checkMicPermissionAndStartVoice() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                startVoiceRecognition()
+            }
+            else -> {
+                requestMicPermission.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        }
+    }
+
+    /**
+     * 음성 인식 시작
+     */
+    private fun startVoiceRecognition() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            // 한국어로 명시적 설정
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "ko-KR")
+            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "ko-KR")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "검색어를 말씀하세요")
+        }
+
+        try {
+            speechRecognizerLauncher.launch(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "음성 인식을 시작할 수 없습니다", Toast.LENGTH_SHORT).show()
         }
     }
 
