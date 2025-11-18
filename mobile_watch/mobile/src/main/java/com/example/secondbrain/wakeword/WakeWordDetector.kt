@@ -292,6 +292,8 @@ class WakeWordDetector(private val context: Context) {
 
                         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                             _wakeWordDetected.value = false
+                            // 재시작하여 계속 감지
+                            startListening()
                         }, 1000)
                     }
                 }
