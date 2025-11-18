@@ -282,6 +282,14 @@ class SearchResultActivity : AppCompatActivity() {
         agentAdapter.submitList(emptyList())
         agentResponseText = ""
 
+        // TTS 재생 중지 및 초기화
+        exoPlayer?.stop()
+        exoPlayer?.release()
+        exoPlayer = null
+        currentTempFile?.delete()
+        currentTempFile = null
+        btnPlayTts.visibility = View.GONE
+
         // 키보드 숨기기
         val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
         imm.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
