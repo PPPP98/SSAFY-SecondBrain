@@ -34,6 +34,15 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var btnSearch: ImageButton
     private lateinit var tvVoiceStatus: TextView
 
+    // SharedPreferences - 권한 요청 상태 저장
+    private val prefs by lazy {
+        getSharedPreferences("app_preferences", MODE_PRIVATE)
+    }
+
+    companion object {
+        private const val PREF_FIRST_LAUNCH = "is_first_launch"
+    }
+
     // 음성 인식 결과 처리
     private val speechRecognizerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -68,9 +77,23 @@ class SearchActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            checkFullScreenIntentPermission()
+            checkNotificationPermission()
         } else {
             android.util.Log.w("SearchActivity", "웨이크워드 서비스: 마이크 권한 거부됨")
+        }
+    }
+
+    // 알람 권한 요청 (Android 13+)
+    private val requestNotificationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            android.util.Log.i("SearchActivity", "알람 권한 승인됨")
+            checkFullScreenIntentPermission()
+        } else {
+            android.util.Log.w("SearchActivity", "알람 권한 거부됨")
+            // 권한이 거부되어도 다음 단계로 진행
+            checkFullScreenIntentPermission()
         }
     }
 
@@ -93,8 +116,13 @@ class SearchActivity : AppCompatActivity() {
         initializeViews()
         setupListeners()
 
-        // 웨이크워드 서비스 시작 (백그라운드 음성 감지)
-        checkAndRequestPermissionForService()
+        // 앱 첫 실행 시 환영 메시지 및 권한 안내
+        if (isFirstLaunch()) {
+            showWelcomeDialog()
+        } else {
+            // 웨이크워드 서비스 시작 (백그라운드 음성 감지)
+            checkAndRequestPermissionForService()
+        }
 
         // 웨이크워드로 앱이 실행된 경우 로그 출력
         if (intent.getBooleanExtra("wake_word_detected", false)) {
@@ -292,6 +320,46 @@ class SearchActivity : AppCompatActivity() {
     // ========== 웨이크워드 서비스 관련 메서드 ==========
 
     /**
+     * 앱이 처음 실행되는지 확인
+     */
+    private fun isFirstLaunch(): Boolean {
+        return prefs.getBoolean(PREF_FIRST_LAUNCH, true)
+    }
+
+    /**
+     * 첫 실행 상태를 false로 설정
+     */
+    private fun setFirstLaunchComplete() {
+        prefs.edit().putBoolean(PREF_FIRST_LAUNCH, false).apply()
+    }
+
+    /**
+     * 앱 첫 실행 시 환영 메시지 및 권한 안내
+     */
+    private fun showWelcomeDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Second Brain에 오신 것을 환영합니다!")
+            .setMessage(
+                "Second Brain은 음성 인식과 AI 검색 기능을 제공합니다.\n\n" +
+                "원활한 사용을 위해 다음 권한이 필요합니다:\n" +
+                "• 마이크: 음성 검색 및 웨이크워드 감지\n" +
+                "• 알림: 검색 결과 및 워치 알림\n" +
+                "• 전체 화면 알림: 웨이크워드 감지 시 자동 실행\n\n" +
+                "권한 설정을 진행하시겠습니까?"
+            )
+            .setPositiveButton("권한 설정하기") { _, _ ->
+                setFirstLaunchComplete()
+                checkAndRequestPermissionForService()
+            }
+            .setNegativeButton("나중에") { dialog, _ ->
+                setFirstLaunchComplete()
+                dialog.dismiss()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    /**
      * 웨이크워드 서비스를 위한 권한 확인 및 요청
      */
     private fun checkAndRequestPermissionForService() {
@@ -300,14 +368,61 @@ class SearchActivity : AppCompatActivity() {
                 this,
                 Manifest.permission.RECORD_AUDIO
             ) == PackageManager.PERMISSION_GRANTED -> {
-                // 마이크 권한 있음 - Full-Screen Intent 권한 확인
-                checkFullScreenIntentPermission()
+                // 마이크 권한 있음 - 알람 권한 확인
+                checkNotificationPermission()
             }
             else -> {
                 // 마이크 권한 요청
                 requestMicPermissionForService.launch(Manifest.permission.RECORD_AUDIO)
             }
         }
+    }
+
+    /**
+     * 알람 권한 확인 및 요청 (Android 13+)
+     */
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13+
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    android.util.Log.i("SearchActivity", "알람 권한 이미 허용됨")
+                    checkFullScreenIntentPermission()
+                }
+                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
+                    // 이전에 거부한 경우 - 왜 필요한지 설명
+                    showNotificationPermissionRationale()
+                }
+                else -> {
+                    // 처음 요청하는 경우
+                    android.util.Log.i("SearchActivity", "알람 권한 요청 중")
+                    requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        } else {
+            // Android 12 이하는 알람 권한 불필요
+            checkFullScreenIntentPermission()
+        }
+    }
+
+    /**
+     * 알람 권한이 필요한 이유 설명 다이얼로그
+     */
+    private fun showNotificationPermissionRationale() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("알림 권한 필요")
+            .setMessage("웨이크워드 감지 시 알림을 보내고, 워치에서 전송된 검색 결과를 알려드리기 위해 알림 권한이 필요합니다.")
+            .setPositiveButton("허용") { _, _ ->
+                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            .setNegativeButton("나중에") { dialog, _ ->
+                dialog.dismiss()
+                checkFullScreenIntentPermission()
+            }
+            .setCancelable(false)
+            .show()
     }
 
     /**
