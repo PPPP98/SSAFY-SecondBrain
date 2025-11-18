@@ -1,9 +1,11 @@
 import browser from 'webextension-polyfill';
+import type { PendingTextSnippet } from '@/types/pendingTextSnippet';
 
 /**
  * Storage Service
  * - chrome.storage.local API 래퍼
  * - 페이지 수집 목록 및 Overlay 상태 관리
+ * - 임시 텍스트 조각 관리
  * - 탭 간 상태 동기화를 위한 리스너 제공
  */
 
@@ -11,6 +13,7 @@ import browser from 'webextension-polyfill';
 export const STORAGE_KEYS = {
   COLLECTED_PAGES: 'secondbrain-collected-pages',
   OVERLAY_STATE: 'secondbrain-overlay-state',
+  PENDING_TEXT_SNIPPETS: 'secondbrain-pending-text-snippets',
 } as const;
 
 // Overlay State 타입
@@ -106,6 +109,94 @@ export async function clearCollectedPages(): Promise<void> {
     await saveCollectedPages([]);
   } catch (error) {
     console.error('[StorageService] Failed to clear pages:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// Pending Text Snippets Functions
+// ============================================================================
+
+/**
+ * 임시 텍스트 조각 목록을 Storage에 저장
+ * @param snippets - PendingTextSnippet 배열
+ */
+export async function savePendingSnippets(snippets: PendingTextSnippet[]): Promise<void> {
+  try {
+    await browser.storage.local.set({
+      [STORAGE_KEYS.PENDING_TEXT_SNIPPETS]: snippets,
+    });
+  } catch (error) {
+    console.error('[StorageService] Failed to save pending snippets:', error);
+    throw error;
+  }
+}
+
+/**
+ * Storage에서 임시 텍스트 조각 목록 불러오기
+ * @returns PendingTextSnippet 배열 (없으면 빈 배열)
+ */
+export async function loadPendingSnippets(): Promise<PendingTextSnippet[]> {
+  try {
+    const result = await browser.storage.local.get([STORAGE_KEYS.PENDING_TEXT_SNIPPETS]);
+    const snippets = result[STORAGE_KEYS.PENDING_TEXT_SNIPPETS];
+
+    // 타입 가드: 배열인지 검증
+    if (Array.isArray(snippets)) {
+      return snippets as PendingTextSnippet[];
+    }
+
+    return []; // 기본값
+  } catch (error) {
+    console.error('[StorageService] Failed to load pending snippets:', error);
+    return []; // 기본값 반환
+  }
+}
+
+/**
+ * 텍스트 조각 추가
+ * @param snippet - 추가할 텍스트 조각
+ * @returns 업데이트된 조각 배열
+ */
+export async function addPendingSnippet(
+  snippet: PendingTextSnippet,
+): Promise<PendingTextSnippet[]> {
+  try {
+    const snippets = await loadPendingSnippets();
+    snippets.push(snippet);
+    await savePendingSnippets(snippets);
+    return snippets;
+  } catch (error) {
+    console.error('[StorageService] Failed to add snippet:', error);
+    throw error;
+  }
+}
+
+/**
+ * 텍스트 조각 제거
+ * @param id - 제거할 조각 ID
+ * @returns 업데이트된 조각 배열
+ */
+export async function removePendingSnippet(id: string): Promise<PendingTextSnippet[]> {
+  try {
+    const snippets = await loadPendingSnippets();
+    const filtered = snippets.filter((s) => s.id !== id);
+    await savePendingSnippets(filtered);
+    return filtered;
+  } catch (error) {
+    console.error('[StorageService] Failed to remove snippet:', error);
+    throw error;
+  }
+}
+
+/**
+ * 모든 임시 텍스트 조각 삭제
+ */
+export async function clearPendingSnippets(): Promise<void> {
+  try {
+    await savePendingSnippets([]);
+  } catch (error) {
+    console.error('[StorageService] Failed to clear snippets:', error);
     throw error;
   }
 }
@@ -237,6 +328,7 @@ export async function initializeStorage(): Promise<void> {
     const result = await browser.storage.local.get([
       STORAGE_KEYS.COLLECTED_PAGES,
       STORAGE_KEYS.OVERLAY_STATE,
+      STORAGE_KEYS.PENDING_TEXT_SNIPPETS,
     ]);
 
     const updates: Record<string, unknown> = {};
@@ -247,6 +339,10 @@ export async function initializeStorage(): Promise<void> {
 
     if (!result[STORAGE_KEYS.OVERLAY_STATE]) {
       updates[STORAGE_KEYS.OVERLAY_STATE] = 'expanded';
+    }
+
+    if (!result[STORAGE_KEYS.PENDING_TEXT_SNIPPETS]) {
+      updates[STORAGE_KEYS.PENDING_TEXT_SNIPPETS] = [];
     }
 
     // 업데이트할 내용이 있으면 저장

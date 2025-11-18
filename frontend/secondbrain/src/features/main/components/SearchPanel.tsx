@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
 import { PanelHeader } from '@/features/main/components/PanelHeader';
 import { NoteList } from '@/features/main/components/NoteList';
@@ -23,6 +23,19 @@ export function SearchPanel() {
       data.pages.flatMap((page) => page.results?.map((note) => note.id) ?? []) ?? [],
   });
 
+  // 현재 모드에 따른 모든 노트 ID 추출 (전체 선택용)
+  const allNoteIds = useMemo(() => {
+    if (mode === 'recent' && recentNotesQuery.data) {
+      return recentNotesQuery.data.map((note) => note.noteId);
+    }
+    if (mode === 'search' && searchNotesQuery.data) {
+      return searchNotesQuery.data.pages.flatMap(
+        (page) => page.results?.map((note) => note.id) ?? [],
+      );
+    }
+    return [];
+  }, [mode, recentNotesQuery.data, searchNotesQuery.data]);
+
   // 검색 모드일 때 검색 결과 노드를 그래프에서 강조
   useEffect(() => {
     if (mode === 'search' && searchNoteIds.length > 0) {
@@ -34,7 +47,7 @@ export function SearchPanel() {
 
   return (
     <GlassContainer>
-      <PanelHeader />
+      <PanelHeader allNoteIds={allNoteIds} />
       {/* Divider between header and list */}
       <div className="border-b border-white/75" />
       <div

@@ -4,16 +4,22 @@ import { AuthCard } from '@/content-scripts/overlay/components/molecules/AuthCar
 import { ActionButtons } from '@/content-scripts/overlay/components/molecules/ActionButtons';
 import { FloatingButton } from '@/content-scripts/overlay/components/atoms/FloatingButton';
 import { DragSearchPanel } from '@/content-scripts/overlay/components/organisms/DragSearchPanel';
+import { AiSearchPanel } from '@/content-scripts/overlay/components/organisms/AiSearchPanel';
 import { URLListModal } from '@/content-scripts/overlay/components/organisms/URLListModal';
+import { PendingTextSnippetsPanel } from '@/content-scripts/overlay/components/organisms/PendingTextSnippetsPanel';
 import { SaveStatusPanel } from '@/content-scripts/overlay/components/organisms/SaveStatusPanel';
 import { DragSearchSettingsPanel } from '@/content-scripts/overlay/components/organisms/DragSearchSettingsPanel';
 import { useExtensionAuth } from '@/hooks/useExtensionAuth';
 import { useOverlayState } from '@/hooks/useOverlayState';
 import { usePageCollectionStore } from '@/stores/pageCollectionStore';
+import { usePendingTextSnippetsStore } from '@/stores/pendingTextSnippetsStore';
 import { useDragSearchStore } from '@/stores/dragSearchStore';
+import { useAiSearchStore } from '@/stores/aiSearchStore';
 import * as storage from '@/services/storageService';
+import type { PendingTextSnippet } from '@/types/pendingTextSnippet';
+import browser from 'webextension-polyfill';
 
-type ActivePanel = null | 'urlList' | 'saveStatus' | 'settings';
+type ActivePanel = null | 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'aiSearch';
 
 /**
  * Extension Overlay (Organism)
@@ -34,6 +40,13 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   const { initialize, syncFromStorage, getPageList, removePage, clearPages } =
     usePageCollectionStore();
   const {
+    initialize: initializeSnippets,
+    syncFromStorage: syncSnippetsFromStorage,
+    getSnippetList,
+    removeSnippet,
+    clearSnippets,
+  } = usePendingTextSnippetsStore();
+  const {
     keyword,
     results,
     totalCount,
@@ -41,6 +54,14 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
     error,
     isVisible: isDragSearchVisible,
   } = useDragSearchStore();
+  const {
+    keyword: aiKeyword,
+    aiResponse,
+    notesList,
+    isSearching,
+    esCompleted,
+    error: aiError,
+  } = useAiSearchStore();
   const [isAnimating, setIsAnimating] = useState(false);
   const [animationPhase, setAnimationPhase] = useState<'idle' | 'expanding' | 'collapsing'>('idle');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -54,8 +75,9 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
 
       // 2. Store 초기화
       await initialize();
+      await initializeSnippets();
     })();
-  }, [initialize]);
+  }, [initialize, initializeSnippets]);
 
   // Storage 변경 감지 → 탭 간 동기화
   useEffect(() => {
@@ -63,12 +85,15 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
       if (key === storage.STORAGE_KEYS.COLLECTED_PAGES) {
         // 다른 탭에서 페이지 목록이 변경됨 → Store 동기화
         syncFromStorage(newValue as string[]);
+      } else if (key === storage.STORAGE_KEYS.PENDING_TEXT_SNIPPETS) {
+        // 다른 탭에서 텍스트 조각이 변경됨 → Store 동기화
+        syncSnippetsFromStorage(newValue as PendingTextSnippet[]);
       }
     });
 
     // Cleanup
     return unwatch;
-  }, [syncFromStorage]);
+  }, [syncFromStorage, syncSnippetsFromStorage]);
 
   // Escape 키로 닫기
   useEffect(() => {
@@ -123,8 +148,28 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
     })();
   };
 
-  function handleTogglePanel(panel: 'urlList' | 'saveStatus' | 'settings'): void {
+  function handleTogglePanel(
+    panel: 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'aiSearch',
+  ): void {
     setActivePanel((prev) => (prev === panel ? null : panel));
+  }
+
+  // Side Panel 열기 핸들러
+  function handleOpenSidePanel(noteId: number): void {
+    void (async () => {
+      try {
+        const window = await browser.windows.getCurrent();
+        await browser.runtime.sendMessage({
+          type: 'OPEN_SIDE_PANEL',
+          noteId,
+          windowId: window.id,
+        });
+      } catch (error) {
+        console.error('[ExtensionOverlay] Failed to open side panel:', error);
+        // Fallback: 웹 앱에서 열기
+        window.open(`https://brainsecond.site/notes/${noteId}`, '_blank');
+      }
+    })();
   }
 
   // Collapsed 상태: Floating 버튼만 표시 (with animation)
@@ -153,7 +198,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   // Expanded 상태 또는 애니메이션 중: 전체 UI 표시
   return (
     <div
-      className="fixed top-4 right-4 z-[9999]"
+      className="fixed top-4 right-4 z-9999"
       style={{
         opacity: animationPhase === 'collapsing' ? 0 : 1,
         transform:
@@ -228,13 +273,34 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
                 className={`overflow-hidden transition-all duration-300 ease-in-out ${
                   activePanel === 'settings'
                     ? 'mt-4 max-h-[600px] opacity-100'
-                    : activePanel
-                      ? 'mt-4 max-h-[400px] opacity-100'
-                      : 'max-h-0 opacity-0'
+                    : activePanel === 'aiSearch'
+                      ? 'mt-4 max-h-[800px] w-[400px] overflow-y-auto opacity-100 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-transparent'
+                      : activePanel
+                        ? 'mt-4 max-h-[400px] opacity-100'
+                        : 'max-h-0 opacity-0'
                 }`}
               >
                 {activePanel && (
                   <div className="relative">
+                    {/* AiSearchPanel */}
+                    <div
+                      className={`transition-opacity duration-150 ${
+                        activePanel === 'aiSearch'
+                          ? 'opacity-100'
+                          : 'pointer-events-none absolute inset-0 opacity-0'
+                      }`}
+                    >
+                      <AiSearchPanel
+                        keyword={aiKeyword}
+                        aiResponse={aiResponse}
+                        notesList={notesList}
+                        isLoading={isSearching}
+                        esCompleted={esCompleted}
+                        error={aiError}
+                        onViewDetail={handleOpenSidePanel}
+                      />
+                    </div>
+
                     {/* URLListModal */}
                     <div
                       className={`transition-opacity duration-150 ${
@@ -252,6 +318,28 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
                         }}
                         onClearAll={() => {
                           void clearPages();
+                          setActivePanel(null);
+                        }}
+                      />
+                    </div>
+
+                    {/* PendingTextSnippetsPanel */}
+                    <div
+                      className={`transition-opacity duration-150 ${
+                        activePanel === 'snippetsList'
+                          ? 'opacity-100'
+                          : 'pointer-events-none absolute inset-0 opacity-0'
+                      }`}
+                    >
+                      <PendingTextSnippetsPanel
+                        isOpen={activePanel === 'snippetsList'}
+                        onClose={() => setActivePanel(null)}
+                        snippets={getSnippetList()}
+                        onRemove={(id: string) => {
+                          void removeSnippet(id);
+                        }}
+                        onClearAll={() => {
+                          void clearSnippets();
                           setActivePanel(null);
                         }}
                       />

@@ -31,6 +31,8 @@ class DragSearchManager {
   private compactPopupRoot: ReactDOM.Root | null = null;
   private compactPopupContainer: HTMLDivElement | null = null;
   private currentKeyword = '';
+  private currentSourceUrl = '';
+  private currentPageTitle = '';
   private currentDragPosition: FloatingButtonPosition = { x: 0, y: 0 };
   private settings: DragSearchSettings = DEFAULT_SETTINGS;
 
@@ -59,6 +61,8 @@ class DragSearchManager {
    */
   private handleDragSearch = (keyword: string, position: FloatingButtonPosition): void => {
     this.currentKeyword = keyword;
+    this.currentSourceUrl = window.location.href;
+    this.currentPageTitle = document.title;
     this.currentDragPosition = position;
     this.showFloatingButton(position);
   };
@@ -96,6 +100,8 @@ class DragSearchManager {
         position={position}
         keyword={this.currentKeyword}
         onSearch={this.handleSearchClick}
+        onAdd={this.handleAddClick}
+        onSave={this.handleSaveClick}
         onClose={this.hideFloatingButton}
         autoHideMs={this.settings.autoHideMs}
       />,
@@ -387,7 +393,7 @@ class DragSearchManager {
         z-index: 999999;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.25rem;
         padding: 0.25rem;
         background-color: white;
         border-radius: 0.5rem;
@@ -400,36 +406,34 @@ class DragSearchManager {
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       }
 
-      .search-button {
+      .action-button {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
-        font-weight: 500;
+        justify-content: center;
+        padding: 0.5rem;
         color: rgb(55, 65, 81);
-        transition: color 150ms;
+        transition: color 150ms, background-color 150ms;
+        border-radius: 0.375rem;
       }
 
-      .search-button:hover {
+      .action-button:hover {
         color: rgb(37, 99, 235);
+        background-color: rgb(243, 244, 246);
       }
 
       .close-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         padding: 0.5rem;
         color: rgb(156, 163, 175);
-        transition: color 150ms;
+        transition: color 150ms, background-color 150ms;
+        border-radius: 0.375rem;
       }
 
       .close-button:hover {
         color: rgb(75, 85, 99);
-      }
-
-      .keyword-text {
-        max-width: 200px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        background-color: rgb(243, 244, 246);
       }
 
       .icon {
@@ -457,6 +461,142 @@ class DragSearchManager {
 
     this.hideFloatingButton();
   };
+
+  /**
+   * Add 버튼 클릭 핸들러
+   * 드래그한 텍스트 조각을 임시 저장소에 추가
+   */
+  private handleAddClick = (): void => {
+    void (async () => {
+      try {
+        // URL 유효성 검증
+        if (
+          !this.currentSourceUrl.startsWith('http://') &&
+          !this.currentSourceUrl.startsWith('https://')
+        ) {
+          this.showToast('이 페이지는 추가할 수 없습니다', 'error');
+          return;
+        }
+
+        // 텍스트 조각 생성
+        const snippet = {
+          id: crypto.randomUUID(),
+          text: this.currentKeyword,
+          sourceUrl: this.currentSourceUrl,
+          pageTitle: this.currentPageTitle,
+          timestamp: Date.now(),
+        };
+
+        // Background에 메시지 전송
+        const rawResponse = await browser.runtime.sendMessage({
+          type: 'ADD_TEXT_SNIPPET',
+          snippet,
+        });
+        const response = rawResponse as {
+          success: boolean;
+          duplicate?: boolean;
+          error?: string;
+          count?: number;
+        };
+
+        if (response.success) {
+          const count = response.count || 1;
+          this.showToast(`임시 노트에 추가됨 (총 ${count}개)`, 'success');
+        } else if (response.duplicate) {
+          this.showToast('이미 추가된 텍스트입니다', 'info');
+        } else {
+          this.showToast('추가 실패', 'error');
+        }
+
+        this.hideFloatingButton();
+      } catch (error) {
+        console.error('[DragSearchManager] Add failed:', error);
+        this.showToast('추가 실패', 'error');
+      }
+    })();
+  };
+
+  /**
+   * Save 버튼 클릭 핸들러
+   * 드래그한 텍스트 + URL을 백엔드로 즉시 전송
+   */
+  private handleSaveClick = (): void => {
+    void (async () => {
+      try {
+        // 텍스트 + 메타데이터 포맷팅
+        const formattedData = this.formatTextWithMetadata(
+          this.currentKeyword,
+          this.currentSourceUrl,
+          this.currentPageTitle,
+        );
+
+        const batchId = `batch_${Date.now()}`;
+        const batchTimestamp = Date.now();
+
+        // Background Service Worker에 저장 요청
+        const rawSaveResponse = await browser.runtime.sendMessage({
+          type: 'SAVE_CURRENT_PAGE',
+          urls: [formattedData],
+          batchId,
+          batchTimestamp,
+        });
+        const response = rawSaveResponse as { success?: boolean; error?: string; message?: string };
+
+        if ('error' in response && response.error) {
+          this.showToast(`저장 실패: ${this.getErrorMessage(response.error)}`, 'error');
+        } else {
+          this.showToast('저장되었습니다', 'success');
+        }
+
+        this.hideFloatingButton();
+      } catch (error) {
+        console.error('[DragSearchManager] Save failed:', error);
+        this.showToast('저장 실패', 'error');
+      }
+    })();
+  };
+
+  /**
+   * 텍스트 + 메타데이터 포맷팅
+   */
+  private formatTextWithMetadata(text: string, url: string, title: string): string {
+    return `=== 출처 정보 ===
+URL: ${url}
+제목: ${title}
+추가 시간: ${new Date().toLocaleString('ko-KR')}
+
+=== 선택된 텍스트 ===
+${text}`;
+  }
+
+  /**
+   * 토스트 메시지 표시
+   */
+  private showToast(message: string, type: 'success' | 'error' | 'info'): void {
+    // SimpleToast 컴포넌트 사용을 위해 window.postMessage 사용
+    window.postMessage(
+      {
+        type: 'SHOW_TOAST',
+        message,
+        toastType: type,
+      },
+      '*',
+    );
+  }
+
+  /**
+   * 에러 코드 → 사용자 친화적 메시지
+   */
+  private getErrorMessage(errorCode: string): string {
+    const errorMessages: Record<string, string> = {
+      NO_TOKEN: '로그인이 필요합니다',
+      INVALID_URL: '이 페이지는 저장할 수 없습니다',
+      API_ERROR: 'API 오류가 발생했습니다',
+      NETWORK_ERROR: '네트워크 연결을 확인해주세요',
+      UNKNOWN_ERROR: '알 수 없는 오류가 발생했습니다',
+    };
+    return errorMessages[errorCode] || errorMessages['UNKNOWN_ERROR'];
+  }
 
   /**
    * 플로팅 버튼 숨기기

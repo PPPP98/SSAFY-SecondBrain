@@ -179,12 +179,7 @@ export const useSaveStatusStore = create<SaveStatusStore>((set, get) => ({
     return requestIds;
   },
 
-  updateSaveStatusByUrls: (
-    urls: string[],
-    batchId: string,
-    success: boolean,
-    error?: string,
-  ) => {
+  updateSaveStatusByUrls: (urls: string[], batchId: string, success: boolean, error?: string) => {
     set((state) => {
       const newRequests = new Map(state.saveRequests);
       const status: SaveRequestStatus = success ? 'success' : 'error';

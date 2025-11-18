@@ -23,8 +23,7 @@ interface OverlayRootProps {
 
 export function OverlayRoot({ isOpen, onToggle, shadowRoot }: OverlayRootProps) {
   const { setSearchResults, setError, loadHistory } = useDragSearchStore();
-  const { addSaveRequestsFromBroadcast, updateSaveStatusByUrls } =
-    useSaveStatusStore.getState();
+  const { addSaveRequestsFromBroadcast, updateSaveStatusByUrls } = useSaveStatusStore.getState();
 
   // Inject animation keyframes into Shadow DOM
   useEffect(() => {

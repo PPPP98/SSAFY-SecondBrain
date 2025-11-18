@@ -36,12 +36,13 @@ const listeners = new Set<() => void>();
 /**
  * Chrome Extension Background Service Worker 구독 함수
  * - AUTH_CHANGED 메시지를 수신하면 모든 구독자에게 알림
+ * - storage.onChanged로 인증 상태 변경 감지 (이중 안전장치)
  * - cleanup 함수로 리스너 제거
  */
 function subscribe(callback: () => void): () => void {
   listeners.add(callback);
 
-  // Background의 AUTH_CHANGED 메시지 리스너 설정
+  // 1. Background의 AUTH_CHANGED 메시지 리스너 설정
   const handleMessage = (message: unknown) => {
     const msg = message as { type: string };
     if (msg.type === 'AUTH_CHANGED') {
@@ -52,9 +53,23 @@ function subscribe(callback: () => void): () => void {
 
   browser.runtime.onMessage.addListener(handleMessage);
 
+  // 2. Storage 변경 리스너 추가 (이중 안전장치)
+  const handleStorageChange = (
+    changes: Record<string, browser.Storage.StorageChange>,
+    areaName: string,
+  ) => {
+    if (areaName === 'local' && changes['authenticated']) {
+      // 인증 상태가 storage에서 직접 변경되면 업데이트
+      void updateAuthState();
+    }
+  };
+
+  browser.storage.onChanged.addListener(handleStorageChange);
+
   return () => {
     listeners.delete(callback);
     browser.runtime.onMessage.removeListener(handleMessage);
+    browser.storage.onChanged.removeListener(handleStorageChange);
   };
 }
 
