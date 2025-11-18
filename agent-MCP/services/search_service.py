@@ -54,7 +54,7 @@ class SearchService:
             # API 호출
             async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
-                    f"{self.api_base_url}/mcp-search",
+                    f"{self.api_base_url}ai/api/v1/agents",
                     json=payload,
                     headers={"X-API-Key": self.api_key, "Content-Type": "application/json"},
                 )
