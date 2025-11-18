@@ -492,7 +492,12 @@ class DragSearchManager {
           type: 'ADD_TEXT_SNIPPET',
           snippet,
         });
-        const response = rawResponse as { success: boolean; duplicate?: boolean; error?: string; count?: number };
+        const response = rawResponse as {
+          success: boolean;
+          duplicate?: boolean;
+          error?: string;
+          count?: number;
+        };
 
         if (response.success) {
           const count = response.count || 1;

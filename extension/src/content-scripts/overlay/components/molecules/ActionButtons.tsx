@@ -1,9 +1,12 @@
+import { useState, useEffect } from 'react';
 import { Plus, Download, Settings, FileText } from 'lucide-react';
 import { Button } from '@/content-scripts/overlay/components/ui/button';
 import { CounterBadge } from '@/content-scripts/overlay/components/atoms/CounterBadge';
+import { SearchInput } from '@/content-scripts/overlay/components/atoms/SearchInput';
 import { usePageCollectionStore } from '@/stores/pageCollectionStore';
 import { usePendingTextSnippetsStore } from '@/stores/pendingTextSnippetsStore';
 import { useSaveStatusStore } from '@/stores/saveStatusStore';
+import { useAiSearchStore } from '@/stores/aiSearchStore';
 import browser from 'webextension-polyfill';
 import { showToast } from '@/content-scripts/overlay/components/molecules/SimpleToast';
 import type { SavePageResponse, SavePageError } from '@/types/note';
@@ -27,33 +30,62 @@ function getErrorMessage(errorCode: string): string {
 /**
  * Action Buttons (Molecule)
  * - 로그인 후 표시되는 액션 버튼들
- * - 페이지 추가, 저장 기능
- * - 비동기 요청 큐 관리로 여러 저장 요청 동시 처리
+ * - 검색바 + 페이지 추가, 저장 기능
  * - Shadcn UI + Tailwind CSS 기반
  */
 
-type ActivePanel = null | 'urlList' | 'snippetsList' | 'saveStatus' | 'settings';
+type ActivePanel = null | 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'aiSearch';
 
 interface ActionButtonsProps {
   activePanel: ActivePanel;
-  onTogglePanel: (panel: 'urlList' | 'snippetsList' | 'saveStatus' | 'settings') => void;
+  onTogglePanel: (
+    panel: 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'aiSearch',
+  ) => void;
 }
 
 export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps) {
   const { pages, addPage, clearPages } = usePageCollectionStore();
   const { getSnippetCount } = usePendingTextSnippetsStore();
   const { getSavingCount } = useSaveStatusStore();
+  const { keyword, setKeyword, search, clearSearch, setFocused } = useAiSearchStore();
+
+  const [isSearchMode, setIsSearchMode] = useState(false);
+
+  useEffect(() => {
+    if (activePanel === 'aiSearch') {
+      setIsSearchMode(true);
+    } else if (activePanel !== null) {
+      setIsSearchMode(false);
+    }
+  }, [activePanel]);
+
+  function handleSearchFocus() {
+    setIsSearchMode(true);
+    setFocused(true);
+  }
+
+  function handleSearchCancel() {
+    setIsSearchMode(false);
+    setFocused(false);
+    clearSearch();
+    onTogglePanel(null as never);
+  }
+
+  function handleSearch() {
+    if (keyword.trim()) {
+      onTogglePanel('aiSearch');
+      void search(keyword.trim());
+    }
+  }
 
   async function handleAddPage(): Promise<void> {
     const currentUrl = window.location.href;
 
-    // URL 유효성 검증
     if (!currentUrl.startsWith('http://') && !currentUrl.startsWith('https://')) {
       showToast('이 페이지는 추가할 수 없습니다', 'error');
       return;
     }
 
-    // 중복 체크 및 추가 (비동기)
     const success = await addPage(currentUrl);
 
     if (success) {
@@ -70,7 +102,6 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
       const snippets = usePendingTextSnippetsStore.getState().snippets;
       const currentUrl = window.location.href;
 
-      // 텍스트 조각을 메타데이터 포맷으로 변환
       const formattedSnippets = snippets.map((snippet) => {
         return `=== 출처 정보 ===
 URL: ${snippet.sourceUrl}
@@ -81,42 +112,33 @@ URL: ${snippet.sourceUrl}
 ${snippet.text}`;
       });
 
-      // URL 목록과 텍스트 조각 합치기
       let finalUrls = [...urlsToSave, ...formattedSnippets];
 
-      // 수집된 것이 없으면 현재 페이지만 저장
       if (finalUrls.length === 0) {
         finalUrls = [currentUrl];
       }
 
-      // 최대 개수 제한
       if (finalUrls.length > MAX_SAVE_COUNT) {
         showToast(`한 번에 최대 ${MAX_SAVE_COUNT}개까지 저장할 수 있습니다`, 'info');
         finalUrls = finalUrls.slice(0, MAX_SAVE_COUNT);
       }
 
-      // 배치 ID 및 타임스탬프 생성
       const batchId = `batch_${Date.now()}`;
       const batchTimestamp = Date.now();
 
-      // 1. 패널 자동 열기 (이미 열려있지 않으면)
       if (activePanel !== 'saveStatus') {
         onTogglePanel('saveStatus');
       }
 
-      // 2. Background Service Worker에 메시지 전송
-      // Background가 브로드캐스트하면 모든 탭(현재 탭 포함)에서 store 업데이트
       const rawResponse: unknown = await browser.runtime.sendMessage({
         type: 'SAVE_CURRENT_PAGE',
         urls: finalUrls,
-        batchId, // Background가 모든 탭에 브로드캐스트할 때 사용
+        batchId,
         batchTimestamp,
       });
 
-      // 응답 타입 검증
       const response = rawResponse as SavePageResponse | SavePageError;
 
-      // 3. 응답에 따라 Toast만 표시 (상태 업데이트는 브로드캐스트로)
       if ('error' in response) {
         const errorMessage = getErrorMessage(response.error);
         showToast(`저장 실패: ${errorMessage}`, 'error');
@@ -127,12 +149,10 @@ ${snippet.text}`;
           'success',
         );
 
-        // ✅ 성공 시 수집 목록 및 텍스트 조각 모두 초기화
         await clearPages();
         await usePendingTextSnippetsStore.getState().clearSnippets();
       }
     } catch (error) {
-      // 예외 처리 (Background 통신 실패)
       console.error('Failed to save page:', error);
       showToast('저장 실패: 확장 프로그램 오류', 'error');
     }
@@ -143,61 +163,82 @@ ${snippet.text}`;
   const snippetCount = getSnippetCount();
 
   return (
-    <div className="relative w-[320px] space-y-2 rounded-xl border border-border bg-card p-4 shadow-lg">
-      {/* Add Button + Counter Badge */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          className="flex-1 justify-start gap-2 hover:bg-accent"
-          onClick={() => void handleAddPage()}
-        >
-          <Plus className="h-4 w-4" />
-          <span>Add URL</span>
-        </Button>
-
-        <CounterBadge count={pageCount} onClick={() => onTogglePanel('urlList')} />
+    <div
+      className={`relative rounded-xl border border-border bg-card p-4 shadow-lg transition-all duration-300 ${
+        isSearchMode ? 'w-[400px]' : 'w-[320px]'
+      }`}
+    >
+      {/* 검색바 (최상단, 항상 표시) */}
+      <div className="mb-3">
+        <SearchInput
+          value={keyword}
+          onChange={setKeyword}
+          onFocus={handleSearchFocus}
+          onBlur={() => setFocused(false)}
+          onSearch={handleSearch}
+          onCancel={handleSearchCancel}
+          placeholder="무엇이든 물어보세요..."
+        />
       </div>
 
-      {/* Snippets Button + Counter Badge */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          className="flex-1 justify-start gap-2 hover:bg-accent"
-          onClick={() => onTogglePanel('snippetsList')}
-        >
-          <FileText className="h-4 w-4" />
-          <span>임시 노트</span>
-        </Button>
+      {/* 기존 버튼들 - 검색 모드가 아닐 때만 렌더링 (공백 제거!) */}
+      {!isSearchMode && (
+        <div className="space-y-2">
+          {/* Add Button + Counter Badge */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 justify-start gap-2 hover:bg-accent"
+              onClick={() => void handleAddPage()}
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add URL</span>
+            </Button>
 
-        <CounterBadge count={snippetCount} onClick={() => onTogglePanel('snippetsList')} />
-      </div>
+            <CounterBadge count={pageCount} onClick={() => onTogglePanel('urlList')} />
+          </div>
 
-      {/* Save Button + Status Toggle */}
-      <div className="relative flex items-center gap-2">
-        <Button
-          variant="outline"
-          className="flex-1 justify-start gap-2 hover:bg-accent"
-          onClick={() => void handleSave()}
-        >
-          <Download className="h-4 w-4" />
-          <span>Save</span>
-        </Button>
+          {/* Snippets Button + Counter Badge */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 justify-start gap-2 hover:bg-accent"
+              onClick={() => onTogglePanel('snippetsList')}
+            >
+              <FileText className="h-4 w-4" />
+              <span>임시 노트</span>
+            </Button>
 
-        {/* Save Status Toggle Button */}
-        {savingCount > 0 && (
-          <CounterBadge count={savingCount} onClick={() => onTogglePanel('saveStatus')} />
-        )}
-      </div>
+            <CounterBadge count={snippetCount} onClick={() => onTogglePanel('snippetsList')} />
+          </div>
 
-      {/* Settings Button */}
-      <Button
-        variant="outline"
-        className="w-full justify-start gap-2 hover:bg-accent"
-        onClick={() => onTogglePanel('settings')}
-      >
-        <Settings className="h-4 w-4" />
-        <span>드래그 검색 설정</span>
-      </Button>
+          {/* Save Button + Status Toggle */}
+          <div className="relative flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 justify-start gap-2 hover:bg-accent"
+              onClick={() => void handleSave()}
+            >
+              <Download className="h-4 w-4" />
+              <span>Save</span>
+            </Button>
+
+            {savingCount > 0 && (
+              <CounterBadge count={savingCount} onClick={() => onTogglePanel('saveStatus')} />
+            )}
+          </div>
+
+          {/* Settings Button */}
+          <Button
+            variant="outline"
+            className="w-full justify-start gap-2 hover:bg-accent"
+            onClick={() => onTogglePanel('settings')}
+          >
+            <Settings className="h-4 w-4" />
+            <span>드래그 검색 설정</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
