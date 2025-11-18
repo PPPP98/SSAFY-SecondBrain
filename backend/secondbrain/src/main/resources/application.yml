@@ -24,6 +24,12 @@ spring:
     username: ${ELASTICSEARCH_USERNAME}
     password: ${ELASTICSEARCH_PASSWORD}
 
+  neo4j:
+    uri: ${NEO4J_URI:bolt+s://brainsecond.site:7687}
+    authentication:
+      username: ${NEO4J_USERNAME}
+      password: ${NEO4J_PASSWORD}
+
   rabbitmq:
     host: ${RABBITMQ_HOST}
     port: ${RABBITMQ_PORT}
@@ -64,6 +70,14 @@ spring:
       s3:
         bucket: ${BUCKET_NAME}
 
+  ai:
+    openai:
+      api-key: ${GMS_API_KEY}
+      base-url: ${GMS_OPENAI_BASE_URL}
+      embedding:
+        options:
+          model: ${GMS_EMBEDDING_MODEL}
+
 server:
   port: 8080
 
@@ -101,7 +115,9 @@ logging:
 gms:
   api-key: ${GMS_API_KEY}
   model: ${GMS_MODEL}
+  embedding-model: ${GMS_EMBEDDING_MODEL}
   base-url: ${GMS_BASE_URL}
+  openai-base-url: ${GMS_OPENAI_BASE_URL}
   max-tokens: ${GMS_MAX_TOKENS}
   temperature: ${GMS_TEMPERATURE}
 

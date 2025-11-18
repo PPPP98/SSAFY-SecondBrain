@@ -23,21 +23,31 @@ object RetrofitClient {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    // 응답 본문 로깅 인터셉터
+    // 응답 본문 로깅 인터셉터 (바이너리 데이터는 건너뜀)
     private val responseLoggingInterceptor = okhttp3.Interceptor { chain ->
         val response = chain.proceed(chain.request())
         val responseBody = response.body
-        val bodyString = responseBody?.string() ?: ""
+        val contentType = responseBody?.contentType()
 
         android.util.Log.e("RetrofitClient", "=== 응답 상태 코드: ${response.code}")
-        android.util.Log.e("RetrofitClient", "=== 응답 본문: $bodyString")
+        android.util.Log.e("RetrofitClient", "=== Content-Type: $contentType")
 
-        // 응답 본문을 다시 만들어야 함 (한 번 읽으면 소진됨)
-        val newResponseBody = okhttp3.ResponseBody.create(
-            responseBody?.contentType(),
-            bodyString
-        )
-        response.newBuilder().body(newResponseBody).build()
+        // 바이너리 데이터(application/octet-stream, audio/*)는 로깅 건너뛰기
+        if (contentType != null && (contentType.toString().contains("octet-stream") || contentType.toString().contains("audio"))) {
+            android.util.Log.e("RetrofitClient", "=== 바이너리 응답 (로깅 건너뜀): ${responseBody?.contentLength()} bytes")
+            response // 원본 응답 그대로 반환
+        } else {
+            // JSON 등 텍스트 응답만 로깅
+            val bodyString = responseBody?.string() ?: ""
+            android.util.Log.e("RetrofitClient", "=== 응답 본문: $bodyString")
+
+            // 응답 본문을 다시 만들어야 함 (한 번 읽으면 소진됨)
+            val newResponseBody = okhttp3.ResponseBody.create(
+                responseBody?.contentType(),
+                bodyString
+            )
+            response.newBuilder().body(newResponseBody).build()
+        }
     }
 
     // OkHttpClient 생성 함수 (토큰 제공자를 받음)
@@ -46,9 +56,9 @@ object RetrofitClient {
             .addInterceptor(responseLoggingInterceptor) // 응답 본문 로깅 (가장 먼저)
             .addInterceptor(loggingInterceptor) // HTTP 로그 출력
             .addInterceptor(AuthInterceptor(tokenProvider)) // JWT 자동 추가
-            .connectTimeout(30, TimeUnit.SECONDS) // 연결 타임아웃
-            .readTimeout(30, TimeUnit.SECONDS) // 읽기 타임아웃
-            .writeTimeout(30, TimeUnit.SECONDS) // 쓰기 타임아웃
+            .connectTimeout(60, TimeUnit.SECONDS) // 연결 타임아웃
+            .readTimeout(60, TimeUnit.SECONDS) // 읽기 타임아웃
+            .writeTimeout(60, TimeUnit.SECONDS) // 쓰기 타임아웃
             .build()
     }
 

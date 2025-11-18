@@ -159,26 +159,41 @@ class WakeWordService : Service() {
         // 10초 동안 화면 켜기
         wakeLock.acquire(10000)
 
-        // SearchActivity 직접 시작 (백그라운드에서 foreground로 가져오기)
+        // SearchActivity 시작 Intent
         val activityIntent = Intent(this, com.example.secondbrain.ui.search.SearchActivity::class.java).apply {
             // 새 태스크로 시작하고, 기존 인스턴스가 있으면 재사용
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or
                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            putExtra("wake_word_detected", true)  // 웨이크워드 감지 플래그
             putExtra("auto_start_stt", true)  // STT 자동 시작 플래그
         }
 
-        // 액티비티 직접 시작
-        try {
-            startActivity(activityIntent)
-            Log.i(TAG, "✅ SearchActivity 시작 성공 (STT 자동 시작)")
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ 액티비티 시작 실패", e)
-        } finally {
-            // WakeLock이 자동으로 해제되도록 했지만, 명시적으로 해제
-            if (wakeLock.isHeld) {
-                wakeLock.release()
+        // 앱이 포그라운드에 있는지 확인
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val appProcesses = activityManager.runningAppProcesses
+        val isAppInForeground = appProcesses?.any { processInfo ->
+            processInfo.processName == packageName &&
+            processInfo.importance == android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+        } ?: false
+
+        Log.d(TAG, "앱 포그라운드 상태: $isAppInForeground")
+
+        // 포그라운드에 있으면 직접 시작 시도 (성공률 높음)
+        if (isAppInForeground) {
+            try {
+                startActivity(activityIntent)
+                Log.i(TAG, "✅ SearchActivity 시작 성공 (포그라운드)")
+            } catch (e: Exception) {
+                Log.w(TAG, "⚠️ 액티비티 직접 시작 실패, Full-Screen Intent로 대체", e)
             }
+        } else {
+            Log.i(TAG, "앱이 백그라운드에 있음 - Full-Screen Intent로만 처리")
+        }
+
+        // WakeLock 해제
+        if (wakeLock.isHeld) {
+            wakeLock.release()
         }
 
         // 알림을 수동으로 클릭했을 때 사용할 Intent (STT 자동 시작 없음)

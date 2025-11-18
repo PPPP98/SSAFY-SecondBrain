@@ -72,6 +72,7 @@
         <activity
             android:name=".ui.search.SearchActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize"
             android:showWhenLocked="true"
             android:turnScreenOn="true">

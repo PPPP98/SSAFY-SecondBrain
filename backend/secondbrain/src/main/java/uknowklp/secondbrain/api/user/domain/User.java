@@ -38,6 +38,10 @@ public class User {
 	@Column(nullable = false)
 	private boolean setAlarm;
 
+	// MCP 연동을 위한 API Key (UUID 형식)
+	@Column(unique = true)
+	private String apiKey;
+
 	public User update(String name, String picture) {
 		this.name = name;
 		this.picture = picture;
@@ -46,5 +50,15 @@ public class User {
 
 	public void toggleSetAlarm() {
 		this.setAlarm = !this.setAlarm;
+	}
+
+	// API Key 설정 (생성 또는 재발급)
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
+	}
+
+	// API Key 삭제
+	public void clearApiKey() {
+		this.apiKey = null;
 	}
 }
