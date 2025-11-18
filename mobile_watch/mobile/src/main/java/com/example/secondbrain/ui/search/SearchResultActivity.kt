@@ -1,12 +1,21 @@
 package com.example.secondbrain.ui.search
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.speech.RecognizerIntent
+import android.view.KeyEvent
 import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -35,11 +44,15 @@ class SearchResultActivity : AppCompatActivity() {
 
     // UI 컴포넌트
     private lateinit var btnBack: TextView
-    private lateinit var tvSearchQuery: TextView
+    private lateinit var tvTitle: View
+    private lateinit var etSearchQuery: EditText
+    private lateinit var btnSearch: ImageButton
+    private lateinit var btnVoiceSearch: ImageButton
     private lateinit var progressBar: ProgressBar
     private lateinit var tvResultsTitle: TextView
     private lateinit var tvElasticTitle: TextView
     private lateinit var tvAgentTitle: TextView
+    private lateinit var layoutAgentLoading: View
     private lateinit var tvAgentLoading: TextView
     private lateinit var tvAgentResponse: TextView
     private lateinit var rvElasticResults: RecyclerView
@@ -47,7 +60,6 @@ class SearchResultActivity : AppCompatActivity() {
     private lateinit var tvNoResults: TextView
     private lateinit var tvError: TextView
     private lateinit var divider1: View
-    private lateinit var divider2: View
     private lateinit var btnPlayTts: ImageButton
 
     // 어댑터
@@ -62,6 +74,33 @@ class SearchResultActivity : AppCompatActivity() {
     private var exoPlayer: ExoPlayer? = null
     private var agentResponseText: String = ""
     private var currentTempFile: File? = null
+
+    // 음성 인식 결과 처리
+    private val speechRecognizerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            if (!matches.isNullOrEmpty()) {
+                val recognizedText = matches[0]
+                etSearchQuery.setText(recognizedText)
+                performSearchFromInput()
+            }
+        } else {
+            Toast.makeText(this, "음성 인식 실패", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // 마이크 권한 요청
+    private val requestMicPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startVoiceRecognition()
+        } else {
+            Toast.makeText(this, "마이크 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,7 +156,7 @@ class SearchResultActivity : AppCompatActivity() {
         android.util.Log.d("SearchResultActivity", "워치 데이터: query='$query', response='$responseMessage', 노트=${searchResult?.documents?.size ?: 0}개")
 
         // 검색어 표시
-        tvSearchQuery.text = query
+        etSearchQuery.setText(query)
 
         // Agent 응답 및 노트 결과 표시
         if (searchResult != null) {
@@ -129,11 +168,15 @@ class SearchResultActivity : AppCompatActivity() {
 
     private fun initializeViews() {
         btnBack = findViewById(R.id.btnBack)
-        tvSearchQuery = findViewById(R.id.tvSearchQuery)
+        tvTitle = findViewById(R.id.tvTitle)
+        etSearchQuery = findViewById(R.id.etSearchQuery)
+        btnSearch = findViewById(R.id.btnSearch)
+        btnVoiceSearch = findViewById(R.id.btnVoiceSearch)
         progressBar = findViewById(R.id.progressBar)
         tvResultsTitle = findViewById(R.id.tvResultsTitle)
         tvElasticTitle = findViewById(R.id.tvElasticTitle)
         tvAgentTitle = findViewById(R.id.tvAgentTitle)
+        layoutAgentLoading = findViewById(R.id.layoutAgentLoading)
         tvAgentLoading = findViewById(R.id.tvAgentLoading)
         tvAgentResponse = findViewById(R.id.tvAgentResponse)
         rvElasticResults = findViewById(R.id.rvElasticResults)
@@ -141,22 +184,110 @@ class SearchResultActivity : AppCompatActivity() {
         tvNoResults = findViewById(R.id.tvNoResults)
         tvError = findViewById(R.id.tvError)
         divider1 = findViewById(R.id.divider1)
-        divider2 = findViewById(R.id.divider2)
         btnPlayTts = findViewById(R.id.btnPlayTts)
 
         // 검색어 표시
         val query = intent.getStringExtra("SEARCH_QUERY") ?: ""
-        tvSearchQuery.text = query
+        etSearchQuery.setText(query)
 
         // 뒤로가기 버튼 클릭 리스너
         btnBack.setOnClickListener {
             finish()
         }
 
+        // 검색 버튼 클릭 리스너 - 재검색
+        btnSearch.setOnClickListener {
+            performSearchFromInput()
+        }
+
+        // 음성 검색 버튼 클릭 리스너
+        btnVoiceSearch.setOnClickListener {
+            checkMicPermissionAndStartVoice()
+        }
+
+        // 키보드 엔터키로 검색
+        etSearchQuery.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                (event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
+                performSearchFromInput()
+                true
+            } else {
+                false
+            }
+        }
+
         // TTS 재생 버튼 클릭 리스너
         btnPlayTts.setOnClickListener {
             toggleTtsPlayback()
         }
+    }
+
+    /**
+     * 마이크 권한 확인 후 음성 인식 시작
+     */
+    private fun checkMicPermissionAndStartVoice() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                startVoiceRecognition()
+            }
+            else -> {
+                requestMicPermission.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        }
+    }
+
+    /**
+     * 음성 인식 시작
+     */
+    private fun startVoiceRecognition() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            // 한국어로 명시적 설정
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "ko-KR")
+            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "ko-KR")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "검색어를 말씀하세요")
+        }
+
+        try {
+            speechRecognizerLauncher.launch(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "음성 인식을 시작할 수 없습니다", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * 입력창의 검색어로 재검색 수행
+     */
+    private fun performSearchFromInput() {
+        val query = etSearchQuery.text.toString().trim()
+        if (query.isEmpty()) {
+            tvError.text = "검색어를 입력하세요"
+            tvError.visibility = View.VISIBLE
+            return
+        }
+
+        // 이전 에러 메시지 숨기기
+        tvError.visibility = View.GONE
+
+        // 기존 검색 결과 초기화
+        hideAllResults()
+        elasticAdapter.updateResults(emptyList())
+        agentAdapter.submitList(emptyList())
+        agentResponseText = ""
+
+        // 키보드 숨기기
+        val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+        imm.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
+
+        // 재검색 수행
+        performSearch(query)
     }
 
     private fun setupRecyclerViews() {
@@ -260,13 +391,13 @@ class SearchResultActivity : AppCompatActivity() {
         runOnUiThread {
             tvResultsTitle.visibility = View.VISIBLE
             tvAgentTitle.visibility = View.VISIBLE
-            tvAgentLoading.visibility = View.VISIBLE
+            layoutAgentLoading.visibility = View.VISIBLE
         }
     }
 
     private fun hideAgentLoading() {
         runOnUiThread {
-            tvAgentLoading.visibility = View.GONE
+            layoutAgentLoading.visibility = View.GONE
         }
     }
 
@@ -280,7 +411,6 @@ class SearchResultActivity : AppCompatActivity() {
                 tvAgentTitle.visibility = View.VISIBLE
                 tvAgentResponse.visibility = View.VISIBLE
                 tvAgentResponse.text = responseMessage
-                divider2.visibility = View.VISIBLE
 
                 // 응답 텍스트 저장 및 TTS 버튼 표시
                 agentResponseText = responseMessage
@@ -305,7 +435,7 @@ class SearchResultActivity : AppCompatActivity() {
         tvResultsTitle.visibility = View.GONE
         tvElasticTitle.visibility = View.GONE
         tvAgentTitle.visibility = View.GONE
-        tvAgentLoading.visibility = View.GONE
+        layoutAgentLoading.visibility = View.GONE
         tvAgentResponse.visibility = View.GONE
         rvElasticResults.visibility = View.GONE
         rvAgentResults.visibility = View.GONE

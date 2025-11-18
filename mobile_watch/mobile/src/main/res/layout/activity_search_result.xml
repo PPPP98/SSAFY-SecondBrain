@@ -44,19 +44,27 @@
         android:layout_marginEnd="24dp"
         android:layout_marginTop="16dp"
         android:gravity="center_vertical"
+        android:clickable="true"
+        android:focusable="true"
         app:layout_constraintTop_toBottomOf="@id/btnBack"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- 검색 텍스트 -->
-        <TextView
-            android:id="@+id/tvSearchQuery"
+        <!-- 검색 입력창 -->
+        <EditText
+            android:id="@+id/etSearchQuery"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textColor="#FFFFFF"
+            android:textColorHint="#9090A0"
             android:textSize="16sp"
-            android:padding="12dp" />
+            android:padding="12dp"
+            android:background="@android:color/transparent"
+            android:hint="질문 내용을 입력하세요"
+            android:inputType="text"
+            android:imeOptions="actionSearch"
+            android:maxLines="1" />
 
         <!-- 검색 아이콘 -->
         <ImageButton
@@ -66,6 +74,17 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_search"
             android:contentDescription="검색"
+            android:tint="#9090A0"
+            android:padding="8dp" />
+
+        <!-- 음성 인식 버튼 -->
+        <ImageButton
+            android:id="@+id/btnVoiceSearch"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:contentDescription="음성 검색"
             android:tint="#9090A0"
             android:padding="8dp" />
     </LinearLayout>
@@ -99,17 +118,45 @@
             android:orientation="vertical"
             android:padding="24dp">
 
-            <!-- AI 에이전트 로딩 상태 -->
+            <!-- AI 추천 결과 섹션 (먼저 표시) -->
             <TextView
-                android:id="@+id/tvAgentLoading"
+                android:id="@+id/tvAgentTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AI 추천 결과"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone" />
+
+            <!-- AI 에이전트 로딩 상태 (AI 추천 결과 제목 아래) -->
+            <LinearLayout
+                android:id="@+id/layoutAgentLoading"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="AI 추천 검색 중..."
-                android:textSize="14sp"
-                android:textColor="#9090A0"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"
-                android:visibility="gone" />
+                android:visibility="gone">
+
+                <ProgressBar
+                    android:id="@+id/progressAgentLoading"
+                    style="?android:attr/progressBarStyleSmall"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="12dp"
+                    android:indeterminateTint="#9090A0" />
+
+                <TextView
+                    android:id="@+id/tvAgentLoading"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AI 추천 검색 중..."
+                    android:textSize="14sp"
+                    android:textColor="#9090A0" />
+            </LinearLayout>
 
             <!-- AI 응답 박스 + TTS 버튼 (우측 상단 오버레이) -->
             <FrameLayout
@@ -144,7 +191,15 @@
                     android:visibility="gone" />
             </FrameLayout>
 
-            <!-- 점선 구분선 1 -->
+            <!-- AI 추천 노트 목록 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvAgentResults"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:visibility="gone" />
+
+            <!-- 점선 구분선 1 (AI 추천과 전체 검색 사이) -->
             <View
                 android:id="@+id/divider1"
                 android:layout_width="match_parent"
@@ -155,7 +210,7 @@
                 android:layerType="software"
                 android:visibility="gone" />
 
-            <!-- ElasticSearch 결과 섹션 -->
+            <!-- ElasticSearch 전체 검색 결과 섹션 -->
             <TextView
                 android:id="@+id/tvElasticTitle"
                 android:layout_width="wrap_content"
@@ -169,36 +224,6 @@
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvElasticResults"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:visibility="gone" />
-
-            <!-- 점선 구분선 2 -->
-            <View
-                android:id="@+id/divider2"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="24dp"
-                android:background="@drawable/dotted_divider"
-                android:layerType="software"
-                android:visibility="gone" />
-
-            <!-- AI 에이전트 노트 목록 섹션 -->
-            <TextView
-                android:id="@+id/tvAgentTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="AI 추천 결과"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:layout_marginBottom="12dp"
-                android:visibility="gone" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvAgentResults"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
