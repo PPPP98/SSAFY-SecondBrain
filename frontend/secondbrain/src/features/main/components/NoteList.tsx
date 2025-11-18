@@ -14,6 +14,7 @@ interface NoteListProps {
 export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
   const selectedIds = useSearchPanelStore((state) => state.selectedIds);
   const toggleSelection = useSearchPanelStore((state) => state.toggleSelection);
+  const isDeleteMode = useSearchPanelStore((state) => state.isDeleteMode);
 
   // 무한 스크롤: TanStack Query useInfiniteQuery와 통합
   const { observerRef } = useInfiniteScroll({
@@ -47,6 +48,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
               note={note}
               isSelected={selectedIds.has(note.noteId)}
               onToggle={toggleSelection}
+              isDeleteMode={isDeleteMode}
             />
             {index < noteData.length - 1 && <div className="border-b border-white/10" />}
           </div>
@@ -56,10 +58,17 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
   }
 
   if (type === 'search' && searchQuery) {
+    // 로딩 중
+    if (searchQuery.isLoading) {
+      return <LoadingSpinner />;
+    }
+
+    // 에러 발생
     if (searchQuery.isError) {
       return <p className="m-0 text-center text-sm text-red-400">검색 에러</p>;
     }
 
+    // 데이터 없음 (아직 로딩 전)
     if (!searchQuery.data) {
       return null;
     }
@@ -68,8 +77,9 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
       return page.results || [];
     });
 
+    // 검색 결과 없음
     if (allNotes.length === 0) {
-      return null;
+      return <p className="m-0 py-8 text-center text-sm text-white/40">검색결과가 없습니다</p>;
     }
 
     return (
@@ -81,6 +91,7 @@ export function NoteList({ type, recentQuery, searchQuery }: NoteListProps) {
                 note={note}
                 isSelected={selectedIds.has(note.id)}
                 onToggle={toggleSelection}
+                isDeleteMode={isDeleteMode}
               />
               {index < allNotes.length - 1 && <div className="border-b border-white/10" />}
               {/* 마지막 아이템 또는 마지막에서 3번째 중 작은 인덱스에 배치 */}

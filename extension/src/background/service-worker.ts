@@ -4,9 +4,11 @@ import { getCurrentUser } from '@/services/userService';
 import { saveCurrentPageWithStoredToken } from '@/services/noteService';
 import { handleDragSearchMessage } from './dragSearchHandler';
 import { env } from '@/config/env';
+import * as storage from '@/services/storageService';
 import type { UserInfo } from '@/types/auth';
 import type { SavePageResponse, SavePageError } from '@/types/note';
 import type { DragSearchMessage } from '@/types/dragSearch';
+import type { AddTextSnippetMessage, AddTextSnippetResponse } from '@/types/pendingTextSnippet';
 
 /**
  * Background Service Worker
@@ -21,13 +23,28 @@ type ExtensionMessage =
   | { type: 'LOGIN' }
   | { type: 'LOGOUT' }
   | { type: 'OPEN_TAB'; url: string }
+  | { type: 'OPEN_SIDE_PANEL'; noteId: number; windowId: number }
   | { type: 'AUTH_CHANGED' }
-  | { type: 'SAVE_CURRENT_PAGE'; url?: string; urls?: string[]; batchId?: string; batchTimestamp?: number }
+  | { type: 'ADD_PAGE_TO_COLLECTION'; url: string }
+  | AddTextSnippetMessage
+  | {
+      type: 'SAVE_CURRENT_PAGE';
+      url?: string;
+      urls?: string[];
+      batchId?: string;
+      batchTimestamp?: number;
+    }
   | DragSearchMessage;
 
 interface AuthResponse {
   authenticated: boolean;
   user?: UserInfo;
+}
+
+interface AddPageResponse {
+  success: boolean;
+  duplicate?: boolean;
+  error?: string;
 }
 
 // chrome.storage에서 인증 상태 확인
@@ -327,7 +344,13 @@ browser.runtime.onMessage.addListener(
     message: unknown,
     sender: browser.Runtime.MessageSender,
     sendResponse: (
-      response: AuthResponse | { success: boolean } | SavePageResponse | SavePageError,
+      response:
+        | AuthResponse
+        | AddPageResponse
+        | AddTextSnippetResponse
+        | { success: boolean }
+        | SavePageResponse
+        | SavePageError,
     ) => void,
   ) => {
     void (async () => {
@@ -348,6 +371,55 @@ browser.runtime.onMessage.addListener(
           case 'CHECK_AUTH': {
             const authResponse = await checkAuth();
             sendResponse(authResponse);
+            break;
+          }
+
+          case 'ADD_PAGE_TO_COLLECTION': {
+            try {
+              // pageCollectionStore 대신 storage 직접 접근
+              const pages = await storage.loadCollectedPages();
+
+              // 중복 체크
+              if (pages.includes(msg.url)) {
+                sendResponse({ success: false, duplicate: true });
+                break;
+              }
+
+              // 추가
+              await storage.addCollectedPage(msg.url);
+
+              // 성공 응답
+              sendResponse({ success: true, duplicate: false });
+            } catch (error) {
+              console.error('ADD_PAGE_TO_COLLECTION failed:', error);
+              sendResponse({ success: false, error: 'Failed to add page' });
+            }
+            break;
+          }
+
+          case 'ADD_TEXT_SNIPPET': {
+            try {
+              const snippets = await storage.loadPendingSnippets();
+
+              // 중복 체크 (텍스트 + URL 기반)
+              const duplicate = snippets.some(
+                (s) => s.text === msg.snippet.text && s.sourceUrl === msg.snippet.sourceUrl,
+              );
+
+              if (duplicate) {
+                sendResponse({ success: false, duplicate: true, count: snippets.length });
+                break;
+              }
+
+              // 추가
+              const updated = await storage.addPendingSnippet(msg.snippet);
+
+              // 성공 응답
+              sendResponse({ success: true, duplicate: false, count: updated.length });
+            } catch (error) {
+              console.error('ADD_TEXT_SNIPPET failed:', error);
+              sendResponse({ success: false, error: 'Failed to add text snippet' });
+            }
             break;
           }
 
@@ -377,6 +449,10 @@ browser.runtime.onMessage.addListener(
               'user',
               'authenticated',
             ]);
+
+            // 모든 탭에 인증 상태 변경 알림
+            await broadcastToAllTabs({ type: 'AUTH_CHANGED' });
+
             sendResponse({ success: true });
             break;
           }
@@ -385,6 +461,29 @@ browser.runtime.onMessage.addListener(
             // 새 탭에서 URL 열기
             await browser.tabs.create({ url: msg.url });
             sendResponse({ success: true });
+            break;
+          }
+
+          case 'OPEN_SIDE_PANEL': {
+            try {
+              const { noteId, windowId } = msg;
+
+              // 1. Storage에 noteId 저장 (Side Panel에서 읽음)
+              await browser.storage.local.set({ currentNoteId: noteId });
+
+              // 2. Side Panel 열기 (Chrome 114+ 필요)
+              if ('sidePanel' in chrome && typeof chrome.sidePanel.open === 'function') {
+                await chrome.sidePanel.open({ windowId });
+                sendResponse({ success: true });
+              } else {
+                // Side Panel 미지원 → Fallback
+                console.warn('[ServiceWorker] Side Panel not supported');
+                sendResponse({ success: false, error: 'SIDE_PANEL_NOT_SUPPORTED' });
+              }
+            } catch (error) {
+              console.error('[ServiceWorker] Failed to open side panel:', error);
+              sendResponse({ success: false, error: 'SIDE_PANEL_ERROR' });
+            }
             break;
           }
 
@@ -423,8 +522,10 @@ browser.runtime.onMessage.addListener(
               // URL 유효성 검증 및 필터링
               const validUrls = urlsToSave.filter((url) => {
                 if (!url || url.trim() === '') return false;
-                if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
-                return true;
+                // URL 또는 메타데이터 포맷된 텍스트 허용
+                if (url.startsWith('http://') || url.startsWith('https://')) return true;
+                if (url.includes('=== 출처 정보 ===')) return true; // 메타데이터 포맷
+                return false;
               });
 
               if (validUrls.length === 0) {

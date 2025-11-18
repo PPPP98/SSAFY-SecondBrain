@@ -70,10 +70,10 @@ export function MainPage() {
         />
       </MainLayout>
       <div
-        className={`absolute left-10 top-10 z-40 h-[calc(100%-5rem)] w-[27%] bg-transparent transition-all duration-200 ease-out motion-reduce:transition-none ${
+        className={`absolute left-10 top-10 z-40 h-[calc(100%-5rem)] w-[27%] bg-transparent transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none ${
           isOpen
-            ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
-            : 'pointer-events-none -translate-y-2 scale-95 opacity-0'
+            ? 'pointer-events-auto translate-x-0 opacity-100'
+            : 'pointer-events-none -translate-x-full opacity-0'
         }`}
       >
         <SearchPanel />

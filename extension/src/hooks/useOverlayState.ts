@@ -31,7 +31,6 @@ export function useOverlayState(): OverlayStateHook {
       try {
         const savedState = await storage.loadOverlayState();
         setState(savedState);
-        console.log('[useOverlayState] Initialized with state:', savedState);
       } catch (error) {
         console.error('[useOverlayState] Failed to load state:', error);
         // 실패해도 기본값으로 계속 진행

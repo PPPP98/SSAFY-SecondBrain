@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, Plus, Download, X } from 'lucide-react';
 import type { FloatingButtonPosition } from '@/types/dragSearch';
 
 interface FloatingSearchButtonProps {
   position: FloatingButtonPosition;
   keyword: string;
   onSearch: () => void;
+  onAdd: () => void;
+  onSave: () => void;
   onClose: () => void;
   autoHideMs: number;
 }
@@ -18,6 +20,8 @@ export function FloatingSearchButton({
   position,
   keyword,
   onSearch,
+  onAdd,
+  onSave,
   onClose,
   autoHideMs,
 }: FloatingSearchButtonProps) {
@@ -43,9 +47,14 @@ export function FloatingSearchButton({
         top: `${position.y + 10}px`, // 드래그 위치 바로 아래
       }}
     >
-      <button onClick={onSearch} className="search-button" title={`"${keyword}" 검색`}>
+      <button onClick={onSearch} className="action-button" title={`"${keyword}" 검색`}>
         <Search className="icon" />
-        <span className="keyword-text">노트 검색: {keyword}</span>
+      </button>
+      <button onClick={onAdd} className="action-button" title="페이지 추가">
+        <Plus className="icon" />
+      </button>
+      <button onClick={onSave} className="action-button" title="바로 저장">
+        <Download className="icon" />
       </button>
       <button onClick={onClose} className="close-button" title="닫기">
         <X className="icon" />
