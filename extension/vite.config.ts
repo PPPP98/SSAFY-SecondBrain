@@ -31,8 +31,15 @@ export default defineConfig({
       'react/jsx-dev-runtime',
       'react-dom/client',
       'webextension-polyfill',
+      'react-markdown',
+      'remark-gfm',
+      'rehype-highlight',
     ],
-    entries: ['src/content-scripts/overlay/index.tsx', 'src/background/service-worker.ts'],
+    entries: [
+      'src/content-scripts/overlay/index.tsx',
+      'src/background/service-worker.ts',
+      'src/sidepanel/index.tsx',
+    ],
   },
   build: {
     // Chrome Extension 크기 제한 고려 (압축 후 ~20MB)

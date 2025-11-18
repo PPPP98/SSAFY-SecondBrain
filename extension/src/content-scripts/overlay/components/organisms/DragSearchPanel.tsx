@@ -1,6 +1,7 @@
 import { Search, ExternalLink, Loader2, History, Trash2 } from 'lucide-react';
 import type { NoteSearchResult } from '@/types/note';
 import { useDragSearchStore } from '@/stores/dragSearchStore';
+import { showToast } from '@/content-scripts/overlay/components/molecules/SimpleToast';
 import browser from 'webextension-polyfill';
 
 interface DragSearchPanelProps {
@@ -138,7 +139,20 @@ export function DragSearchPanel({
             key={note.id}
             className="group cursor-pointer rounded-lg border border-border/50 bg-background p-2 transition-all hover:border-primary hover:shadow-md"
             onClick={() => {
-              window.open(`https://brainsecond.site/notes/${note.id}`, '_blank');
+              // Chrome Side Panel 열기
+              void (async () => {
+                try {
+                  const window = await browser.windows.getCurrent();
+                  await browser.runtime.sendMessage({
+                    type: 'OPEN_SIDE_PANEL',
+                    noteId: note.id,
+                    windowId: window.id,
+                  });
+                } catch (error) {
+                  console.error('[DragSearchPanel] Failed to open side panel:', error);
+                  showToast('노트를 열 수 없습니다', 'error');
+                }
+              })();
             }}
           >
             {/* 제목 */}

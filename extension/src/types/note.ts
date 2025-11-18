@@ -70,6 +70,7 @@ export interface NoteSearchResult {
   createdAt: string;
   updatedAt: string;
   remindCount: number;
+  score?: number; // Elasticsearch 유사도 점수 (선택적)
 }
 
 /**

@@ -101,9 +101,6 @@ export class DragSearchListener {
     });
 
     if (isExcluded) {
-      console.log(
-        `[DragSearch] 제외 도메인 감지: ${currentDomain} (제외 목록: ${this.settings.excludedDomains.join(', ')})`,
-      );
       return;
     }
 

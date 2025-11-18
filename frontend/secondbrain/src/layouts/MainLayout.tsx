@@ -35,7 +35,7 @@ const MainLayout = ({ children, onPlusClick }: MainLayoutProps) => {
       {/* 햄버거 메뉴 버튼 - 패널이 닫혀있을 때만 표시 */}
       <button
         onClick={handleMenuClick}
-        className={`absolute left-10 top-10 z-50 text-white/80 transition-opacity duration-200 ease-out hover:text-white motion-reduce:transition-none ${
+        className={`absolute left-10 top-10 z-50 rounded-lg p-2 text-white/80 transition-all duration-200 ease-out hover:scale-110 hover:bg-white/10 hover:text-white motion-reduce:transition-none ${
           isOpen ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100'
         }`}
         aria-label={isOpen ? '검색 패널 닫기' : '검색 패널 열기'}
