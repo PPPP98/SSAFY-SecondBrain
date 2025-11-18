@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { Button } from '@/content-scripts/overlay/components/ui/button';
 import { SaveBatchGroup } from '@/content-scripts/overlay/components/molecules/SaveBatchGroup';
 import { SaveStatusItem } from '@/content-scripts/overlay/components/molecules/SaveStatusItem';
@@ -28,6 +28,12 @@ interface BatchGroup {
 export function SaveStatusPanel({ isOpen, onClose }: SaveStatusPanelProps) {
   const { getRequestList, removeSaveRequest } = useSaveStatusStore();
   const requests = getRequestList();
+
+  // 모두 지우기 핸들러
+  function handleClearAll() {
+    // 모든 요청 삭제
+    requests.forEach((req) => removeSaveRequest(req.id));
+  }
   const hadRequestsRef = useRef(false);
 
   // 모든 항목이 처리되면 자동으로 패널 닫기
@@ -80,17 +86,35 @@ export function SaveStatusPanel({ isOpen, onClose }: SaveStatusPanelProps) {
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-3">
-        <h3 className="text-sm font-semibold text-card-foreground">저장 진행 상황</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0"
-          onClick={onClose}
-          aria-label="닫기"
-        >
-          <X className="h-4 w-4" />
-        </Button>
+      <div className="border-b border-border">
+        {/* 닫기 버튼 - 우측 상단 */}
+        <div className="flex justify-end p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={onClose}
+            aria-label="닫기"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* 제목 + 모두 지우기 */}
+        <div className="flex items-center justify-between px-4 pb-3">
+          <h3 className="text-sm font-semibold text-card-foreground">저장 진행 상황</h3>
+          {requests.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 px-2 text-xs text-destructive hover:text-destructive"
+              onClick={handleClearAll}
+            >
+              <Trash2 className="h-3 w-3" />
+              <span>모두 지우기</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Batch Groups / Single Items */}

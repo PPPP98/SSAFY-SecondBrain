@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { Plus, Download, Settings, FileText } from 'lucide-react';
 import { Button } from '@/content-scripts/overlay/components/ui/button';
 import { CounterBadge } from '@/content-scripts/overlay/components/atoms/CounterBadge';
@@ -6,10 +6,11 @@ import { SearchInput } from '@/content-scripts/overlay/components/atoms/SearchIn
 import { usePageCollectionStore } from '@/stores/pageCollectionStore';
 import { usePendingTextSnippetsStore } from '@/stores/pendingTextSnippetsStore';
 import { useSaveStatusStore } from '@/stores/saveStatusStore';
-import { useAiSearchStore } from '@/stores/aiSearchStore';
+import { useNoteSearchStore } from '@/stores/noteSearchStore';
 import browser from 'webextension-polyfill';
 import { showToast } from '@/content-scripts/overlay/components/molecules/SimpleToast';
 import type { SavePageResponse, SavePageError } from '@/types/note';
+import { debounce } from '@/lib/utils/debounce';
 
 /**
  * 에러 코드를 사용자 친화적 메시지로 변환
@@ -34,12 +35,12 @@ function getErrorMessage(errorCode: string): string {
  * - Shadcn UI + Tailwind CSS 기반
  */
 
-type ActivePanel = null | 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'aiSearch';
+type ActivePanel = null | 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'noteSearch';
 
 interface ActionButtonsProps {
   activePanel: ActivePanel;
   onTogglePanel: (
-    panel: 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'aiSearch',
+    panel: 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'noteSearch',
   ) => void;
 }
 
@@ -47,34 +48,78 @@ export function ActionButtons({ activePanel, onTogglePanel }: ActionButtonsProps
   const { pages, addPage, clearPages } = usePageCollectionStore();
   const { getSnippetCount } = usePendingTextSnippetsStore();
   const { getSavingCount } = useSaveStatusStore();
-  const { keyword, setKeyword, search, clearSearch, setFocused } = useAiSearchStore();
+  const { search, clearSearch, setFocused } = useNoteSearchStore();
 
-  const [isSearchMode, setIsSearchMode] = useState(false);
+  // Local state로 검색어 관리 (즉시 반응)
+  const [localKeyword, setLocalKeyword] = useState('');
+  // 포커스 상태 (너비 확장용)
+  const [isFocused, setIsFocused] = useState(false);
 
-  useEffect(() => {
-    if (activePanel === 'aiSearch') {
-      setIsSearchMode(true);
-    } else if (activePanel !== null) {
-      setIsSearchMode(false);
+  // 실시간 검색을 위한 debounced search
+  const debouncedSearchRef = useRef(
+    debounce((searchKeyword: unknown) => {
+      if (typeof searchKeyword === 'string' && searchKeyword.trim()) {
+        void search(searchKeyword.trim());
+      }
+    }, 300),
+  );
+
+  // 파생 상태: 포커스 또는 검색 모드일 때 확장
+  const isSearchMode = isFocused || activePanel === 'noteSearch';
+
+  // 키워드 입력 핸들러 - 실시간 검색
+  function handleKeywordChange(newKeyword: string) {
+    setLocalKeyword(newKeyword);
+
+    if (newKeyword.trim()) {
+      // 검색어가 있으면 패널 열기 + 실시간 검색
+      if (activePanel !== 'noteSearch') {
+        onTogglePanel('noteSearch');
+      }
+      debouncedSearchRef.current(newKeyword);
+    } else {
+      // 검색어가 비었으면 패널 닫기
+      if (activePanel === 'noteSearch') {
+        onTogglePanel(null as never);
+      }
     }
-  }, [activePanel]);
+  }
 
   function handleSearchFocus() {
-    setIsSearchMode(true);
     setFocused(true);
+    setIsFocused(true);
+
+    // 포커스 시 다른 패널 닫기
+    if (activePanel !== null && activePanel !== 'noteSearch') {
+      onTogglePanel(null as never);
+    }
+
+    // 검색어가 있으면 패널 열기
+    if (localKeyword.trim() && activePanel !== 'noteSearch') {
+      onTogglePanel('noteSearch');
+    }
+  }
+
+  function handleSearchBlur() {
+    setFocused(false);
+    // 검색어가 없으면 포커스 상태도 해제
+    if (!localKeyword.trim()) {
+      setIsFocused(false);
+    }
   }
 
   function handleSearchCancel() {
-    setIsSearchMode(false);
-    setFocused(false);
+    setLocalKeyword('');
     clearSearch();
+    setFocused(false);
+    setIsFocused(false);
     onTogglePanel(null as never);
   }
 
   function handleSearch() {
-    if (keyword.trim()) {
-      onTogglePanel('aiSearch');
-      void search(keyword.trim());
+    if (localKeyword.trim()) {
+      onTogglePanel('noteSearch');
+      void search(localKeyword.trim());
     }
   }
 
@@ -171,13 +216,13 @@ ${snippet.text}`;
       {/* 검색바 (최상단, 항상 표시) */}
       <div className="mb-3">
         <SearchInput
-          value={keyword}
-          onChange={setKeyword}
+          value={localKeyword}
+          onChange={handleKeywordChange}
           onFocus={handleSearchFocus}
-          onBlur={() => setFocused(false)}
+          onBlur={handleSearchBlur}
           onSearch={handleSearch}
           onCancel={handleSearchCancel}
-          placeholder="무엇이든 물어보세요..."
+          placeholder="노트 검색..."
         />
       </div>
 

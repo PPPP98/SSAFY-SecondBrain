@@ -348,15 +348,44 @@ browser.runtime.onMessage.addListener(
         | AuthResponse
         | AddPageResponse
         | AddTextSnippetResponse
-        | { success: boolean }
+        | { success: boolean; error?: string }
         | SavePageResponse
         | SavePageError,
     ) => void,
   ) => {
+    const msg = message as ExtensionMessage;
+
+    // OPEN_SIDE_PANEL은 동기적으로 처리해야 user gesture가 유지됨
+    if (msg.type === 'OPEN_SIDE_PANEL') {
+      const { noteId } = msg;
+      const tabId = sender.tab?.id;
+
+      // 1. Storage에 noteId 저장 (비동기지만 sidePanel.open 전에 시작)
+      void browser.storage.local.set({ currentNoteId: noteId });
+
+      // 2. Side Panel 동기적으로 열기 (await 없이!)
+      if ('sidePanel' in chrome && typeof chrome.sidePanel.open === 'function') {
+        if (tabId) {
+          chrome.sidePanel
+            .open({ tabId })
+            .then(() => {
+              sendResponse({ success: true });
+            })
+            .catch((error) => {
+              console.warn('[ServiceWorker] sidePanel.open() failed:', error);
+              sendResponse({ success: false, error: 'SIDE_PANEL_OPEN_FAILED' });
+            });
+        } else {
+          sendResponse({ success: false, error: 'NO_TAB_ID' });
+        }
+      } else {
+        sendResponse({ success: false, error: 'SIDE_PANEL_NOT_SUPPORTED' });
+      }
+      return true; // 비동기 응답
+    }
+
     void (async () => {
       try {
-        const msg = message as ExtensionMessage;
-
         // 드래그 검색 메시지 처리 (별도 핸들러)
         // fire-and-forget: Background가 browser.tabs.sendMessage로 별도 응답
         if (msg.type === 'SEARCH_DRAG_TEXT') {
@@ -464,28 +493,7 @@ browser.runtime.onMessage.addListener(
             break;
           }
 
-          case 'OPEN_SIDE_PANEL': {
-            try {
-              const { noteId, windowId } = msg;
-
-              // 1. Storage에 noteId 저장 (Side Panel에서 읽음)
-              await browser.storage.local.set({ currentNoteId: noteId });
-
-              // 2. Side Panel 열기 (Chrome 114+ 필요)
-              if ('sidePanel' in chrome && typeof chrome.sidePanel.open === 'function') {
-                await chrome.sidePanel.open({ windowId });
-                sendResponse({ success: true });
-              } else {
-                // Side Panel 미지원 → Fallback
-                console.warn('[ServiceWorker] Side Panel not supported');
-                sendResponse({ success: false, error: 'SIDE_PANEL_NOT_SUPPORTED' });
-              }
-            } catch (error) {
-              console.error('[ServiceWorker] Failed to open side panel:', error);
-              sendResponse({ success: false, error: 'SIDE_PANEL_ERROR' });
-            }
-            break;
-          }
+          // OPEN_SIDE_PANEL은 상단에서 동기적으로 처리됨
 
           case 'SAVE_CURRENT_PAGE': {
             try {

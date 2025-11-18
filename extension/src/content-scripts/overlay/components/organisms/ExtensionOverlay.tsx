@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Toolbar } from '@/content-scripts/overlay/components/molecules/Toolbar';
 import { AuthCard } from '@/content-scripts/overlay/components/molecules/AuthCard';
 import { ActionButtons } from '@/content-scripts/overlay/components/molecules/ActionButtons';
 import { FloatingButton } from '@/content-scripts/overlay/components/atoms/FloatingButton';
 import { DragSearchPanel } from '@/content-scripts/overlay/components/organisms/DragSearchPanel';
-import { AiSearchPanel } from '@/content-scripts/overlay/components/organisms/AiSearchPanel';
+import { NoteSearchPanel } from '@/content-scripts/overlay/components/organisms/NoteSearchPanel';
 import { URLListModal } from '@/content-scripts/overlay/components/organisms/URLListModal';
 import { PendingTextSnippetsPanel } from '@/content-scripts/overlay/components/organisms/PendingTextSnippetsPanel';
 import { SaveStatusPanel } from '@/content-scripts/overlay/components/organisms/SaveStatusPanel';
@@ -14,12 +14,11 @@ import { useOverlayState } from '@/hooks/useOverlayState';
 import { usePageCollectionStore } from '@/stores/pageCollectionStore';
 import { usePendingTextSnippetsStore } from '@/stores/pendingTextSnippetsStore';
 import { useDragSearchStore } from '@/stores/dragSearchStore';
-import { useAiSearchStore } from '@/stores/aiSearchStore';
-import * as storage from '@/services/storageService';
-import type { PendingTextSnippet } from '@/types/pendingTextSnippet';
+import { useNoteSearchStore } from '@/stores/noteSearchStore';
+import { useSaveStatusStore } from '@/stores/saveStatusStore';
 import browser from 'webextension-polyfill';
 
-type ActivePanel = null | 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'aiSearch';
+type ActivePanel = null | 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'noteSearch';
 
 /**
  * Extension Overlay (Organism)
@@ -37,15 +36,10 @@ interface ExtensionOverlayProps {
 export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   const { loading, authenticated, user, logout } = useExtensionAuth();
   const { isExpanded, isCollapsed, isHidden, expand, collapse } = useOverlayState();
-  const { initialize, syncFromStorage, getPageList, removePage, clearPages } =
-    usePageCollectionStore();
-  const {
-    initialize: initializeSnippets,
-    syncFromStorage: syncSnippetsFromStorage,
-    getSnippetList,
-    removeSnippet,
-    clearSnippets,
-  } = usePendingTextSnippetsStore();
+  const { getPageList, removePage, clearPages } = usePageCollectionStore();
+  const { getSnippetList, removeSnippet, clearSnippets } = usePendingTextSnippetsStore();
+  // saveStatusStore는 자동 초기화됨
+  useSaveStatusStore();
   const {
     keyword,
     results,
@@ -55,62 +49,22 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
     isVisible: isDragSearchVisible,
   } = useDragSearchStore();
   const {
-    keyword: aiKeyword,
-    aiResponse,
+    keyword: searchKeyword,
     notesList,
     isSearching,
-    esCompleted,
-    error: aiError,
-  } = useAiSearchStore();
+    error: searchError,
+  } = useNoteSearchStore();
   const [isAnimating, setIsAnimating] = useState(false);
   const [animationPhase, setAnimationPhase] = useState<'idle' | 'expanding' | 'collapsing'>('idle');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
 
-  // Storage 초기화 (마운트 시 한 번만)
-  useEffect(() => {
-    void (async () => {
-      // 1. Storage 마이그레이션 및 초기화
-      await storage.initializeStorage();
-
-      // 2. Store 초기화
-      await initialize();
-      await initializeSnippets();
-    })();
-  }, [initialize, initializeSnippets]);
-
-  // Storage 변경 감지 → 탭 간 동기화
-  useEffect(() => {
-    const unwatch = storage.watchStorageChanges((key, newValue) => {
-      if (key === storage.STORAGE_KEYS.COLLECTED_PAGES) {
-        // 다른 탭에서 페이지 목록이 변경됨 → Store 동기화
-        syncFromStorage(newValue as string[]);
-      } else if (key === storage.STORAGE_KEYS.PENDING_TEXT_SNIPPETS) {
-        // 다른 탭에서 텍스트 조각이 변경됨 → Store 동기화
-        syncSnippetsFromStorage(newValue as PendingTextSnippet[]);
-      }
-    });
-
-    // Cleanup
-    return unwatch;
-  }, [syncFromStorage, syncSnippetsFromStorage]);
-
-  // Escape 키로 닫기
-  useEffect(() => {
-    if (!isExpanded || !isOpen) return;
-
-    function handleEscape(event: KeyboardEvent): void {
-      if (event.key === 'Escape') {
-        onToggle(false);
-      }
+  // Escape 키 핸들러 (이벤트 위임 방식)
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape' && isExpanded && isOpen) {
+      onToggle(false);
     }
-
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isExpanded, isOpen, onToggle]);
+  };
 
   // Animation handling for expand/collapse
   const handleExpand = () => {
@@ -149,7 +103,7 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   };
 
   function handleTogglePanel(
-    panel: 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'aiSearch',
+    panel: 'urlList' | 'snippetsList' | 'saveStatus' | 'settings' | 'noteSearch',
   ): void {
     setActivePanel((prev) => (prev === panel ? null : panel));
   }
@@ -158,12 +112,28 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   function handleOpenSidePanel(noteId: number): void {
     void (async () => {
       try {
-        const window = await browser.windows.getCurrent();
-        await browser.runtime.sendMessage({
+        // Content Script에서는 browser.windows API 사용 불가
+        // Background에서 sender.tab.id를 사용하므로 windowId 불필요
+        const response = await browser.runtime.sendMessage({
           type: 'OPEN_SIDE_PANEL',
           noteId,
-          windowId: window.id,
         });
+
+        // 타입 가드로 응답 확인
+        const isSuccess =
+          response &&
+          typeof response === 'object' &&
+          'success' in response &&
+          response.success === true;
+
+        if (!isSuccess) {
+          const errorMsg =
+            response && typeof response === 'object' && 'error' in response
+              ? response.error
+              : 'Unknown error';
+          console.warn('[ExtensionOverlay] Side panel failed:', errorMsg);
+          window.open(`https://brainsecond.site/notes/${noteId}`, '_blank');
+        }
       } catch (error) {
         console.error('[ExtensionOverlay] Failed to open side panel:', error);
         // Fallback: 웹 앱에서 열기
@@ -199,6 +169,8 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   return (
     <div
       className="fixed top-4 right-4 z-9999"
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
       style={{
         opacity: animationPhase === 'collapsing' ? 0 : 1,
         transform:
@@ -273,8 +245,8 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
                 className={`overflow-hidden transition-all duration-300 ease-in-out ${
                   activePanel === 'settings'
                     ? 'mt-4 max-h-[600px] opacity-100'
-                    : activePanel === 'aiSearch'
-                      ? 'mt-4 max-h-[800px] w-[400px] overflow-y-auto opacity-100 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-transparent'
+                    : activePanel === 'noteSearch'
+                      ? 'mt-4 w-[400px] opacity-100'
                       : activePanel
                         ? 'mt-4 max-h-[400px] opacity-100'
                         : 'max-h-0 opacity-0'
@@ -282,21 +254,19 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
               >
                 {activePanel && (
                   <div className="relative">
-                    {/* AiSearchPanel */}
+                    {/* NoteSearchPanel */}
                     <div
                       className={`transition-opacity duration-150 ${
-                        activePanel === 'aiSearch'
+                        activePanel === 'noteSearch'
                           ? 'opacity-100'
                           : 'pointer-events-none absolute inset-0 opacity-0'
                       }`}
                     >
-                      <AiSearchPanel
-                        keyword={aiKeyword}
-                        aiResponse={aiResponse}
+                      <NoteSearchPanel
+                        keyword={searchKeyword}
                         notesList={notesList}
                         isLoading={isSearching}
-                        esCompleted={esCompleted}
-                        error={aiError}
+                        error={searchError}
                         onViewDetail={handleOpenSidePanel}
                       />
                     </div>

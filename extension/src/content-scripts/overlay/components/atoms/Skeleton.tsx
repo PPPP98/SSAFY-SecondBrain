@@ -18,26 +18,6 @@ export function Skeleton({ className = '' }: SkeletonProps) {
 }
 
 /**
- * AI 답변용 스켈레톤 - 실제 AI 답변과 동일한 레이아웃
- */
-export function AiAnswerSkeleton() {
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <Skeleton className="h-4 w-4" />
-        <Skeleton className="h-4 w-16" />
-      </div>
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-4/5" />
-      </div>
-    </div>
-  );
-}
-
-/**
  * 노트 리스트용 스켈레톤 - 실제 NoteListItem과 동일한 레이아웃
  */
 export function NoteListSkeleton({ count = 3 }: { count?: number }) {
