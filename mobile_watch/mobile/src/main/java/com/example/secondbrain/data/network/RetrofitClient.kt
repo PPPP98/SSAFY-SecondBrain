@@ -2,6 +2,7 @@ package com.example.secondbrain.data.network
 
 import com.example.secondbrain.BuildConfig
 import okhttp3.OkHttpClient
+import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -42,9 +43,8 @@ object RetrofitClient {
             android.util.Log.e("RetrofitClient", "=== 응답 본문: $bodyString")
 
             // 응답 본문을 다시 만들어야 함 (한 번 읽으면 소진됨)
-            val newResponseBody = okhttp3.ResponseBody.create(
-                responseBody?.contentType(),
-                bodyString
+            val newResponseBody = bodyString.toResponseBody(
+                responseBody?.contentType()
             )
             response.newBuilder().body(newResponseBody).build()
         }
