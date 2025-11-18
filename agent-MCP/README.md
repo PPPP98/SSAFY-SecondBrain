@@ -55,21 +55,21 @@ Windows
 Command Prompt (cmd):
 
 ```bash
-copy .env.example .env
+copy .env-example .env
 ```
 PowerShell:
 
 ```powershell
-Copy-Item .env.example .env
+Copy-Item .env-example .env
 ```
 Git Bash:
 
 ```bash
-cp .env.example .env
+cp .env-example .env
 ```
 Linux / macOS
 ```bash
-cp .env.example .env
+cp .env-example .env
 ```
 ```
 # API 서버 주소
