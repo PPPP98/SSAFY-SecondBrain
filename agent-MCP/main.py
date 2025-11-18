@@ -10,6 +10,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from services.search_service import SearchService
+from services.note_create_service import NoteCreateService
 
 # 환경 변수 로드
 load_dotenv()
@@ -33,7 +34,7 @@ mcp = FastMCP(
 
 # 검색 서비스 인스턴스
 search_service = SearchService(api_base_url=API_BASE_URL, api_key=API_KEY)
-
+note_create_service = NoteCreateService(api_base_url=API_BASE_URL, api_key=API_KEY)
 
 # ==========================
 # MCP 도구 등록
@@ -43,7 +44,7 @@ search_service = SearchService(api_base_url=API_BASE_URL, api_key=API_KEY)
 @mcp.tool(
     name="search_personal_notes",
     description="""
-    개인 노트를 자연어로 검색합니다.
+    # 개인 노트를 자연어로 검색합니다.
     
     검색 방법:
     1. 유사도 검색을 위한 쿼리가 존재하면, 유사도 검색 실시
@@ -73,6 +74,37 @@ async def search_personal_notes(
 ) -> str:
     """MCP 도구: 개인 노트 검색"""
     return await search_service.search_notes(query=query, start=start, end=end)
+
+
+@mcp.tool(
+    name="note_create",
+    description="""
+    # 개인 노트공간에 노트를 생성합니다.
+
+    사용자의 요청에 의해 노트를 생성할 수 있습니다.
+    요청 내용에 알맞은 제목과 본문을 구성해야 합니다.
+    
+    사용자는 대화내용을 요약하여 저장해달라고 요청할 수도 있고, 새로운 학습 내용과 같은 것을 저장 요청 할 수 있습니다.
+    사용자의 요청에 알맞은 노트를 생성하여 저장해주세요.
+    
+    작성 규칙:
+    1. 본문 내용은 항상 **MarkDown**형식으로 작성해야 합니다.
+    2. 내용의 길이제한은 없지만 최대한 요약해서 작성합니다.
+    3. title과 content는 항상 작성해서 요청해야 합니다.
+    4. 제목은 본문 내용을 알기 쉽고 검색하기 용이하게 작성해야 합니다.
+    
+    """,
+)
+async def note_create(
+    title: str = Field(
+        description="저장할 노트의 전체 내용을 포함하는 제목을 작성해야 합니다. 내용 파악과 검색에 용이하게 핵심 키워드를 포함한 적절한 문장으로 제목을 작성해주세요."
+    ),
+    content: str = Field(
+        description="사용자가 요청한 내용의 본문을 작성해야 합니다. 노트 본문 내용. 반드시 Markdown 형식으로 작성하세요. 예를 들어 어떤 자료에 대한 조사를 바탕으로 글을 적거나 대화 내용에 대한 요약을 통해 노트를 작성할 수 있습니다. 적절한 내용을 노트의 본문으로 작성하여 요청하세요."
+    ),
+) -> str:
+    """LLM 대화 노트 저장"""
+    return await note_create_service.note_create(title=title, content=content)
 
 
 # ==========================
