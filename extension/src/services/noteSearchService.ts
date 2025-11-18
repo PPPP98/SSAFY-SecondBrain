@@ -1,6 +1,6 @@
 import { env } from '@/config/env';
 import browser from 'webextension-polyfill';
-import type { SearchResponse, NoteDetail } from '@/types/aiSearch';
+import type { NoteDetail } from '@/types/noteSearch';
 import type { NoteSearchApiResponse } from '@/types/note';
 
 /**
@@ -12,55 +12,6 @@ async function getAccessToken(): Promise<string | null> {
 }
 
 /**
- * chrome.storage에서 User ID 가져오기
- * user 객체에서 id 추출
- */
-async function getUserId(): Promise<number | null> {
-  const result = await browser.storage.local.get(['user']);
-  if (result.user && typeof result.user === 'object' && 'id' in result.user) {
-    return (result.user as { id: number }).id;
-  }
-  return null;
-}
-
-/**
- * AI Agent 검색
- * GET /ai/api/v1/agents/search
- *
- * @param keyword - 검색 키워드
- * @returns SearchResponse (AI 답변 + 관련 문서)
- * @throws Error (NO_TOKEN, API_ERROR)
- */
-export async function searchWithAI(keyword: string): Promise<SearchResponse> {
-  const token = await getAccessToken();
-  const userId = await getUserId();
-
-  if (!token) {
-    throw new Error('NO_TOKEN');
-  }
-
-  if (!userId) {
-    throw new Error('NO_USER_ID');
-  }
-
-  const url = `${env.kgApiBaseUrl}/ai/api/v1/agents/search?query=${encodeURIComponent(keyword)}`;
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'X-User-ID': userId.toString(),
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`AI_SEARCH_ERROR: ${response.status} ${response.statusText}`);
-  }
-
-  return (await response.json()) as SearchResponse;
-}
-
-/**
  * Elasticsearch 검색
  * GET /api/notes/search
  *
@@ -68,9 +19,7 @@ export async function searchWithAI(keyword: string): Promise<SearchResponse> {
  * @returns NoteSearchApiResponse (노트 목록)
  * @throws Error (NO_TOKEN, API_ERROR)
  */
-export async function searchWithElasticsearch(
-  keyword: string,
-): Promise<NoteSearchApiResponse['data']> {
+export async function searchNotes(keyword: string): Promise<NoteSearchApiResponse['data']> {
   const token = await getAccessToken();
 
   if (!token) {
@@ -89,7 +38,7 @@ export async function searchWithElasticsearch(
   );
 
   if (!response.ok) {
-    throw new Error(`ES_SEARCH_ERROR: ${response.status} ${response.statusText}`);
+    throw new Error(`SEARCH_ERROR: ${response.status} ${response.statusText}`);
   }
 
   const data = (await response.json()) as NoteSearchApiResponse;

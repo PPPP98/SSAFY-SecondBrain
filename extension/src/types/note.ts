@@ -89,3 +89,40 @@ export interface NoteSearchApiResponse {
     pageSize: number;
   };
 }
+
+/**
+ * 관련 노트 (Knowledge Graph 이웃 노드)
+ * GET /ai/api/v1/graph/neighbors/{note_id} 응답 항목
+ */
+export interface RelatedNote {
+  /**
+   * 이웃 노트 ID
+   */
+  neighbor_id: number;
+
+  /**
+   * 이웃 노트 제목
+   */
+  neighbor_title: string;
+
+  /**
+   * 그래프 거리 (1 = 직접 연결, 2 = 2단계 연결 등)
+   */
+  distance: number;
+}
+
+/**
+ * 관련 노트 API 응답
+ * GET /ai/api/v1/graph/neighbors/{note_id}
+ */
+export interface RelatedNotesResponse {
+  /**
+   * 중심 노트 ID
+   */
+  center_note_id: number;
+
+  /**
+   * 관련 노트 목록
+   */
+  neighbors: RelatedNote[];
+}

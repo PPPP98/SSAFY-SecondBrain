@@ -1,26 +1,6 @@
 /**
- * AI 검색 관련 타입 정의
+ * 노트 검색 관련 타입 정의
  */
-
-/**
- * AI Agent 검색 응답의 Document Schema
- */
-export interface DocumentSchema {
-  note_id: number;
-  title: string;
-  created_at?: string;
-  updated_at?: string;
-  similarity_score?: number;
-}
-
-/**
- * AI Agent 검색 API 응답
- */
-export interface SearchResponse {
-  success: boolean;
-  response: string; // LLM이 생성한 자연어 답변
-  documents: DocumentSchema[];
-}
 
 /**
  * 노트 상세 조회 응답
@@ -34,19 +14,15 @@ export interface NoteDetail {
 }
 
 /**
- * AI 검색 Store 상태
+ * 노트 검색 Store 상태
  */
-export interface AiSearchState {
+export interface NoteSearchState {
   // 검색 상태
   keyword: string;
   isSearching: boolean;
   isFocused: boolean;
 
-  // AI 검색 결과
-  aiResponse: string;
-  aiDocuments: DocumentSchema[];
-
-  // Elasticsearch 결과
+  // 검색 결과
   notesList: NoteSearchResult[];
   totalCount: number;
 

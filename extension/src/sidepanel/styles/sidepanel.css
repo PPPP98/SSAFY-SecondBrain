@@ -4,13 +4,14 @@
  * - ExtensionOverlay와 동일한 테마 변수 사용
  */
 
-/* 기본 리셋 */
+/* Tailwind CSS 로드 */
+@import 'tailwindcss';
+
+/* 기본 리셋 - Tailwind preflight가 대부분 처리하므로 최소화 */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 body {
@@ -37,20 +38,20 @@ body {
   --ring: oklch(0.708 0 0);
 }
 
-/* 다크 모드 - overlay.css와 동일 */
+/* 다크 모드 - 중성 회색 톤 */
 .dark {
-  --background: oklch(0.18 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.25 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.35 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.35 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --ring: oklch(0.556 0 0);
+  --background: oklch(0.13 0 0);
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.18 0 0);
+  --card-foreground: oklch(0.95 0 0);
+  --primary: oklch(0.85 0 0);
+  --primary-foreground: oklch(0.15 0 0);
+  --muted: oklch(0.25 0 0);
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: oklch(0.25 0 0);
+  --accent-foreground: oklch(0.95 0 0);
+  --border: oklch(0.3 0 0);
+  --ring: oklch(0.5 0 0);
 }
 
 /* 스크롤바 커스텀 */
@@ -116,4 +117,51 @@ body {
 .dark pre code.hljs {
   background-color: var(--muted);
   color: var(--foreground);
+}
+
+/* @uiw/react-markdown-preview GitHub 스타일 다크모드 오버라이드 */
+/* 기본 파란 톤(#0d1117)을 중성 회색으로 변경 */
+[data-color-mode='dark'] .wmde-markdown,
+[data-color-mode='dark'].wmde-markdown {
+  --color-canvas-default: #171717;
+  --color-canvas-subtle: #262626;
+  --color-canvas-inset: #1a1a1a;
+  --color-border-default: #404040;
+  --color-border-muted: #333333;
+  --color-fg-default: #f5f5f5;
+  --color-fg-muted: #a3a3a3;
+  --color-fg-subtle: #737373;
+  --color-accent-fg: #60a5fa;
+  --color-accent-emphasis: #3b82f6;
+  --color-neutral-muted: #333333;
+  --color-prettylights-syntax-comment: #737373;
+  --color-prettylights-syntax-constant: #60a5fa;
+  --color-prettylights-syntax-entity: #c084fc;
+  --color-prettylights-syntax-storage-modifier-import: #f5f5f5;
+  --color-prettylights-syntax-entity-tag: #34d399;
+  --color-prettylights-syntax-keyword: #f472b6;
+  --color-prettylights-syntax-string: #a5f3fc;
+  --color-prettylights-syntax-variable: #fca5a5;
+  --color-prettylights-syntax-brackethighlighter-unmatched: #f87171;
+  --color-prettylights-syntax-invalid-illegal-text: #f5f5f5;
+  --color-prettylights-syntax-invalid-illegal-bg: #7f1d1d;
+  --color-prettylights-syntax-carriage-return-text: #f5f5f5;
+  --color-prettylights-syntax-carriage-return-bg: #b91c1c;
+  --color-prettylights-syntax-string-regexp: #34d399;
+  --color-prettylights-syntax-markup-list: #fbbf24;
+  --color-prettylights-syntax-markup-heading: #60a5fa;
+  --color-prettylights-syntax-markup-italic: #f5f5f5;
+  --color-prettylights-syntax-markup-bold: #f5f5f5;
+  --color-prettylights-syntax-markup-deleted-text: #fecaca;
+  --color-prettylights-syntax-markup-deleted-bg: #450a0a;
+  --color-prettylights-syntax-markup-inserted-text: #bbf7d0;
+  --color-prettylights-syntax-markup-inserted-bg: #052e16;
+  --color-prettylights-syntax-markup-changed-text: #fed7aa;
+  --color-prettylights-syntax-markup-changed-bg: #431407;
+  --color-prettylights-syntax-markup-ignored-text: #f5f5f5;
+  --color-prettylights-syntax-markup-ignored-bg: #1e3a8a;
+  --color-prettylights-syntax-meta-diff-range: #c084fc;
+  --color-prettylights-syntax-brackethighlighter-angle: #737373;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #525252;
+  --color-prettylights-syntax-constant-other-reference-link: #a5f3fc;
 }
