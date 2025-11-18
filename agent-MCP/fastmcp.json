@@ -1,0 +1,6 @@
+{
+  "entrypoint": "main.py",
+  "environment": {
+    "dependencies": ["httpx", "pydantic", "python-dotenv"]
+  }
+}

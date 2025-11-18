@@ -67,11 +67,14 @@ class SearchResponse(BaseModel):
             }
         }
 
+
 class SearchErrorResponse(BaseModel):
     """에러 응답 스키마"""
+
     success: bool = Field(default=False, description="성공 여부")
     error: str = Field(description="에러 메시지")
     error_code: Optional[str] = Field(default=None, description="에러 코드")
+
 
 class TimeFilter(BaseModel):
     """
@@ -119,3 +122,45 @@ class RelevanceCheckOutput(BaseModel):
     """연관성 체크 출력"""
 
     is_relevant: bool = Field(description="질문과 관련이 있는가")
+
+
+class MCPSearchResponse(BaseModel):
+    """검색 응답 스키마"""
+
+    success: bool = Field(description="성공 여부")
+    documents: List[Dict] = Field(description="검색된 문서 정보")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "documents": [
+                    {
+                        "noteId": 239,
+                        "title": "MCP 테스트",
+                        "content": "API key test for MCP server",
+                        "createdAt": "2025-11-17T13:49:35.028813",
+                        "updatedAt": "2025-11-17T13:49:35.028825",
+                        "remindAt": None,
+                        "remindCount": 0
+                    },
+                ],
+            }
+        }
+
+
+class MCPSearchErrorResponse(BaseModel):
+    """에러 응답 스키마"""
+
+    success: bool = Field(default=False, description="성공 여부")
+    error: str = Field(description="에러 메시지")
+    error_code: Optional[str] = Field(default=None, description="에러 코드")
+
+class MCPSearchRequest(BaseModel):
+    """
+    MCP 요청 스키마
+    """
+
+    query: Optional[str] = Field(default=None, description="질문 쿼리")
+    timespan: Optional[TimeFilter] = Field(default=None, description="검색 기간 설정")
+

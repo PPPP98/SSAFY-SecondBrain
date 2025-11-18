@@ -1,6 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, status, Header
+from fastapi import APIRouter, HTTPException, Depends, Query, status, Header, Body
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import logging
+
+from typing import Optional, Dict
+import asyncio
 
 from app.services.note_summarize_service import note_summarize_service
 from app.services.agent_search_service import agent_search_service
@@ -12,6 +15,9 @@ from app.schemas.agents import (
     SearchResponse,
     SearchErrorResponse,
     DocumentSchema,
+    MCPSearchResponse,
+    MCPSearchErrorResponse,
+    MCPSearchRequest,
 )
 
 
@@ -125,3 +131,50 @@ async def agent_search(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"검색 중 오류가 발생했습니다.",
         )
+
+
+@router.post(
+    "/mcp-search",
+    response_model=MCPSearchResponse,
+    responses={
+        200: {"model": MCPSearchResponse, "description": "응답 성공"},
+        400: {"model": MCPSearchErrorResponse, "description": "잘못된 요청"},
+        500: {"model": MCPSearchErrorResponse, "description": "서버 오류"},
+    },
+    summary="MCP서버 에이전트 검색",
+    description="MCP서버에서 에이전트가 검색할 수 있도록 구축한 API ",
+)
+async def mcp_agent_search(
+    x_api_key: str = Header(..., alias="X-API-Key"),
+    search_params: MCPSearchRequest = Body(...),
+) -> MCPSearchResponse:
+    """MCP 에이전트 검색"""
+    api_key_response = await external_service.get_user_id(api_key=x_api_key)
+    user_id = api_key_response.get("data", {}).get("userId")
+
+    result = await agent_search_service.mcp_search(
+        user_id=user_id,
+        query=search_params.query,
+        timespan=search_params.timespan,
+    )
+
+    if result is None:
+        logger.error(f"❌ 검색 결과 None - user_id: {user_id}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="검색 결과를 가져올 수 없습니다.",
+        )
+    documents = [DocumentSchema(**doc) for doc in result.get("documents", [])]
+
+    tasks = [
+        external_service.get_note_data(api_key=x_api_key, note_id=document.note_id)
+        for document in documents
+    ]
+    results = await asyncio.gather(*tasks)
+    documents_content = [result["data"] for result in results if result.get("data", "")]
+
+    response = MCPSearchResponse(
+        success=True,
+        documents=documents_content,
+    )
+    return response
