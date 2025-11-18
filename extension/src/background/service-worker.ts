@@ -23,6 +23,7 @@ type ExtensionMessage =
   | { type: 'LOGIN' }
   | { type: 'LOGOUT' }
   | { type: 'OPEN_TAB'; url: string }
+  | { type: 'OPEN_SIDE_PANEL'; noteId: number; windowId: number }
   | { type: 'AUTH_CHANGED' }
   | { type: 'ADD_PAGE_TO_COLLECTION'; url: string }
   | AddTextSnippetMessage
@@ -460,6 +461,29 @@ browser.runtime.onMessage.addListener(
             // 새 탭에서 URL 열기
             await browser.tabs.create({ url: msg.url });
             sendResponse({ success: true });
+            break;
+          }
+
+          case 'OPEN_SIDE_PANEL': {
+            try {
+              const { noteId, windowId } = msg;
+
+              // 1. Storage에 noteId 저장 (Side Panel에서 읽음)
+              await browser.storage.local.set({ currentNoteId: noteId });
+
+              // 2. Side Panel 열기 (Chrome 114+ 필요)
+              if ('sidePanel' in chrome && typeof chrome.sidePanel.open === 'function') {
+                await chrome.sidePanel.open({ windowId });
+                sendResponse({ success: true });
+              } else {
+                // Side Panel 미지원 → Fallback
+                console.warn('[ServiceWorker] Side Panel not supported');
+                sendResponse({ success: false, error: 'SIDE_PANEL_NOT_SUPPORTED' });
+              }
+            } catch (error) {
+              console.error('[ServiceWorker] Failed to open side panel:', error);
+              sendResponse({ success: false, error: 'SIDE_PANEL_ERROR' });
+            }
             break;
           }
 

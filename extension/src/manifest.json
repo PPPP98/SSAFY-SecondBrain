@@ -11,9 +11,13 @@
     "128": "assets/icon-128.png"
   },
 
-  "permissions": ["identity", "storage", "tabs", "activeTab", "scripting"],
+  "permissions": ["identity", "storage", "tabs", "activeTab", "scripting", "sidePanel"],
 
   "host_permissions": ["https://api.brainsecond.site/*"],
+
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
 
   "background": {
     "service_worker": "src/background/service-worker.ts",
