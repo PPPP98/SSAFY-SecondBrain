@@ -1,7 +1,6 @@
 import { Search, ExternalLink, Loader2, History, Trash2 } from 'lucide-react';
 import type { NoteSearchResult } from '@/types/note';
 import { useDragSearchStore } from '@/stores/dragSearchStore';
-import { showToast } from '@/content-scripts/overlay/components/molecules/SimpleToast';
 import browser from 'webextension-polyfill';
 
 interface DragSearchPanelProps {
@@ -142,15 +141,31 @@ export function DragSearchPanel({
               // Chrome Side Panel 열기
               void (async () => {
                 try {
-                  const window = await browser.windows.getCurrent();
-                  await browser.runtime.sendMessage({
+                  // Content Script에서는 browser.windows API 사용 불가
+                  const response = await browser.runtime.sendMessage({
                     type: 'OPEN_SIDE_PANEL',
                     noteId: note.id,
-                    windowId: window.id,
                   });
+
+                  // 타입 가드로 응답 확인
+                  const isSuccess =
+                    response &&
+                    typeof response === 'object' &&
+                    'success' in response &&
+                    response.success === true;
+
+                  if (!isSuccess) {
+                    const errorMsg =
+                      response && typeof response === 'object' && 'error' in response
+                        ? response.error
+                        : 'Unknown error';
+                    console.warn('[DragSearchPanel] Side panel failed:', errorMsg);
+                    window.open(`https://brainsecond.site/notes/${note.id}`, '_blank');
+                  }
                 } catch (error) {
                   console.error('[DragSearchPanel] Failed to open side panel:', error);
-                  showToast('노트를 열 수 없습니다', 'error');
+                  // Fallback: 웹 앱에서 열기
+                  window.open(`https://brainsecond.site/notes/${note.id}`, '_blank');
                 }
               })();
             }}

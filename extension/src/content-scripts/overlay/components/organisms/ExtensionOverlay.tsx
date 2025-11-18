@@ -112,12 +112,28 @@ export function ExtensionOverlay({ isOpen, onToggle }: ExtensionOverlayProps) {
   function handleOpenSidePanel(noteId: number): void {
     void (async () => {
       try {
-        const window = await browser.windows.getCurrent();
-        await browser.runtime.sendMessage({
+        // Content Script에서는 browser.windows API 사용 불가
+        // Background에서 sender.tab.id를 사용하므로 windowId 불필요
+        const response = await browser.runtime.sendMessage({
           type: 'OPEN_SIDE_PANEL',
           noteId,
-          windowId: window.id,
         });
+
+        // 타입 가드로 응답 확인
+        const isSuccess =
+          response &&
+          typeof response === 'object' &&
+          'success' in response &&
+          response.success === true;
+
+        if (!isSuccess) {
+          const errorMsg =
+            response && typeof response === 'object' && 'error' in response
+              ? response.error
+              : 'Unknown error';
+          console.warn('[ExtensionOverlay] Side panel failed:', errorMsg);
+          window.open(`https://brainsecond.site/notes/${noteId}`, '_blank');
+        }
       } catch (error) {
         console.error('[ExtensionOverlay] Failed to open side panel:', error);
         // Fallback: 웹 앱에서 열기
