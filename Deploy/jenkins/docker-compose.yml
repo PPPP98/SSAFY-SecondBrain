@@ -11,9 +11,9 @@ services:
       - JAVA_OPTS=-Xms512m -Xmx3072m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Seoul -Djenkins.install.runSetupWizard=false
       - DOCKER_HOST=unix:///var/run/docker.sock
       - CASC_JENKINS_CONFIG=/var/jenkins_home/casc/jenkins.yaml
-      - ADMIN_USER=admin
-      - ADMIN_PASS=redvelvet0205!
-      - JENKINS_URL=https://jenkins.brainsecond.site
+      - ADMIN_USER=${JENKINS_ADMIN_USER}
+      - ADMIN_PASS=${JENKINS_ADMIN_PASS}
+      - JENKINS_URL=${JENKINS_URL}
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false -Xms512m -Xmx3072m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Seoul
     ports: []
     volumes:
