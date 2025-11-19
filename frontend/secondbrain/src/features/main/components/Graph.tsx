@@ -92,16 +92,17 @@ export const Graph = () => {
 
   // 시뮬레이션 안정화 후 자동 일시정지 (추가 GPU 최적화)
   const handleEngineStop = () => {
-    // 외부에서 pause된 상태가 아닐 때만 자동 일시정지
-    if (!isPaused && fgRef.current) {
-      fgRef.current.pauseAnimation();
+    // store에서 직접 최신 상태를 읽어 race condition 방지
+    const currentIsPaused = useGraphStore.getState().isPaused;
+    if (!currentIsPaused) {
+      useGraphStore.getState().pauseGraph();
     }
   };
 
   const handleNodeClick = (node: GraphNode) => {
-    // 클릭 시 렌더링 재개 (상호작용을 위해)
-    if (fgRef.current) {
-      fgRef.current.resumeAnimation();
+    // 클릭 시 store를 통해 렌더링 재개 (상호작용을 위해)
+    if (isPaused) {
+      useGraphStore.getState().resumeGraph();
     }
     void navigate({ to: '/notes/$noteId', params: { noteId: String(node.id) } });
   };
