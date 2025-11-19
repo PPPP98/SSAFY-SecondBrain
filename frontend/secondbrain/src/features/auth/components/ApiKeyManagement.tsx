@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Copy, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
 import { useGenerateApiKey } from '@/features/auth/hooks/useGenerateApiKey';
 import { useApiKeyVisibility } from '@/features/auth/hooks/useApiKeyVisibility';
 

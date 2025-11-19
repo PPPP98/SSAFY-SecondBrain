@@ -1,5 +1,10 @@
 import { ChevronsRight, PanelRightClose, Trash2, Expand } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/shared/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,13 +15,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from '@/shared/components/ui/alert-dialog';
 
 interface DraftToolbarProps {
   onBack: () => void;
   onDelete: () => void;
   mode: 'full-screen' | 'side-peek';
   onToggleMode: () => void;
+  hideSidePeekButton?: boolean;
 }
 
 /**
@@ -26,7 +32,13 @@ interface DraftToolbarProps {
  * - Tooltip이 모든 버튼에 적용됨
  * - 삭제 버튼은 AlertDialog로 확인 후 실행
  */
-export function DraftToolbar({ onBack, onDelete, mode, onToggleMode }: DraftToolbarProps) {
+export function DraftToolbar({
+  onBack,
+  onDelete,
+  mode,
+  onToggleMode,
+  hideSidePeekButton = false,
+}: DraftToolbarProps) {
   // 공통 버튼 스타일
   const buttonClass = `
     rounded-lg border border-white/30 bg-white/10 p-3
@@ -48,14 +60,16 @@ export function DraftToolbar({ onBack, onDelete, mode, onToggleMode }: DraftTool
             <TooltipContent>닫기</TooltipContent>
           </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button onClick={onToggleMode} className={buttonClass} aria-label="사이드 보기">
-                <PanelRightClose className="size-6 text-white" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>사이드 보기</TooltipContent>
-          </Tooltip>
+          {!hideSidePeekButton && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button onClick={onToggleMode} className={buttonClass} aria-label="사이드 보기">
+                  <PanelRightClose className="size-6 text-white" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>사이드 보기</TooltipContent>
+            </Tooltip>
+          )}
 
           <AlertDialog>
             <Tooltip>

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import SearchIcon from '@/shared/components/icon/Search.svg?react';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
 import { useDebounce } from '@/features/main/hooks/useDebounce';
-import { useSearchNotes } from '@/features/main/hooks/useSearchNotes';
 
 /**
  * 검색바 컴포넌트
@@ -20,12 +19,7 @@ export function SearchBar() {
   // 150ms 디바운싱 적용 (더 빠른 응답성)
   const debouncedSearchInput = useDebounce(searchInput, 150);
 
-  // 검색 쿼리 실행 (enabled로 조건부 실행)
-  const searchQuery = useSearchNotes({
-    keyword: debouncedSearchInput,
-  });
-
-  // 검색 결과 기반 패널 표시 로직
+  // 검색어 변경 기반 패널 표시 로직
   useEffect(() => {
     const trimmedInput = debouncedSearchInput.trim();
 
@@ -37,20 +31,9 @@ export function SearchBar() {
       return;
     }
 
-    // 검색 시작 (로딩 중이거나 성공한 경우 패널 열기)
-    if (searchQuery.isLoading || searchQuery.isSuccess) {
-      // 검색 패널 즉시 열기 (로딩 중에도 표시)
-      startSearch(debouncedSearchInput);
-    }
-    // isError 상태에서는 아무 동작 안 함 (패널 상태 유지)
-  }, [
-    debouncedSearchInput,
-    searchQuery.isLoading,
-    searchQuery.isSuccess,
-    mode,
-    closePanel,
-    startSearch,
-  ]);
+    // 검색어 변경 시에만 검색 패널 열기
+    startSearch(debouncedSearchInput);
+  }, [debouncedSearchInput, mode, closePanel, startSearch]);
 
   return (
     <div className="flex items-center gap-3">

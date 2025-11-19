@@ -3,7 +3,12 @@ import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
 import DoubleArrow from '@/shared/components/icon/DoubleArrow.svg?react';
 import DeleteIcon from '@/shared/components/icon/Delete.svg?react';
 import { Check } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/shared/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +18,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@/shared/components/ui/alert-dialog';
 import { useNoteDelete } from '@/features/note/hooks/useNoteDelete';
 import { toast } from 'sonner';
 

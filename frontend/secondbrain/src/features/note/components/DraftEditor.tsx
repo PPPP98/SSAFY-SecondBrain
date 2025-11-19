@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useNoteDraft } from '@/features/note/hooks/useNoteDraft';
 import { SidePeekOverlay } from '@/features/note/components/SidePeekOverlay';
 import { DraftToolbar } from '@/features/note/components/DraftToolbar';
 import { NoteTitleInput } from '@/features/note/components/NoteTitleInput';
 import { NoteEditor } from '@/features/note/components/NoteEditor';
+import { useGraphStore } from '@/features/main/stores/graphStore';
 import '@/shared/styles/custom-scrollbar.css';
 
 interface DraftEditorProps {
@@ -33,6 +34,17 @@ export function DraftEditor({ draftId, isOpen, onClose }: DraftEditorProps) {
 function DraftEditorInternal({ draftId, isOpen, onClose }: DraftEditorProps) {
   // 뷰 모드 상태 (draftId 변경 시 key로 자동 리셋됨)
   const [viewMode, setViewMode] = useState<'full-screen' | 'side-peek'>('full-screen');
+
+  // Graph 렌더링 제어 (GPU 최적화)
+  const { pauseGraph, resumeGraph } = useGraphStore();
+
+  // isOpen=true일 때만 Graph 일시정지, cleanup에서 재개
+  useEffect(() => {
+    if (!isOpen) return;
+
+    pauseGraph();
+    return () => resumeGraph();
+  }, [isOpen, pauseGraph, resumeGraph]);
 
   const handleToggleMode = () => {
     setViewMode((prev) => (prev === 'full-screen' ? 'side-peek' : 'full-screen'));
