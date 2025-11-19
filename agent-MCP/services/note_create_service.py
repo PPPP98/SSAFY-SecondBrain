@@ -2,7 +2,6 @@
 """LLM 대화 노트 생성 서비스"""
 import httpx
 import logging
-import json
 
 logger = logging.getLogger(__name__)
 

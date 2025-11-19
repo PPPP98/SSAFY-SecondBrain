@@ -1,141 +1,59 @@
-## 📖 개요
+## Knowledge Graph Service
 
-개인이 작성한 노트를 자동으로 임베딩하고, 의미적 유사도를 기반으로 노트 간 관계를 자동으로 연결하여 지식 그래프를 구축하는 시스템입니다.
+간단하고 실용적으로 정리한 리포지토리 설명서입니다. 이 프로젝트는 개인 노트를 임베딩하고 유사도 기반으로 노트들을 연결해 Neo4j 지식 그래프를 구성합니다.
 
-### 1차 MVP (완료) ✅
+현재 상태
+- API 서버 (FastAPI) 동작
+- 워커(Background consumer) 구성 완료 — RabbitMQ로 메시지를 받아 처리합니다
 
-- ✅ **노트 CRUD**: Neo4j 기반 노트 저장 및 관리
-- ✅ **자동 임베딩**: OpenAI API를 활용한 텍스트 임베딩 생성
-- ✅ **유사도 연결**: 벡터 유사도 기반 노트 간 자동 관계 형성
-  - HNSW 인덱스 기반 고속 검색
-  - 코사인 유사도 계산
-  - 임계값 필터링 (기본: 0.70)
-- ✅ **REST API**: FastAPI 기반 API 서버
-- ✅ **Docker 배포**: 컨테이너화된 배포 환경
+주요 변경/간소화
+- 최소 Python 버전: 3.13+
 
-### 2차 개발 계획 (진행 예정) 🔜
+기술 스택(요약)
+- Python 3.13+
+- FastAPI, Uvicorn
+- Neo4j (5.26)
+- RabbitMQ + pika (워커에서 사용)
+- 의존성 관리: `uv` (pyproject.toml, uv.lock)
 
-- 🔜 **RabbitMQ 기반 비동기 처리**: 무거운 임베딩 작업 비동기화
-- 🔜 **MSA(Microservice Architecture) 전환**: 서비스 분리
-- 🔜 **Spring Boot Backend 연동**: 메시지 기반 통신
+프로젝트 핵심 파일
+- `main.py` — FastAPI 진입점
+- `worker.py` — 워커 실행 스크립트 (app.workers.note_consumer 사용)
+- `pyproject.toml`, `uv.lock` — 의존성
+- `Dockerfile`, `Dockerfile.worker`, `docker-compose-test-kgservice.yml` — 컨테이너 설정
 
-## 🛠️ 기술 스택
-
-### Backend
-| 기술 | 버전 |
-|------|------|
-| **FastAPI** | 0.120.0 |
-| **Uvicorn** | 0.32.0 |
-| **Python** | 3.11+ |
-
-### Database
-| 기술 | 버전 |
-|------|------|
-| **Neo4j** | 5.26 |
-| **HNSW** | - |
-
-### AI
-| 기술 |
-|------|
-| **OpenAI API** |
-| **Tiktoken** |
-
-### 패키지 관리 & 개발
-| 도구 | 설명 |
-|------|------|
-| **uv** | 빠른 Python 패키지 관리자 |
-| **Pydantic** | 데이터 검증 (v2.9.2) |
-| **pytest** | 단위 테스트 |
-| **Docker** | 컨테이너화 |
-
-## 📁 프로젝트 구조
-
-```
-knowledge-graph-service/
-├── main.py # FastAPI 애플리케이션
-├── Dockerfile # Docker 이미지 정의
-├── docker-compose.yml # Docker Compose 설정
-├── pyproject.toml # uv 의존성 정의
-├── uv.lock # 의존성 잠금 파일
-├── .env.example # 환경변수 템플릿
-│
-├── app/
-│ ├── api/ # API 계층
-│ │ └── v1/
-│ │ ├── endpoints/ # 엔드포인트
-│ │ │ ├── notes.py # 노트 CRUD API
-│ │ │ ├── search.py # 검색 API
-│ │ │ └── stats.py # 통계 API
-│ │ ├── routers.py # 라우터 통합
-│ │ └── dependencies.py # 의존성 주입
-│ │
-│ ├── core/ # 핵심 설정
-│ │ ├── config.py # 환경 설정
-│ │ └── constants.py # 상수
-│ │
-│ ├── db/ # 데이터베이스 계층
-│ │ ├── neo4j_client.py # Neo4j 클라이언트
-│ │ └── init_db.py # 스키마 초기화
-│ │
-│ ├── crud/ # CRUD 작업
-│ │ └── note.py # Note CRUD
-│ │
-│ ├── services/ # 비즈니스 로직
-│ │ ├── embedding_service.py # 임베딩 생성
-│ │ └── similarity_service.py # 유사도 연결
-│ │
-│ └── schemas/ # Pydantic 모델
-│ └── note.py # Note 스키마
-│
-├── tests/ # 테스트
-│ ├── test_crud.py # CRUD 테스트 (9개)
-│ ├── test_similarity_service.py# 유사도 테스트 (6개)
-│ └── test_api.py # API 통합 테스트 (10개)
-│
-└── README.md
-```
-
-## 🚀 시작하기
-
-### 사전 요구사항
-
-- Python 3.11 이상
-- Neo4j 5.26 이상 (Docker 또는 로컬)
-- OpenAI API Key
-
-
-
-### 로컬 프로젝트 설정
+빠른 시작 (개발)
+1) 의존성 설치
 
 ```bash
-
-# 프로젝트 root에서 의존성 설치
 uv sync
-
-# 가상환경 활성화
-source .venv/bin/activate  
-
 ```
 
-### 환경 변수 설정
-
-```bash
-# .env 파일 생성
-cp .env.example .env
-```
-
-### 4. 서버 실행
+2) 로컬 실행 (API)
 
 ```bash
 uv run python main.py
+# 서버: http://localhost:8000/ai
 ```
 
-서버가 http://localhost:8000 에서 실행됩니다.
+3) 로컬 워커 실행
 
-## 📚 API 문서
+```bash
+uv run python worker.py
+```
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+도커(권장) — docker-compose-test-kgservice.yml 사용
+
+```bash
+docker-compose -f docker-compose-test-kgservice.yml build --no-cache
+docker-compose -f docker-compose-test-kgservice.yml up -d
+```
+
+워커 로그 보기
+
+```bash
+docker-compose -f docker-compose-test-kgservice.yml logs -f worker
+```
 
 
 ## 🎯 주요 기능 설명
@@ -159,6 +77,24 @@ Top-20 유사 노트 추출 (코사인 유사도)
      ↓
 양방향 관계 설정 (A ↔ B)
 ```
+### 3. 요약 에이전트
+- 크롬 익스텐션을 통해 url / text 데이터를 종합해 하나의 note로 저장하는 에이전트
+- url을 가져와 파싱하고 / text데이터와 종합해 LLM활용해서 새로운 노트로 생성
+
+### 4. 노트 검색 에이전트
+- 사용자가 찾고자하는 또는 궁금한 내용을 내가 저장한 SecondBrain에서 찾아주는 에이전트
+- 자연어로 입력하면 알맞은 필터를 적용하는 **동적쿼리**작성 Agent구축(예시: 시간 범위)
+- 유사도 검색을 위한 검색 쿼리 재작성 이후 관련성 체크하는 Agent
+- 최종 응답 생성 Agent
+- Agent 오케스트라 : LangGraph 활용
+
+![alt text](/knowledge-graph-service/docs/image.png)
+
+### 5. 그래프 관련 API
+- 그래프 시각화를 위한 Neo4j 그래프 데이터 제공
+- 이웃 노드 조회
+- MCP 활용 그래프 검색 제공 
+
 
 ## ⚙️ 설정 옵션
 
@@ -176,9 +112,7 @@ Top-20 유사 노트 추출 (코사인 유사도)
 - **0.60 - 0.69**: 관련된 주제 (느슨함)
 - **0.60 미만**: 관련 없음
 
-## 📝 다음 단계 (2차 개발)
-
-### Phase 1: 비동기 처리 추가
+### 비동기 처리 추가
 
 ```
 Spring Boot Backend
@@ -187,7 +121,7 @@ PostgreSQL
      ↓ (메시지 발행)
 RabbitMQ
      ↓ (메시지 수신)
-Knowledge Graph Service (현재 FastAPI)
+Knowledge Graph Service
      ↓
 Neo4j
 ```

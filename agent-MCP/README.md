@@ -72,11 +72,9 @@ Linux / macOS
 cp .env-example .env
 ```
 ```
-# API 서버 주소
-API_BASE_URL=https://api.brainsecond.site/ai/api/v1/agents
-
-# API 인증 키
-API_KEY=your_api_key_here
+# 환경변수
+API_KEY=your-api-key
+API_BASE_URL=https://api.brainsecond.site/
 ```
 
 ### 2. API 키 발급
@@ -86,9 +84,12 @@ API_KEY=your_api_key_here
 ## 🔗 Claude Desktop 연결
 
 ### 방법 1: FastMCP CLI 사용 (권장)
-
+- 가상환경 활성화
 ```
-# 프로젝트 폴더에서 실행
+source .venv/Script/activate
+```
+- 프로젝트 폴더에서 실행
+```
 fastmcp install claude-desktop main.py --name personal-notes
 ```
 
