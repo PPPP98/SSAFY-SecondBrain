@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { useGraphVisualization } from '@/features/main/hooks/useGraphVisualization';
 import { useSearchPanelStore } from '@/features/main/stores/searchPanelStore';
+import { useGraphStore } from '@/features/main/stores/graphStore';
 import type { GraphNode, GraphLink } from '@/features/main/types/graph';
 
 const calculateLinkWidth = (link: { score: number }) => link.score * 2;
@@ -58,8 +59,10 @@ export const Graph = () => {
   const navigate = useNavigate();
   const { data: graphData, isLoading, isError } = useGraphVisualization();
   const highlightedNodeIds = useSearchPanelStore((state) => state.highlightedNodeIds);
+  const isPaused = useGraphStore((state) => state.isPaused);
   const fgRef = useRef<ForceGraphMethods<GraphNode, GraphLink>>();
 
+  // D3 force 설정
   useEffect(() => {
     if (fgRef.current) {
       const fg = fgRef.current;
@@ -76,7 +79,30 @@ export const Graph = () => {
     }
   }, [graphData]);
 
+  // GPU 최적화: isPaused 상태에 따라 렌더링 일시정지/재개
+  useEffect(() => {
+    if (!fgRef.current) return;
+
+    if (isPaused) {
+      fgRef.current.pauseAnimation();
+    } else {
+      fgRef.current.resumeAnimation();
+    }
+  }, [isPaused]);
+
+  // 시뮬레이션 안정화 후 자동 일시정지 (추가 GPU 최적화)
+  const handleEngineStop = () => {
+    // 외부에서 pause된 상태가 아닐 때만 자동 일시정지
+    if (!isPaused && fgRef.current) {
+      fgRef.current.pauseAnimation();
+    }
+  };
+
   const handleNodeClick = (node: GraphNode) => {
+    // 클릭 시 렌더링 재개 (상호작용을 위해)
+    if (fgRef.current) {
+      fgRef.current.resumeAnimation();
+    }
     void navigate({ to: '/notes/$noteId', params: { noteId: String(node.id) } });
   };
 
@@ -113,8 +139,10 @@ export const Graph = () => {
         backgroundColor="#10131A"
         onNodeClick={(node) => handleNodeClick(node as GraphNode)}
         showNavInfo={false}
-        d3AlphaDecay={0.02}
-        d3VelocityDecay={0.3}
+        d3AlphaDecay={0.05}
+        d3VelocityDecay={0.5}
+        cooldownTime={5000}
+        onEngineStop={handleEngineStop}
       />
     </div>
   );

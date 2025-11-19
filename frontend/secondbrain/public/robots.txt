@@ -1,0 +1,13 @@
+# robots.txt for Second Brain
+# https://developers.google.com/search/docs/crawling-indexing/robots/intro
+
+# 모든 크롤러 허용
+User-agent: *
+Allow: /
+
+# 인증 관련 경로 차단
+Disallow: /auth/callback
+Disallow: /api/
+
+# Sitemap 위치 (선택사항)
+# Sitemap: https://brainsecond.site/sitemap.xml

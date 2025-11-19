@@ -19,6 +19,7 @@ export function LandingPage() {
             playsInline
             className="absolute right-0 h-full w-auto min-w-full object-cover"
             preload="metadata"
+            poster="/landing-poster.webp"
             style={{ transform: 'scale(1.3) translateX(10%)' }}
           >
             <source src="/landing.mp4" type="video/mp4" />
@@ -30,7 +31,14 @@ export function LandingPage() {
           {/* 헤더 섹션 */}
           <div className="mb-12 space-y-4">
             <h1 className="text-9xl font-bold tracking-tight text-white">Second Brain</h1>
-            <p className="text-2xl font-light text-[#7F86C1]">새로운 세상을 위한 새로운 두뇌</p>
+            <p
+              className="text-2xl font-medium text-[#7F86C1]"
+              style={{
+                textShadow: '0 2px 4px rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              새로운 세상을 위한 새로운 두뇌
+            </p>
             <div className="pt-3">
               <GoogleLoginButton text="signin" />
             </div>
