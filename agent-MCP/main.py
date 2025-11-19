@@ -3,7 +3,6 @@
 import logging
 import os
 from typing import Optional
-from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
@@ -11,6 +10,7 @@ from pydantic import Field
 
 from services.search_service import SearchService
 from services.note_create_service import NoteCreateService
+from services.graph_note_search_service import GraphNoteSearchService
 
 # 환경 변수 로드
 load_dotenv()
@@ -35,6 +35,7 @@ mcp = FastMCP(
 # 검색 서비스 인스턴스
 search_service = SearchService(api_base_url=API_BASE_URL, api_key=API_KEY)
 note_create_service = NoteCreateService(api_base_url=API_BASE_URL, api_key=API_KEY)
+graph_note_search_service = GraphNoteSearchService(api_base_url=API_BASE_URL, api_key=API_KEY)
 
 # ==========================
 # MCP 도구 등록
@@ -106,6 +107,35 @@ async def note_create(
 ) -> str:
     """LLM 대화 노트 저장"""
     return await note_create_service.note_create(title=title, content=content)
+
+
+@mcp.tool(
+    name="graph_note_search",
+    description="""
+    # 특정 노트와 연결된 주변 노트들을 그래프 기반으로 탐색합니다.
+    
+    노트 간의 연결 관계를 따라 지정된 깊이만큼 탐색하여
+    관련된 노트들의 상세 정보를 검색합니다.
+    
+    사용 방법:
+    1. 노트 ID를 알고 있는 경우: 해당 ID로 직접 탐색
+    2. 노트 ID를 모르는 경우: 먼저 'search_personal_notes' 도구로 노트를 검색하여 ID 확인
+    3. depth 값으로 탐색 범위 조절 (기본값: 1, 높을수록 더 많은 연결 노트 탐색)
+    
+    반환 정보:
+    - 연결된 각 노트의 제목, ID, 작성일, 수정일, 본문 내용
+    """
+)
+async def graph_note_search(
+        note_id: int = Field(
+            description="탐색을 시작할 노트의 ID입니다. 필수 입력값이며, ID를 모르는 경우 'search_personal_notes' 도구를 먼저 사용하여 검색하세요."
+        ),
+        depth: Optional[int] =Field(
+            description="그래프 탐색 깊이입니다. 기본값은 1이며, 값이 클수록 더 멀리 연결된 노트까지 탐색합니다. 예: 1(직접 연결), 2(2단계 연결)"
+        ),
+) -> str:
+    """"""
+    return await graph_note_search_service.graph_note_search(note_id=note_id, depth=depth)
 
 
 # ==========================
