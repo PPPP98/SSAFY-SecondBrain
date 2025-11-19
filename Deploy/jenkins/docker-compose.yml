@@ -21,6 +21,7 @@ services:
       - ./casc:/var/jenkins_home/casc:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
+      - /usr/libexec/docker/cli-plugins:/usr/libexec/docker/cli-plugins:ro
     mem_limit: 4g
     memswap_limit: 4g
     cpus: "1.5"
