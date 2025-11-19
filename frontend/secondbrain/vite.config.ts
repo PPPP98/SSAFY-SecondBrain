@@ -23,6 +23,24 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // 빌드 최적화 설정 (Lighthouse 캐시 효율성 개선)
+  build: {
+    rollupOptions: {
+      output: {
+        // 해시된 파일명으로 장기 캐싱 지원
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'chunks/[name]-[hash].js',
+        entryFileNames: 'entries/[name]-[hash].js',
+        // 벤더 청크 분리 (캐시 효율성 향상)
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['@tanstack/react-router'],
+        },
+      },
+    },
+    // 프로덕션 빌드 최적화
+    sourcemap: false,
+  },
   define: {
     // Vue feature flags for @milkdown/crepe compatibility
     __VUE_OPTIONS_API__: 'true',
