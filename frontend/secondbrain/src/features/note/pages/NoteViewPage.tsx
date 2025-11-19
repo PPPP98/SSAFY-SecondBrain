@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Graph } from '@/features/main/components/Graph';
@@ -9,6 +9,7 @@ import { NoteEditor } from '@/features/note/components/NoteEditor';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { useNoteQuery } from '@/features/note/hooks/useNoteQuery';
 import { useNoteDelete } from '@/features/note/hooks/useNoteDelete';
+import { useGraphStore } from '@/features/main/stores/graphStore';
 import '@/shared/styles/custom-scrollbar.css';
 
 /**
@@ -22,11 +23,22 @@ export function NoteViewPage() {
   const { noteId } = useParams({ from: '/notes/$noteId' });
   const [viewMode, setViewMode] = useState<'full-screen' | 'side-peek'>('full-screen');
 
+  // Graph 렌더링 제어 (GPU 최적화)
+  const { pauseGraph, resumeGraph } = useGraphStore();
+
   // 노트 데이터 가져오기
   const { data: noteData, isLoading, isError } = useNoteQuery(noteId);
 
   // 노트 삭제 훅
   const { mutate: deleteNote, isPending: isDeleting } = useNoteDelete();
+
+  // 페이지 마운트 시 Graph 일시정지, 언마운트 시 재개
+  useEffect(() => {
+    pauseGraph();
+    return () => {
+      resumeGraph();
+    };
+  }, [pauseGraph, resumeGraph]);
 
   const handleClose = () => {
     void navigate({ to: '/main' });
