@@ -79,7 +79,11 @@
 ## Chrome Extension
 
 크롬 익스텐션을 통해 웹에서 쉽게 정보를 저장하고 꺼내볼 수 있습니다
-  
+
+<details>
+<summary>상세보기</summary>
+<div markdown="1">
+
 ![드래그저장](/readme-assets/익스텐션/gif/드래그저장.gif)
 ![드래그추가](/readme-assets/익스텐션/gif/드래그추가.gif)
 ![페이지저장](/readme-assets/익스텐션/gif/추가한%20페이지%20노트로%20저장.gif)
@@ -100,12 +104,20 @@
 ![임시노트삭제](/readme-assets/익스텐션/gif/임시노트삭제.gif)
 
 </div>
+</details>
+
+
+</div>
 
 <div>
 
 ## MCP
 
 내 Second Brain을 LLM서비스와 연결하여 지식을 생성하고 꺼내서 새로운 인사이트를 얻어보세요
+
+<details>
+<summary>상세보기</summary>
+<div markdown="1">
 
 ![저장요청](/readme-assets/MCP/gif/1_저장요청.gif)
 ![노트생성성공](/readme-assets/MCP/gif/2_노트생성성공캡처.png)
@@ -126,6 +138,9 @@
 > Graph 검색을 지원하여 LLM이 더 많은 context와 연결성을 이해하고 답변할 수 있습니다.
 
 </div>
+</details>
+
+</div>
 
 <div>
 
@@ -133,12 +148,19 @@
 
 워치와 모바일에서 내가 저장한 노트를 자연어로 검색하고 확인할 수 있습니다.
 
+<details>
+<summary>상세보기</summary>
+<div markdown="1">
+
 ![모바일검색](/readme-assets/모바일/gif/모바일검색.gif)
 ![워치검색](/readme-assets/워치/워치%20음성인식1.png)
 ![워치검색](/readme-assets/워치/워치알림2.png)
 ![검색결과](/readme-assets/모바일/gif/노트%20스와이프.gif)
 
 > 검색 결과를 모바일에서 확인하고 스와이프를 통해 연관 노트를 계속해서 서칭할 수 있습니다.
+
+</div>
+</details>
 
 </div>
 
