@@ -399,7 +399,7 @@ S13P31E107/...
 <table>
     <tr>
         <td width="33%" align="center"> <a href="https://github.com/01seok">
-            <img src="./readme-assets/이석재.jpg" width="160px" /> <br> 이석재 <br>(Backend) </a> <br></td>
+            <img src="./readme-assets/이석재.jpg" width="160px" /> <br> 이석재 <br>(Team Leader & Backend) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/soomkim00">
             <img src="./readme-assets/김수민.jpg" width="160px" /> <br> 김수민 <br>(Backend) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/CometAve">
