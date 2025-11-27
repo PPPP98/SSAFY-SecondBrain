@@ -11,6 +11,7 @@
 **지식을 노트로 저장**하고 **여러 디바이스에서 사용**하여 개인의 지식을 활용할 수 있습니다. **크롬 익스텐션과 MCP**를 통해 지식을 **쉽게 저장**하고 **쉽게 꺼내어** 연결된 지식과 인사이트를 얻으세요.<br/>
 
 > ## Second Brain 프로젝트는
+>
 > 정보과부화 시대에 정보들은 기억 속에서 사라지거나 메모장 어딘가에 묻혀버려 장기기억으로 전환되지 못한다는 **문제의식**에서 출발했습니다. 우리의 서비스는 LLM과 인터넷을 통해 얻은 지식과 정보를 저장하고 연결하여 지식을 구조화하고, 쉽게 꺼내쓰면서 마치 **두 번째 뇌**를 가진 것과 같은 경험을 하게 해줍니다.
 
 - **개발 기간** : 2025.10.02 ~ 2025.11.20 **(7주)**
@@ -22,7 +23,6 @@
 ## 🔎 목차
 
 <div>
-
 
 ### <a href="#skills">📲 기능 구성</a>
 
@@ -40,8 +40,6 @@
 
 <br>
 
-
-
 ## 📲 기능 구성
 
 <a name="skills"></a>
@@ -52,21 +50,66 @@
 
 ## Web
 
-![메인화면](/readme-assets/웹/gif/메인화면.gif)
-![메인화면탐색](/readme-assets/웹/gif/메인화면탐색.gif)
+<table>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">메인화면</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/웹/gif/메인화면.gif"/></td> 
+    </tr>
+  </tbody>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">메인화면 탐색</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/웹/gif/메인화면탐색.gif"/></td> 
+    </tr>
+  </tbody>
+</table>
 
 > 지식 노트는 연관성에 따라 연결되어 시각화됩니다<br>
 > 노트는 저장되는 즉시 자동으로 관련 지식과 연결됩니다
 
 <details>
-<summary>노트 작성 / 삭제 / 검색 보기</summary>
+<summary>기능 상세보기</summary>
 <div markdown="1">
 
-![노트작성](/readme-assets/웹/gif/노트작성.gif)
-![노트수정](/readme-assets/웹/gif/노트수정.gif)
-![노트삭제](/readme-assets/웹/gif/노트삭제.gif)
-![노트검색](/readme-assets/웹/gif/검색후이동.gif)
-
+<table>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">노트 작성</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/웹/gif/노트작성.gif"/></td> 
+    </tr>
+  </tbody>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">노트 수정</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/웹/gif/노트수정.gif"/></td> 
+    </tr>
+  </tbody>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">노트 삭제</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/웹/gif/노트삭제.gif"/></td> 
+    </tr>
+  </tbody>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">노트 검색</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/웹/gif/검색후이동.gif"/></td> 
+    </tr>
+  </tbody>
+</table>
 </div>
 </details>
 
@@ -79,31 +122,97 @@
 크롬 익스텐션을 통해 웹에서 쉽게 정보를 저장하고 꺼내볼 수 있습니다
 
 <details>
-<summary>상세보기</summary>
+<summary>기능 상세보기</summary>
 <div markdown="1">
 
-![드래그저장](/readme-assets/익스텐션/gif/드래그저장.gif)
-![드래그추가](/readme-assets/익스텐션/gif/드래그추가.gif)
-![페이지저장](/readme-assets/익스텐션/gif/추가한%20페이지%20노트로%20저장.gif)
+<table width="100%">
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">드래그 기반 텍스트 저장</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/익스텐션/gif/드래그저장.gif"/></td> 
+    </tr>
+  </tbody>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">드래그 기반 텍스트 추가</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/익스텐션/gif/드래그추가.gif"/></td> 
+    </tr>
+  </tbody>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">전체 페이지 노트 저장</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/익스텐션/gif/추가한%20페이지%20노트로%20저장.gif"/></td> 
+    </tr>
+  </tbody>
+</table>
 
->저장하고 싶은 정보를 드래그하여 context로 추가하거나 노트로 저장할 수 있고 URL 전체를 노트로 저장할 수 있습니다 <br>
+> 저장하고 싶은 정보를 드래그하여 context로 추가하거나 노트로 저장할 수 있고 URL 전체를 노트로 저장할 수 있습니다 <br>
 > URL과 내용을 파싱하여 LLM을 통해 정리하고 노트로 저장합니다
+
+<br/>
 
 저장한 노트를 검색하고 내 Second Brain에 이미 저장되어 있는지 확인할 수 있습니다
 
-![노트검색](/readme-assets/익스텐션/gif/노트검색.gif)
-![드래그검색](/readme-assets/익스텐션/gif/드래그검색.gif)
+<table>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">노트 검색</th>
+    </tr>
+    <tr>
+      <td><img width="80%" src="./readme-assets/익스텐션/gif/노트검색.gif"/></td> 
+    </tr>
+  </tbody>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">드래그 텍스트 기반 노트 검색</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/익스텐션/gif/드래그검색.gif"/></td> 
+    </tr>
+  </tbody>
+</table>
+<br/>
 
 추가로 어떤 내용을 저장할 것인지 익스텐션을 통해 관리할 수 있습니다
 
-![추가페이지](/readme-assets/익스텐션/gif/페이지%20추가.gif)
-![이미추가된페이지](/readme-assets/익스텐션/gif/이미추가된페이지.gif)
-![추가한페이지삭제](/readme-assets/익스텐션/gif/추가한%20페이지%20삭제.gif)
-![임시노트삭제](/readme-assets/익스텐션/gif/임시노트삭제.gif)
-
+<table>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">페이지 추가</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/익스텐션/gif/페이지%20추가.gif"/></td> 
+    </tr>
+  </tbody>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">이미 추가된 페이지일 경우</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/익스텐션/gif/이미추가된페이지.gif"/></td> 
+    </tr>
+  </tbody>
+</table>
+<table>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center" width="50%">추가한 페이지 삭제</th>
+      <th style="text-align: center" width="50%">임시 노트 삭제</th>
+    </tr>
+    <tr>
+      <td width="50%"><img width="80%" src="./readme-assets/익스텐션/gif/추가한%20페이지%20삭제.gif"/></td>
+      <td width="50%"><img width="80%" src="./readme-assets/익스텐션/gif/임시노트삭제.gif"/></td>
+    </tr>
+  </tbody>
+</table>
 </div>
 </details>
-
 
 </div>
 
@@ -114,24 +223,72 @@
 Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 새로운 인사이트를 얻어보세요
 
 <details>
-<summary>상세보기</summary>
+<summary>기능 상세보기</summary>
 <div markdown="1">
 
-![저장요청](/readme-assets/MCP/gif/1_저장요청.gif)
-![노트생성성공](/readme-assets/MCP/gif/2_노트생성성공캡처.png)
-![다중노트생성](/readme-assets/MCP/gif/4_다중노트생성요청캡처.png)
+<table>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">저장 요청하기</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets//MCP/gif/1_저장요청.gif"/></td> 
+    </tr>
+  </tbody>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">노트 생성</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/MCP/gif/2_노트생성성공캡처.png"/></td> 
+    </tr>
+  </tbody>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">다중 노트 생성</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/MCP/gif/4_다중노트생성요청캡처.png"/></td> 
+    </tr>
+  </tbody>
+</table>
 
 > 저장 요청을 통해 새로 알게 된 지식이나 대화 내용을 요약하여 노트로 저장합니다
 
 <br>
+<table>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">그래프 형성</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/MCP/gif/3_그래프형성캡처.png"/></td> 
+    </tr>
+  </tbody>
+</table>
 
-![그래프형성](/readme-assets/MCP/gif/3_그래프형성캡처.png)
 > 저장된 노트는 관련성 있는 노트들과 자동으로 연결됩니다
 
 <br>
 
-![노트검색](/readme-assets/MCP/gif/5_노트검색및연관노트조회새로운인사이트제공.gif)
-![노트검색결과](/readme-assets/MCP/gif/6_노트검색과연관노트검색.png)
+<table>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">노트 검색</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/MCP/gif/5_노트검색및연관노트조회새로운인사이트제공.gif"/></td> 
+    </tr>
+  </tbody>
+  <tbody align="center">
+    <tr>
+      <th style="text-align: center; width:100%;">노트 검색 결과</th>
+    </tr>
+    <tr>
+      <td><img width="100%" src="./readme-assets/MCP/gif/6_노트검색과연관노트검색.png"/></td> 
+    </tr>
+  </tbody>
+</table>
 
 > Graph 검색을 지원하여 LLM이 더 많은 context와 연결성을 이해하고 답변할 수 있습니다
 
@@ -147,13 +304,33 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
 워치와 모바일에서 내가 저장한 노트를 자연어로 검색하고 확인할 수 있습니다
 
 <details>
-<summary>상세보기</summary>
+<summary>기능 상세보기</summary>
 <div markdown="1">
+<table>
+  <tbody align="center"> 
+    <tr>
+      <th style="text-align: center">검색</th>
+      <th style="text-align: center">노트 검색 결과</th>
+    </tr>
+    <tr>
+      <td width="50%"><img width="80%" src="./readme-assets/모바일/gif/모바일검색.gif"/></td> 
+      <td width="50%"><img width="80%" src="./readme-assets/모바일/gif/노트.gif"/></td>
+    </tr>
+  </tbody>
+</table>
 
-![모바일검색](/readme-assets/모바일/gif/모바일검색.gif)
-![워치검색](/readme-assets/워치/워치%20음성인식1.png)
-![워치검색](/readme-assets/워치/워치알림2.png)
-![검색결과](/readme-assets/모바일/gif/노트%20스와이프.gif)
+<table>
+  <tbody align="center"> 
+    <tr>
+      <th style="text-align: center">워치 음성인식</th>
+      <th style="text-align: center">워치 알림</th>
+    </tr>
+    <tr>
+      <td width="50%"><img width="100%" src="./readme-assets/워치/워치%20음성인식1.png"/></td> 
+      <td width="50%"><img width="100%" src="./readme-assets/워치/워치알림2.png"/></td>
+    </tr>
+  </tbody>
+</table>
 
 > 검색 결과를 모바일에서 확인하고 스와이프를 통해 연관 노트를 계속해서 서칭할 수 있습니다
 
@@ -161,7 +338,6 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
 </details>
 
 </div>
-
 
 </div>
 <br>
@@ -244,7 +420,6 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
 | :----------: | :---------: |
 |  **Python**  |    3.13+    |
 
-
 <a href="/knowledge-graph-service/README.md" style="font-size:20px;">README-AI-Backend</a><br>
 <a href="/agent-MCP/README.md" style="font-size:20px;">README-MCP-Server</a>
 
@@ -268,7 +443,6 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
 ![Cloudflare](https://img.shields.io/badge/Cloudflare-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)
 ![n8n](https://img.shields.io/badge/n8n-FF3E00?style=for-the-badge&logo=n8n&logoColor=white)
 
-
 |    **Category**    |        **Spec**        |
 | :----------------: | :--------------------: |
 | **Instance Type**  |       T2.XLARGE        |
@@ -282,9 +456,9 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
 
 </div>
 
-### 🤝 Collaboration
-
 <div align="center">
+
+### 🤝 Collaboration
 
 ![GitLab](https://img.shields.io/badge/gitlab-%23181717.svg?style=for-the-badge&logo=gitlab&logoColor=white)
 ![Figma](https://img.shields.io/badge/figma-%23F24E1E.svg?style=for-the-badge&logo=figma&logoColor=white)
@@ -512,7 +686,6 @@ S13P31E107/...
 </div>
 
 <br>
-
 
 ## 📦 프로젝트 산출물
 
