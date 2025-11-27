@@ -56,7 +56,7 @@
       <th style="text-align: center; width:100%;">메인화면</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/웹/gif/메인화면.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/web/메인화면.gif"/></td> 
     </tr>
   </tbody>
   <tbody align="center">
@@ -64,7 +64,7 @@
       <th style="text-align: center; width:100%;">메인화면 탐색</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/웹/gif/메인화면탐색.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/web/메인화면탐색.gif"/></td> 
     </tr>
   </tbody>
 </table>
@@ -73,7 +73,7 @@
 > 노트는 저장되는 즉시 자동으로 관련 지식과 연결됩니다
 
 <details>
-<summary>기능 상세보기</summary>
+<summary>기능 상세 보기</summary>
 <div markdown="1">
 
 <table>
@@ -82,7 +82,7 @@
       <th style="text-align: center; width:100%;">노트 작성</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/웹/gif/노트작성.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/web/노트작성.gif"/></td> 
     </tr>
   </tbody>
   <tbody align="center">
@@ -90,7 +90,7 @@
       <th style="text-align: center; width:100%;">노트 수정</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/웹/gif/노트수정.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/web/노트수정.gif"/></td> 
     </tr>
   </tbody>
   <tbody align="center">
@@ -98,7 +98,7 @@
       <th style="text-align: center; width:100%;">노트 삭제</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/웹/gif/노트삭제.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/web/노트삭제.gif"/></td> 
     </tr>
   </tbody>
   <tbody align="center">
@@ -106,7 +106,7 @@
       <th style="text-align: center; width:100%;">노트 검색</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/웹/gif/검색후이동.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/web/노트검색.gif"/></td> 
     </tr>
   </tbody>
 </table>
@@ -122,7 +122,7 @@
 크롬 익스텐션을 통해 웹에서 쉽게 정보를 저장하고 꺼내볼 수 있습니다
 
 <details>
-<summary>기능 상세보기</summary>
+<summary>기능 상세 보기</summary>
 <div markdown="1">
 
 <table width="100%">
@@ -131,7 +131,7 @@
       <th style="text-align: center; width:100%;">드래그 기반 텍스트 저장</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/익스텐션/gif/드래그저장.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/extension/드래그기반텍스트저장.gif"/></td> 
     </tr>
   </tbody>
   <tbody align="center">
@@ -139,7 +139,7 @@
       <th style="text-align: center; width:100%;">드래그 기반 텍스트 추가</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/익스텐션/gif/드래그추가.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/extension/드래그기반텍스트추가.gif"/></td> 
     </tr>
   </tbody>
   <tbody align="center">
@@ -147,7 +147,7 @@
       <th style="text-align: center; width:100%;">전체 페이지 노트 저장</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/익스텐션/gif/추가한%20페이지%20노트로%20저장.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/extension/전체페이지노트저장.gif"/></td> 
     </tr>
   </tbody>
 </table>
@@ -165,7 +165,7 @@
       <th style="text-align: center; width:100%;">노트 검색</th>
     </tr>
     <tr>
-      <td><img width="80%" src="./readme-assets/익스텐션/gif/노트검색.gif"/></td> 
+      <td><img width="80%" src="./readme-assets/extension/노트검색.gif"/></td> 
     </tr>
   </tbody>
   <tbody align="center">
@@ -173,7 +173,7 @@
       <th style="text-align: center; width:100%;">드래그 텍스트 기반 노트 검색</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/익스텐션/gif/드래그검색.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/extension/드래그텍스트기반노트검색.gif"/></td> 
     </tr>
   </tbody>
 </table>
@@ -187,7 +187,7 @@
       <th style="text-align: center; width:100%;">페이지 추가</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/익스텐션/gif/페이지%20추가.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/extension/페이지%20추가.gif"/></td> 
     </tr>
   </tbody>
   <tbody align="center">
@@ -195,7 +195,7 @@
       <th style="text-align: center; width:100%;">이미 추가된 페이지일 경우</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/익스텐션/gif/이미추가된페이지.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/extension/이미추가된페이지.gif"/></td> 
     </tr>
   </tbody>
 </table>
@@ -206,8 +206,8 @@
       <th style="text-align: center" width="50%">임시 노트 삭제</th>
     </tr>
     <tr>
-      <td width="50%"><img width="80%" src="./readme-assets/익스텐션/gif/추가한%20페이지%20삭제.gif"/></td>
-      <td width="50%"><img width="80%" src="./readme-assets/익스텐션/gif/임시노트삭제.gif"/></td>
+      <td width="50%"><img width="80%" src="./readme-assets/extension/추가한%20페이지%20삭제.gif"/></td>
+      <td width="50%"><img width="80%" src="./readme-assets/extension/임시노트삭제.gif"/></td>
     </tr>
   </tbody>
 </table>
@@ -223,7 +223,7 @@
 Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 새로운 인사이트를 얻어보세요
 
 <details>
-<summary>기능 상세보기</summary>
+<summary>기능 상세 보기</summary>
 <div markdown="1">
 
 <table>
@@ -232,7 +232,7 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
       <th style="text-align: center; width:100%;">저장 요청하기</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets//MCP/gif/1_저장요청.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/MCP/1_저장요청.gif"/></td> 
     </tr>
   </tbody>
   <tbody align="center">
@@ -240,7 +240,7 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
       <th style="text-align: center; width:100%;">노트 생성</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/MCP/gif/2_노트생성성공캡처.png"/></td> 
+      <td><img width="100%" src="./readme-assets/MCP/2_노트생성성공캡처.png"/></td> 
     </tr>
   </tbody>
   <tbody align="center">
@@ -248,7 +248,7 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
       <th style="text-align: center; width:100%;">다중 노트 생성</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/MCP/gif/4_다중노트생성요청캡처.png"/></td> 
+      <td><img width="100%" src="./readme-assets/MCP/4_다중노트생성요청캡처.png"/></td> 
     </tr>
   </tbody>
 </table>
@@ -262,7 +262,7 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
       <th style="text-align: center; width:100%;">그래프 형성</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/MCP/gif/3_그래프형성캡처.png"/></td> 
+      <td><img width="100%" src="./readme-assets/MCP/3_그래프형성캡처.png"/></td> 
     </tr>
   </tbody>
 </table>
@@ -277,7 +277,7 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
       <th style="text-align: center; width:100%;">노트 검색</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/MCP/gif/5_노트검색및연관노트조회새로운인사이트제공.gif"/></td> 
+      <td><img width="100%" src="./readme-assets/MCP/5_노트검색및연관노트조회새로운인사이트제공.gif"/></td> 
     </tr>
   </tbody>
   <tbody align="center">
@@ -285,7 +285,7 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
       <th style="text-align: center; width:100%;">노트 검색 결과</th>
     </tr>
     <tr>
-      <td><img width="100%" src="./readme-assets/MCP/gif/6_노트검색과연관노트검색.png"/></td> 
+      <td><img width="100%" src="./readme-assets/MCP/6_노트검색과연관노트검색.png"/></td> 
     </tr>
   </tbody>
 </table>
@@ -304,7 +304,7 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
 워치와 모바일에서 내가 저장한 노트를 자연어로 검색하고 확인할 수 있습니다
 
 <details>
-<summary>기능 상세보기</summary>
+<summary>기능 상세 보기</summary>
 <div markdown="1">
 <table>
   <tbody align="center"> 
@@ -313,26 +313,36 @@ Second Brain을 LLM 서비스와 연결하여 지식을 생성하고 꺼내서 �
       <th style="text-align: center">노트 검색 결과</th>
     </tr>
     <tr>
-      <td width="50%"><img width="80%" src="./readme-assets/모바일/gif/모바일검색.gif"/></td> 
-      <td width="50%"><img width="80%" src="./readme-assets/모바일/gif/노트.gif"/></td>
-    </tr>
-  </tbody>
-</table>
-
-<table>
-  <tbody align="center"> 
-    <tr>
-      <th style="text-align: center">워치 음성인식</th>
-      <th style="text-align: center">워치 알림</th>
-    </tr>
-    <tr>
-      <td width="50%"><img width="100%" src="./readme-assets/워치/워치%20음성인식1.png"/></td> 
-      <td width="50%"><img width="100%" src="./readme-assets/워치/워치알림2.png"/></td>
+      <td width="50%"><img width="80%" src="./readme-assets/mobile/모바일검색.gif"/></td> 
+      <td width="50%"><img width="80%" src="./readme-assets/mobile/노트.gif"/></td>
     </tr>
   </tbody>
 </table>
 
 > 검색 결과를 모바일에서 확인하고 스와이프를 통해 연관 노트를 계속해서 서칭할 수 있습니다
+
+<br/>
+
+<table width="100%">
+  <tbody align="center"> 
+    <tr>
+      <th style="text-align: center" colspan="2">음성 검색</th>
+    </tr>
+    <tr>
+      <td width="50%"><img width="90%" src="./readme-assets/watch/워치%20음성인식1.png"/></td> 
+      <td width="50%"><img width="90%" src="./readme-assets/watch/워치 음성인식2.png"/></td>
+    </tr>
+  </tbody>
+  <tbody align="center"> 
+    <tr>
+      <th style="text-align: center" colspan="2">음성 검색 알림</th>
+    </tr>
+    <tr>
+      <td width="50%"><img width="90%" src="./readme-assets/watch/워치알림1.png"/></td> 
+      <td width="50%"><img width="90%" src="./readme-assets/watch/워치알림2.png"/></td>
+    </tr>
+  </tbody>
+</table>
 
 </div>
 </details>
@@ -604,11 +614,11 @@ S13P31E107/...
 <table>
     <tr>
         <td width="33%" align="center"> <a href="https://github.com/01seok">
-            <img src="./readme-assets/이석재.jpg" width="160px" /> <br> 이석재 <br>(Team Leader & Backend) </a> <br></td>
+            <img src="./readme-assets/profile/이석재.jpg" width="160px" /> <br> 이석재 <br>(Team Leader & Backend) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/soomkim00">
-            <img src="./readme-assets/김수민.jpg" width="160px" /> <br> 김수민 <br>(Backend) </a> <br></td>
+            <img src="./readme-assets/profile/김수민.jpg" width="160px" /> <br> 김수민 <br>(Backend) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/CometAve">
-            <img src="./readme-assets/노혜성.jpg" width="160px" /> <br> 노혜성 <br>(Full Stack) </a> <br></td>
+            <img src="./readme-assets/profile/노혜성.jpg" width="160px" /> <br> 노혜성 <br>(Full Stack) </a> <br></td>
     </tr>
     <tr>
       <td width="280px">
@@ -645,11 +655,11 @@ S13P31E107/...
 <table>
     <tr>
         <td width="33%" align="center"> <a href="https://github.com/PPPP98">
-        <img src="./readme-assets/" width="160px" /> <br> 박진호 <br>(Backend & AI) </a> <br></td>
+        <img src="./readme-assets/profile/" width="160px" /> <br> 박진호 <br>(Backend & AI) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/yeneua">
-        <img src="./readme-assets/" width="160px" /> <br> 김예나 <br>(Frontend) </a> <br></td>
+        <img src="./readme-assets/profile/yena_kim.jpg" width="160px" /> <br> 김예나 <br>(Frontend) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/seok0205">
-        <img src="./readme-assets/jungseok.jpg" width="160px" /> <br> 유정석 <br>(DevOps) </a> <br></td>
+        <img src="./readme-assets/profile/jungseok.jpg" width="160px" /> <br> 유정석 <br>(DevOps) </a> <br></td>
     </tr>
     <tr>
         <td width="280px">
