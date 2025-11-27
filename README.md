@@ -430,7 +430,7 @@ S13P31E107/...
           - Redis 기반 실시간 Draft 저장 시스템 구현 (멱등성 보장) <br>
           - 크롬 익스텐션 UI 개발 <br>
           - 크롬 익스텐션: Shadow DOM 격리, Drag-to-Search, OAuth 2.0 New Tab 방식 구현 <br>
-          - Milkdown 에디어 통합, 성능 최적화 (3D UI, Vite)<br>
+          - Milkdown 에디터 통합, 성능 최적화 (3D UI, Vite)<br>
           - Docker 기반 로컬 개발 환경 구축
         </sub>
       </td>
