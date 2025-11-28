@@ -655,7 +655,7 @@ S13P31E107/...
 <table>
     <tr>
         <td width="33%" align="center"> <a href="https://github.com/PPPP98">
-        <img src="./readme-assets/profile/" width="160px" /> <br> 박진호 <br>(Backend & AI) </a> <br></td>
+        <img src="./readme-assets/profile/박진호.jpg" width="160px" /> <br> 박진호 <br>(Backend & AI) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/yeneua">
         <img src="./readme-assets/profile/yena_kim.jpg" width="160px" /> <br> 김예나 <br>(Frontend) </a> <br></td>
         <td width="33%" align="center"> <a href="https://github.com/seok0205">
@@ -664,9 +664,13 @@ S13P31E107/...
     <tr>
         <td width="280px">
           <sub>
-            - FastAPI를 활용해 Agent & Neo4j 로직 서비스 제공<br>
+            - Neo4j 지식 그래프 연결 서비스 구현<br>
+            - LLM을 활용해 자연어 동적쿼리 작성 Agent 구현<br>
+            - 동적쿼리와 유사도 검색을 결합한 검색 Agent 구현<br>
+            - URL & text context 파싱 및 요약 Agent 구현<br>
+            - FastAPI를 활용해 Agent & Neo4j 로직 엔드포인트 제공<br>
             - Neo4j 그래프 연결 비동기 처리를 위한 RabbitMQ 이벤트 컨슈머 워커 구성<br>
-            - LangChain/LangGraph를 활용한 Agent 워크플로우 설계 및 구현
+            - LangChain/LangGraph를 활용한 전체 Agent 워크플로우 설계 및 구현
           </sub>
         </td>
         <td width="280px">
